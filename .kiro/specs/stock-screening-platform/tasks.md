@@ -7,7 +7,7 @@
 ## Tasks
 
 - [ ] 1. 领域层：枚举、值对象与基础类型
-  - [-] 1.1 创建枚举定义文件
+  - [x] 1.1 创建枚举定义文件
     - 创建 `src/server/domain/screening/enums/indicator-field.ts`：定义 IndicatorField 枚举（ROE、PE、PB、EPS、REVENUE、NET_PROFIT、DEBT_RATIO、MARKET_CAP 等），每个字段标注 category（BASIC / TIME_SERIES / DERIVED）和 valueType（NUMERIC / TEXT）
     - 创建 `src/server/domain/screening/enums/comparison-operator.ts`：定义 ComparisonOperator 枚举（GREATER_THAN、LESS_THAN、EQUAL、NOT_EQUAL、IN、NOT_IN、BETWEEN、CONTAINS）
     - 创建 `src/server/domain/screening/enums/logical-operator.ts`：定义 LogicalOperator 枚举（AND、OR、NOT）
@@ -15,7 +15,7 @@
     - 创建 `src/server/domain/screening/enums/index.ts` 统一导出
     - _Requirements: 2.2, 2.3_
 
-  - [~] 1.2 创建 StockCode 共享内核值对象
+  - [-] 1.2 创建 StockCode 共享内核值对象
     - 创建 `src/server/domain/screening/value-objects/stock-code.ts`
     - 实现 A 股代码规范验证（6 位数字，以 0/3/6 开头）
     - 实现 equals、toString 方法

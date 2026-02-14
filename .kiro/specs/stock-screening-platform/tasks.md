@@ -66,7 +66,7 @@
     - 验证构造成功当且仅当类型匹配且运算符兼容
     - **Validates: Requirements 2.2, 2.3**
 
-  - [~] 2.3 实现 FilterGroup 实体（递归结构）
+  - [x] 2.3 实现 FilterGroup 实体（递归结构）
     - 创建 `src/server/domain/screening/entities/filter-group.ts`
     - 实现 match(stock, calcService) 递归匹配：AND 全匹配、OR 任一匹配、NOT 取反
     - 实现 NOT 组约束：仅允许一个子元素

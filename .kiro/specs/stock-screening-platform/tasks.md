@@ -52,7 +52,7 @@
     - _Requirements: 1.5, 1.6, 5.3, 6.5_
 
 - [ ] 2. 领域层：FilterCondition 与 FilterGroup
-  - [~] 2.1 实现 FilterCondition 值对象
+  - [x] 2.1 实现 FilterCondition 值对象
     - 创建 `src/server/domain/screening/value-objects/filter-condition.ts`
     - 实现构造时的类型验证：IndicatorField.valueType 与 IndicatorValue.type 匹配
     - 实现构造时的运算符兼容性验证：ComparisonOperator 与 IndicatorValue.type 兼容

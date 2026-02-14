@@ -46,7 +46,7 @@
     - 实现 getValue(indicator: IndicatorField) 方法返回对应指标值或 null
     - _Requirements: 6.4_
 
-  - [~] 1.7 创建领域异常类
+  - [x] 1.7 创建领域异常类
     - 创建 `src/server/domain/screening/errors.ts`
     - 定义 InvalidStrategyError、DuplicateStockError、StockNotFoundError、InvalidFilterConditionError、ScoringError、IndicatorCalculationError、DataNotAvailableError
     - _Requirements: 1.5, 1.6, 5.3, 6.5_

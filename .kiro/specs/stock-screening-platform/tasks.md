@@ -75,7 +75,7 @@
     - 实现 toDict / fromDict 序列化（递归结构）
     - _Requirements: 2.1, 2.4, 2.5_
 
-  - [~] 2.4 编写 FilterGroup 序列化往返属性基测试
+  - [x] 2.4 编写 FilterGroup 序列化往返属性基测试
     - **Property 4: FilterGroup 与 FilterCondition 序列化往返一致性**
     - 使用 fast-check letrec 生成随机递归 FilterGroup 树
     - 验证 fromDict(toDict(group)) 与原始 group 结构等价
@@ -104,12 +104,12 @@
     - 实现 execute(candidateStocks, scoringService, calcService) 编排筛选流程
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.7, 3.1_
 
-  - [-] 4.2 编写策略不变量属性基测试
+  - [x] 4.2 编写策略不变量属性基测试
     - **Property 1: 策略业务不变量验证**
     - 生成随机策略参数，验证不变量违反时操作被拒绝
     - **Validates: Requirements 1.2, 1.5, 1.6**
 
-  - [~] 4.3 编写策略克隆深拷贝属性基测试
+  - [x] 4.3 编写策略克隆深拷贝属性基测试
     - **Property 2: 策略克隆深拷贝独立性**
     - 生成随机策略，克隆后修改新策略，验证原策略不受影响
     - **Validates: Requirements 1.4**

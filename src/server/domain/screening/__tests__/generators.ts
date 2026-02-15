@@ -12,6 +12,8 @@ import { FilterCondition } from "../value-objects/filter-condition";
 import { FilterGroup } from "../entities/filter-group";
 import { ScoringConfig, NormalizationMethod } from "../value-objects/scoring-config";
 import type { IndicatorValue } from "../value-objects/indicator-value";
+import { Stock } from "../entities/stock";
+import { StockCode } from "../value-objects/stock-code";
 
 /**
  * 生成有效的股票代码（6位数字，以0/3/6开头）
@@ -274,3 +276,38 @@ export const arbStrategyName = fc.string({ minLength: 1, maxLength: 50 }).filter
  * 生成用户ID
  */
 export const arbUserId = fc.uuid();
+
+/**
+ * 生成 Stock 实体
+ */
+export const arbStock = fc.record({
+  code: arbStockCode,
+  name: fc.string({ minLength: 2, maxLength: 10 }),
+  industry: fc.constantFrom("白酒", "医药", "银行", "科技", "制造"),
+  sector: fc.constantFrom("主板", "创业板", "科创板"),
+  roe: fc.option(fc.double({ min: -0.5, max: 1.0, noNaN: true })),
+  pe: fc.option(fc.double({ min: 0, max: 200, noNaN: true })),
+  pb: fc.option(fc.double({ min: 0, max: 50, noNaN: true })),
+  eps: fc.option(fc.double({ min: -10, max: 100, noNaN: true })),
+  revenue: fc.option(fc.double({ min: 0, max: 10000, noNaN: true })),
+  netProfit: fc.option(fc.double({ min: -1000, max: 5000, noNaN: true })),
+  debtRatio: fc.option(fc.double({ min: 0, max: 1.0, noNaN: true })),
+  marketCap: fc.option(fc.double({ min: 10, max: 100000, noNaN: true })),
+  floatMarketCap: fc.option(fc.double({ min: 10, max: 100000, noNaN: true })),
+}).map((props) => {
+  return new Stock({
+    code: StockCode.create(props.code),
+    name: props.name,
+    industry: props.industry,
+    sector: props.sector,
+    roe: props.roe ?? null,
+    pe: props.pe ?? null,
+    pb: props.pb ?? null,
+    eps: props.eps ?? null,
+    revenue: props.revenue ?? null,
+    netProfit: props.netProfit ?? null,
+    debtRatio: props.debtRatio ?? null,
+    marketCap: props.marketCap ?? null,
+    floatMarketCap: props.floatMarketCap ?? null,
+  });
+});

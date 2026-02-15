@@ -81,7 +81,7 @@
     - 验证 fromDict(toDict(group)) 与原始 group 结构等价
     - **Validates: Requirements 2.5, 2.6**
 
-  - [~] 2.5 编写 FilterGroup 递归匹配语义属性基测试
+  - [x] 2.5 编写 FilterGroup 递归匹配语义属性基测试
     - **Property 5: FilterGroup 递归匹配语义正确性**
     - 生成随机 FilterGroup 树和 Stock，验证 AND/OR/NOT 语义
     - **Validates: Requirements 2.1**

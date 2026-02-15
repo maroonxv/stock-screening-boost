@@ -104,7 +104,7 @@
     - 实现 execute(candidateStocks, scoringService, calcService) 编排筛选流程
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.7, 3.1_
 
-  - [~] 4.2 编写策略不变量属性基测试
+  - [-] 4.2 编写策略不变量属性基测试
     - **Property 1: 策略业务不变量验证**
     - 生成随机策略参数，验证不变量违反时操作被拒绝
     - **Validates: Requirements 1.2, 1.5, 1.6**

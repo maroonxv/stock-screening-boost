@@ -18,18 +18,97 @@ import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
 import { ScreeningStrategy } from "../screening-strategy";
 import { FilterGroup } from "../../entities/filter-group";
+import { FilterCondition } from "../../value-objects/filter-condition";
 import { ScoringConfig, NormalizationMethod } from "../../value-objects/scoring-config";
 import { InvalidStrategyError } from "../../errors";
 import { LogicalOperator } from "../../enums/logical-operator";
 import { IndicatorField } from "../../enums/indicator-field";
-import {
-  arbFilterGroup,
-  arbScoringConfig,
-  arbStrategyName,
-  arbUserId,
-  arbNumericIndicatorField,
-  arbValidFilterCondition,
-} from "../../__tests__/generators";
+import { ComparisonOperator } from "../../enums/comparison-operator";
+import type { IndicatorValue } from "../../value-objects/indicator-value";
+
+// Local generators to avoid circular dependencies
+const arbStrategyName = fc.string({ minLength: 1, maxLength: 50 }).filter(name => name.trim().length > 0);
+const arbUserId = fc.uuid();
+
+const arbNumericIndicatorField = fc.constantFrom(
+  IndicatorField.ROE,
+  IndicatorField.PE,
+  IndicatorField.PB,
+  IndicatorField.EPS
+);
+
+const arbNumericValue = fc
+  .double({ min: -1000, max: 10000, noNaN: true })
+  .map((value): IndicatorValue => ({ type: "numeric", value }));
+
+const arbTextValue = fc
+  .string({ minLength: 1, maxLength: 20 })
+  .map((value): IndicatorValue => ({ type: "text", value }));
+
+const arbListValue = fc
+  .array(fc.string({ minLength: 1, maxLength: 20 }), { minLength: 1, maxLength: 5 })
+  .map((values): IndicatorValue => ({ type: "list", values }));
+
+const arbValidFilterCondition = fc
+  .oneof(
+    fc.tuple(arbNumericIndicatorField, fc.constant(ComparisonOperator.GREATER_THAN), arbNumericValue),
+    fc.tuple(fc.constant(IndicatorField.INDUSTRY), fc.constant(ComparisonOperator.IN), arbListValue),
+    fc.tuple(fc.constant(IndicatorField.INDUSTRY), fc.constant(ComparisonOperator.NOT_EQUAL), arbTextValue)
+  )
+  .map(([field, operator, value]) => FilterCondition.create(field, operator, value));
+
+const arbFilterGroup = (maxDepth = 2): fc.Arbitrary<FilterGroup> => {
+  const arbLeafGroup = fc
+    .array(arbValidFilterCondition, { minLength: 1, maxLength: 2 })
+    .map((conditions) => FilterGroup.create(LogicalOperator.AND, conditions, []));
+
+  if (maxDepth <= 1) {
+    return arbLeafGroup;
+  }
+
+  const arbRecursiveGroup = fc
+    .tuple(
+      fc.array(arbValidFilterCondition, { minLength: 1, maxLength: 2 }),
+      fc.array(arbFilterGroup(maxDepth - 1), { minLength: 0, maxLength: 1 })
+    )
+    .map(([conditions, subGroups]) =>
+      FilterGroup.create(LogicalOperator.AND, conditions, subGroups)
+    );
+
+  return fc.oneof(arbLeafGroup, arbRecursiveGroup);
+};
+
+const arbScoringConfig = fc
+  .array(
+    fc.tuple(
+      arbNumericIndicatorField,
+      fc.double({ min: 0.01, max: 1, noNaN: true, noDefaultInfinity: true })
+    ),
+    { minLength: 1, maxLength: 3 }
+  )
+  .chain((pairs) => {
+    const uniquePairs = Array.from(
+      new Map(pairs.map(([field, weight]) => [field, weight])).entries()
+    );
+
+    if (uniquePairs.length === 0) {
+      return fc.constant(
+        ScoringConfig.create(
+          new Map([[IndicatorField.ROE, 1.0]]),
+          NormalizationMethod.MIN_MAX
+        )
+      );
+    }
+
+    const totalWeight = uniquePairs.reduce((sum, [, weight]) => sum + weight, 0);
+    const normalizedWeights = new Map(
+      uniquePairs.map(([field, weight]) => [field, weight / totalWeight])
+    );
+
+    return fc.constant(
+      ScoringConfig.create(normalizedWeights, NormalizationMethod.MIN_MAX)
+    );
+  });
 
 describe("ScreeningStrategy - Property-Based Tests", () => {
   describe("Property 1: 策略业务不变量验证", () => {

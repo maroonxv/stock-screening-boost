@@ -22,8 +22,8 @@
  * );
  */
 
-import type { StockCode } from "./stock-code";
-import type { IndicatorField } from "../enums/indicator-field";
+import type { StockCode } from "./stock-code.js";
+import type { IndicatorField } from "../enums/indicator-field.js";
 
 /**
  * 筛选条件简化表示（用于 matchedConditions）

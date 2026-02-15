@@ -1,4 +1,4 @@
-import { IndicatorCategory } from "./indicator-category";
+import { IndicatorCategory } from "./indicator-category.js";
 
 /**
  * 指标值类型

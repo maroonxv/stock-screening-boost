@@ -9,18 +9,18 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { ScreeningStrategy } from "../screening-strategy";
-import { FilterGroup } from "../../entities/filter-group";
-import { FilterCondition } from "../../value-objects/filter-condition";
-import { ScoringConfig, NormalizationMethod } from "../../value-objects/scoring-config";
-import { IndicatorField } from "../../enums/indicator-field";
-import { ComparisonOperator } from "../../enums/comparison-operator";
-import { LogicalOperator } from "../../enums/logical-operator";
-import { InvalidStrategyError } from "../../errors";
-import { Stock } from "../../entities/stock";
-import { StockCode } from "../../value-objects/stock-code";
-import type { IScoringService, IIndicatorCalculationService } from "../screening-strategy";
-import { ScoredStock } from "../../value-objects/scored-stock";
+import { ScreeningStrategy } from "../screening-strategy.js";
+import { FilterGroup } from "../../entities/filter-group.js";
+import { FilterCondition } from "../../value-objects/filter-condition.js";
+import { ScoringConfig, NormalizationMethod } from "../../value-objects/scoring-config.js";
+import { IndicatorField } from "../../enums/indicator-field.js";
+import { ComparisonOperator } from "../../enums/comparison-operator.js";
+import { LogicalOperator } from "../../enums/logical-operator.js";
+import { InvalidStrategyError } from "../../errors.js";
+import { Stock } from "../../entities/stock.js";
+import { StockCode } from "../../value-objects/stock-code.js";
+import type { IScoringService, IIndicatorCalculationService } from "../screening-strategy.js";
+import { ScoredStock } from "../../value-objects/scored-stock.js";
 
 describe("ScreeningStrategy", () => {
   // 辅助函数：创建有效的筛选条件
@@ -54,10 +54,10 @@ describe("ScreeningStrategy", () => {
 
   // Mock 服务
   const mockCalcService: IIndicatorCalculationService = {
-    calculateIndicator: (indicator, stock) => stock.getValue(indicator),
-    calculateBatch: (indicators, stock) => {
+    calculateIndicator: (indicator: IndicatorField, stock: Stock) => stock.getValue(indicator),
+    calculateBatch: (indicators: IndicatorField[], stock: Stock) => {
       const result = new Map();
-      indicators.forEach((ind) => {
+      indicators.forEach((ind: IndicatorField) => {
         result.set(ind, stock.getValue(ind));
       });
       return result;

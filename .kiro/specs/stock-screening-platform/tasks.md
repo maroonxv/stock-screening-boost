@@ -92,7 +92,7 @@
     - 验证 evaluate 返回 false
     - **Validates: Requirements 3.3**
 
-- [x] 3. Checkpoint - 值对象与实体测试通过
+- [-] 3. Checkpoint - 值对象与实体测试通过
   - 确保所有已编写的测试通过，如有问题请向用户确认。
 
 - [ ] 4. 领域层：聚合根

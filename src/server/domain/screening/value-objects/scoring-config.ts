@@ -19,7 +19,7 @@
  * );
  */
 
-import { IndicatorField } from "../enums/indicator-field";
+import { IndicatorField } from "../enums/indicator-field.js";
 
 /**
  * 归一化方法枚举

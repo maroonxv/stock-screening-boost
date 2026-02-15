@@ -28,8 +28,8 @@
  * const restored = FilterCondition.fromDict(dict);
  */
 
-import { IndicatorField, getIndicatorValueType, IndicatorValueType } from "../enums/indicator-field";
-import { ComparisonOperator } from "../enums/comparison-operator";
+import { IndicatorField, getIndicatorValueType, IndicatorValueType } from "../enums/indicator-field.js";
+import { ComparisonOperator } from "../enums/comparison-operator.js";
 import {
   IndicatorValue,
   isNumericValue,
@@ -39,9 +39,9 @@ import {
   indicatorValueToDict,
   indicatorValueFromDict,
   indicatorValueEquals,
-} from "./indicator-value";
-import { InvalidFilterConditionError } from "../errors";
-import type { Stock } from "../entities/stock";
+} from "./indicator-value.js";
+import { InvalidFilterConditionError } from "../errors.js";
+import type { Stock } from "../entities/stock.js";
 
 /**
  * 指标计算服务接口（前向声明）

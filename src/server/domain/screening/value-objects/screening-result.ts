@@ -16,7 +16,8 @@
  * );
  */
 
-import type { ScoredStock } from "./scored-stock";
+import type { ScoredStock } from "./scored-stock.js";
+import { ScoredStock as ScoredStockClass } from "./scored-stock.js";
 
 /**
  * ScreeningResult 值对象
@@ -172,11 +173,8 @@ export class ScreeningResult {
       throw new Error("executionTime 必须为数字");
     }
 
-    // 导入 ScoredStock
-    const { ScoredStock } = require("./scored-stock") as typeof import("./scored-stock");
-
     const matchedStocks = matchedStocksData.map((stockData) =>
-      ScoredStock.fromDict(stockData)
+      ScoredStockClass.fromDict(stockData)
     );
 
     return ScreeningResult.create(matchedStocks, totalScanned, executionTime);

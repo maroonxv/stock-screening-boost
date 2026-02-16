@@ -165,7 +165,7 @@
     - 实现加权求和：score = Σ(归一化值 × 权重)
     - _Requirements: 3.4, 3.5_
 
-  - [~] 5.4 编写评分排序属性基测试
+  - [x] 5.4 编写评分排序属性基测试
     - **Property 6: 筛选结果按评分降序排列**
     - 生成随机股票列表和 ScoringConfig，验证结果按 score 降序
     - **Validates: Requirements 3.1**

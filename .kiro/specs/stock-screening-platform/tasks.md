@@ -132,7 +132,7 @@
     - 实现 contains、getStocksByTag 方法
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-  - [~] 4.7 编写 WatchList 一致性属性基测试
+  - [x] 4.7 编写 WatchList 一致性属性基测试
     - **Property 10: WatchList 添加/移除/包含一致性**
     - 生成随机操作序列，验证 add→contains=true、remove→contains=false、重复 add 抛错
     - **Validates: Requirements 5.2, 5.3, 5.4**

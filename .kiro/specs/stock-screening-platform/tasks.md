@@ -192,7 +192,7 @@
     - 处理 FilterGroup 和 ScoringConfig 的 JSON 序列化/反序列化
     - _Requirements: 1.1, 1.7_
 
-  - [~] 7.3 实现 PrismaScreeningSessionRepository
+  - [x] 7.3 实现 PrismaScreeningSessionRepository
     - 创建 `src/server/infrastructure/screening/prisma-screening-session-repository.ts`
     - 实现 IScreeningSessionRepository 接口：save、findById、delete、findByStrategy、findRecentSessions
     - _Requirements: 4.1, 4.2, 4.3, 4.4_

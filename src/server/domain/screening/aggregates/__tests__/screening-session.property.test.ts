@@ -144,6 +144,7 @@ describe("ScreeningSession - Property-Based Tests", () => {
             const session = ScreeningSession.create({
               strategyId: "test-strategy",
               strategyName: "测试策略",
+              userId: "test-user-1",
               result,
               filtersSnapshot: filters,
               scoringConfigSnapshot: scoringConfig,
@@ -181,6 +182,7 @@ describe("ScreeningSession - Property-Based Tests", () => {
             const session = ScreeningSession.create({
               strategyId: "test-strategy",
               strategyName: "测试策略",
+              userId: "test-user-1",
               result,
               filtersSnapshot: filters,
               scoringConfigSnapshot: scoringConfig,
@@ -213,6 +215,7 @@ describe("ScreeningSession - Property-Based Tests", () => {
             const session = ScreeningSession.create({
               strategyId: "test-strategy",
               strategyName: "测试策略",
+              userId: "test-user-1",
               result,
               filtersSnapshot: filters,
               scoringConfigSnapshot: scoringConfig,
@@ -249,6 +252,7 @@ describe("ScreeningSession - Property-Based Tests", () => {
             const session = ScreeningSession.create({
               strategyId: "test-strategy",
               strategyName: "测试策略",
+              userId: "test-user-1",
               result,
               filtersSnapshot: filters,
               scoringConfigSnapshot: scoringConfig,
@@ -281,6 +285,7 @@ describe("ScreeningSession - Property-Based Tests", () => {
             const session = ScreeningSession.create({
               strategyId: "test-strategy",
               strategyName: "测试策略",
+              userId: "test-user-1",
               result,
               filtersSnapshot: filters,
               scoringConfigSnapshot: scoringConfig,
@@ -312,6 +317,7 @@ describe("ScreeningSession - Property-Based Tests", () => {
             const session = ScreeningSession.create({
               strategyId: "test-strategy",
               strategyName: "测试策略",
+              userId: "test-user-1",
               result,
               filtersSnapshot: filters,
               scoringConfigSnapshot: scoringConfig,
@@ -343,6 +349,7 @@ describe("ScreeningSession - Property-Based Tests", () => {
             const session = ScreeningSession.create({
               strategyId: "test-strategy",
               strategyName: "测试策略",
+              userId: "test-user-1",
               result,
               filtersSnapshot: filters,
               scoringConfigSnapshot: scoringConfig,
@@ -378,6 +385,7 @@ describe("ScreeningSession - Property-Based Tests", () => {
             const session = ScreeningSession.create({
               strategyId: "test-strategy",
               strategyName: "测试策略",
+              userId: "test-user-1",
               result,
               filtersSnapshot: filters,
               scoringConfigSnapshot: scoringConfig,

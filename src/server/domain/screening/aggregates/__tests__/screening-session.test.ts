@@ -1,5 +1,5 @@
-ï»¿/**
- * ScreeningSession èšåˆæ ¹å•å…ƒæµ‹è¯•
+/**
+ * ScreeningSession ¾ÛºÏ¸ùµ¥Ôª²âÊÔ
  */
 
 import { describe, it, expect } from "vitest";
@@ -43,17 +43,17 @@ describe("ScreeningSession", () => {
   }
 
   describe("create", () => {
-    it("åº”è¯¥åˆ›å»ºåŒ…å«å°‘äº 50 åªè‚¡ç¥¨çš„ä¼šè¯", () => {
+    it("Ó¦¸Ã´´½¨°üº¬ÉÙÓÚ 50 Ö»¹ÉÆ±µÄ»á»°", () => {
       const stocks = [
-        createScoredStock("600519", "è´µå·èŒ…å°", 0.9),
-        createScoredStock("000858", "äº”ç²®æ¶²", 0.8),
-        createScoredStock("000333", "ç¾çš„é›†å›¢", 0.7),
+        createScoredStock("600519", "¹óÖİÃ©Ì¨", 0.9),
+        createScoredStock("000858", "ÎåÁ¸Òº", 0.8),
+        createScoredStock("000333", "ÃÀµÄ¼¯ÍÅ", 0.7),
       ];
 
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
         strategyId: "strategy-1",
-        strategyName: "é«˜ ROE ç­–ç•¥",
+        strategyName: "¸ß ROE ²ßÂÔ",
         result,
         filtersSnapshot: createTestFilterGroup(),
         scoringConfigSnapshot: createTestScoringConfig(),
@@ -64,17 +64,17 @@ describe("ScreeningSession", () => {
       expect(session.countMatched()).toBe(3);
     });
 
-    it("åº”è¯¥åˆ›å»ºåŒ…å«è¶…è¿‡ 50 åªè‚¡ç¥¨çš„ä¼šè¯ï¼ˆåˆ†å±‚å­˜å‚¨ï¼‰", () => {
+    it("Ó¦¸Ã´´½¨°üº¬³¬¹ı 50 Ö»¹ÉÆ±µÄ»á»°£¨·Ö²ã´æ´¢£©", () => {
       const stocks: ScoredStock[] = [];
       for (let i = 0; i < 60; i++) {
         const code = `60${String(i).padStart(4, "0")}`;
-        stocks.push(createScoredStock(code, `è‚¡ç¥¨${i}`, 0.9 - i * 0.01));
+        stocks.push(createScoredStock(code, `¹ÉÆ±${i}`, 0.9 - i * 0.01));
       }
 
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
         strategyId: "strategy-1",
-        strategyName: "é«˜ ROE ç­–ç•¥",
+        strategyName: "¸ß ROE ²ßÂÔ",
         result,
         filtersSnapshot: createTestFilterGroup(),
         scoringConfigSnapshot: createTestScoringConfig(),
@@ -87,17 +87,17 @@ describe("ScreeningSession", () => {
   });
 
   describe("getAllMatchedCodes", () => {
-    it("åº”è¯¥è¿”å›æ‰€æœ‰åŒ¹é…è‚¡ç¥¨çš„ä»£ç ", () => {
+    it("Ó¦¸Ã·µ»ØËùÓĞÆ¥Åä¹ÉÆ±µÄ´úÂë", () => {
       const stocks: ScoredStock[] = [];
       for (let i = 0; i < 55; i++) {
         const code = `60${String(i).padStart(4, "0")}`;
-        stocks.push(createScoredStock(code, `è‚¡ç¥¨${i}`, 0.9 - i * 0.01));
+        stocks.push(createScoredStock(code, `¹ÉÆ±${i}`, 0.9 - i * 0.01));
       }
 
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
         strategyId: "strategy-1",
-        strategyName: "æµ‹è¯•ç­–ç•¥",
+        strategyName: "²âÊÔ²ßÂÔ",
         result,
         filtersSnapshot: createTestFilterGroup(),
         scoringConfigSnapshot: createTestScoringConfig(),
@@ -109,17 +109,17 @@ describe("ScreeningSession", () => {
   });
 
   describe("getStockDetail", () => {
-    it("åº”è¯¥è¿”å›å‰ 50 åªè‚¡ç¥¨çš„è¯¦ç»†ä¿¡æ¯", () => {
+    it("Ó¦¸Ã·µ»ØÇ° 50 Ö»¹ÉÆ±µÄÏêÏ¸ĞÅÏ¢", () => {
       const stocks: ScoredStock[] = [];
       for (let i = 0; i < 60; i++) {
         const code = `60${String(i).padStart(4, "0")}`;
-        stocks.push(createScoredStock(code, `è‚¡ç¥¨${i}`, 0.9 - i * 0.01));
+        stocks.push(createScoredStock(code, `¹ÉÆ±${i}`, 0.9 - i * 0.01));
       }
 
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
         strategyId: "strategy-1",
-        strategyName: "æµ‹è¯•ç­–ç•¥",
+        strategyName: "²âÊÔ²ßÂÔ",
         result,
         filtersSnapshot: createTestFilterGroup(),
         scoringConfigSnapshot: createTestScoringConfig(),
@@ -127,20 +127,20 @@ describe("ScreeningSession", () => {
 
       const detail0 = session.getStockDetail(StockCode.create("600000"));
       expect(detail0).not.toBeNull();
-      expect(detail0?.stockName).toBe("è‚¡ç¥¨0");
+      expect(detail0?.stockName).toBe("¹ÉÆ±0");
     });
 
-    it("åº”è¯¥å¯¹è¶…è¿‡å‰ 50 åªçš„è‚¡ç¥¨è¿”å› null", () => {
+    it("Ó¦¸Ã¶Ô³¬¹ıÇ° 50 Ö»µÄ¹ÉÆ±·µ»Ø null", () => {
       const stocks: ScoredStock[] = [];
       for (let i = 0; i < 60; i++) {
         const code = `60${String(i).padStart(4, "0")}`;
-        stocks.push(createScoredStock(code, `è‚¡ç¥¨${i}`, 0.9 - i * 0.01));
+        stocks.push(createScoredStock(code, `¹ÉÆ±${i}`, 0.9 - i * 0.01));
       }
 
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
         strategyId: "strategy-1",
-        strategyName: "æµ‹è¯•ç­–ç•¥",
+        strategyName: "²âÊÔ²ßÂÔ",
         result,
         filtersSnapshot: createTestFilterGroup(),
         scoringConfigSnapshot: createTestScoringConfig(),
@@ -151,17 +151,17 @@ describe("ScreeningSession", () => {
     });
   });
 
-  describe("åºåˆ—åŒ–", () => {
-    it("åº”è¯¥æ­£ç¡®åºåˆ—åŒ–å’Œååºåˆ—åŒ–", () => {
+  describe("ĞòÁĞ»¯", () => {
+    it("Ó¦¸ÃÕıÈ·ĞòÁĞ»¯ºÍ·´ĞòÁĞ»¯", () => {
       const stocks = [
-        createScoredStock("600519", "è´µå·èŒ…å°", 0.9),
-        createScoredStock("000858", "äº”ç²®æ¶²", 0.8),
+        createScoredStock("600519", "¹óÖİÃ©Ì¨", 0.9),
+        createScoredStock("000858", "ÎåÁ¸Òº", 0.8),
       ];
 
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
         strategyId: "strategy-1",
-        strategyName: "é«˜ ROE ç­–ç•¥",
+        strategyName: "¸ß ROE ²ßÂÔ",
         result,
         filtersSnapshot: createTestFilterGroup(),
         scoringConfigSnapshot: createTestScoringConfig(),

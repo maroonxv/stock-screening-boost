@@ -25,6 +25,7 @@ import type { ScreeningResult } from "../value-objects/screening-result.js";
 export interface CreateScreeningSessionParams {
   strategyId: string | null;
   strategyName: string;
+  userId: string;
   result: ScreeningResult;
   filtersSnapshot: FilterGroup;
   scoringConfigSnapshot: ScoringConfig;
@@ -39,6 +40,7 @@ export class ScreeningSession {
   private readonly _id: string;
   private readonly _strategyId: string | null;
   private readonly _strategyName: string;
+  private readonly _userId: string;
   private readonly _executedAt: Date;
   private readonly _totalScanned: number;
   private readonly _executionTime: number;
@@ -56,6 +58,7 @@ export class ScreeningSession {
     id: string,
     strategyId: string | null,
     strategyName: string,
+    userId: string,
     executedAt: Date,
     totalScanned: number,
     executionTime: number,
@@ -67,6 +70,7 @@ export class ScreeningSession {
     this._id = id;
     this._strategyId = strategyId;
     this._strategyName = strategyName;
+    this._userId = userId;
     this._executedAt = executedAt;
     this._totalScanned = totalScanned;
     this._executionTime = executionTime;
@@ -86,6 +90,10 @@ export class ScreeningSession {
 
   get strategyName(): string {
     return this._strategyName;
+  }
+
+  get userId(): string {
+    return this._userId;
   }
 
   get executedAt(): Date {
@@ -148,6 +156,7 @@ export class ScreeningSession {
       id,
       params.strategyId,
       params.strategyName,
+      params.userId,
       executedAt,
       params.result.totalScanned,
       params.result.executionTime,
@@ -211,6 +220,7 @@ export class ScreeningSession {
       id: this._id,
       strategyId: this._strategyId,
       strategyName: this._strategyName,
+      userId: this._userId,
       executedAt: this._executedAt.toISOString(),
       totalScanned: this._totalScanned,
       executionTime: this._executionTime,
@@ -232,6 +242,7 @@ export class ScreeningSession {
     const id = data.id as string;
     const strategyId = data.strategyId as string | null;
     const strategyName = data.strategyName as string;
+    const userId = data.userId as string;
     const executedAt = new Date(data.executedAt as string);
     const totalScanned = data.totalScanned as number;
     const executionTime = data.executionTime as number;
@@ -249,6 +260,9 @@ export class ScreeningSession {
     }
     if (typeof strategyName !== "string") {
       throw new Error("strategyName 必须为字符串");
+    }
+    if (typeof userId !== "string") {
+      throw new Error("userId 必须为字符串");
     }
     if (typeof totalScanned !== "number") {
       throw new Error("totalScanned 必须为数字");
@@ -280,6 +294,7 @@ export class ScreeningSession {
       id,
       strategyId,
       strategyName,
+      userId,
       executedAt,
       totalScanned,
       executionTime,

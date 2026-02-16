@@ -121,7 +121,7 @@
     - 保存 filtersSnapshot 和 scoringConfigSnapshot
     - _Requirements: 3.6, 3.7, 4.3_
 
-  - [~] 4.5 编写 ScreeningSession 分层存储属性基测试
+  - [x] 4.5 编写 ScreeningSession 分层存储属性基测试
     - **Property 9: ScreeningSession 分层存储不变量**
     - 生成随机 ScreeningResult，验证 topStocks ≤ 50 且总数一致
     - **Validates: Requirements 3.6**

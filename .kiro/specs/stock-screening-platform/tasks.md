@@ -197,7 +197,7 @@
     - 实现 IScreeningSessionRepository 接口：save、findById、delete、findByStrategy、findRecentSessions
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-  - [~] 7.4 实现 PrismaWatchListRepository
+  - [x] 7.4 实现 PrismaWatchListRepository
     - 创建 `src/server/infrastructure/screening/prisma-watch-list-repository.ts`
     - 实现 IWatchListRepository 接口：save、findById、delete、findAll、findByName
     - _Requirements: 5.1_

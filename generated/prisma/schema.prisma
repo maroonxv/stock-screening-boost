@@ -56,14 +56,17 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  posts         Post[]
+  id                String              @id @default(cuid())
+  name              String?
+  email             String?             @unique
+  emailVerified     DateTime?
+  image             String?
+  accounts          Account[]
+  sessions          Session[]
+  posts             Post[]
+  strategies        ScreeningStrategy[]
+  screeningSessions ScreeningSession[]
+  watchLists        WatchList[]
 }
 
 model VerificationToken {
@@ -72,4 +75,60 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model ScreeningStrategy {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  filters       Json // FilterGroup 序列化
+  scoringConfig Json // ScoringConfig 序列化
+  tags          String[] // PostgreSQL 数组
+  isTemplate    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userId   String
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions ScreeningSession[]
+
+  @@index([userId])
+  @@index([isTemplate])
+  @@index([name])
+}
+
+model ScreeningSession {
+  id                    String   @id @default(cuid())
+  strategyId            String?
+  strategyName          String
+  executedAt            DateTime @default(now())
+  totalScanned          Int
+  executionTime         Float
+  topStocks             Json // ScoredStock[] 序列化
+  otherStockCodes       String[] // StockCode 数组
+  filtersSnapshot       Json // FilterGroup 快照
+  scoringConfigSnapshot Json // ScoringConfig 快照
+
+  strategy ScreeningStrategy? @relation(fields: [strategyId], references: [id], onDelete: SetNull)
+  userId   String
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([strategyId])
+  @@index([executedAt])
+}
+
+model WatchList {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  stocks      Json     @default("[]") // WatchedStock[] 序列化
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([name])
 }

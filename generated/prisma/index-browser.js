@@ -166,9 +166,50 @@ exports.Prisma.VerificationTokenScalarFieldEnum = {
   expires: 'expires'
 };
 
+exports.Prisma.ScreeningStrategyScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  filters: 'filters',
+  scoringConfig: 'scoringConfig',
+  tags: 'tags',
+  isTemplate: 'isTemplate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  userId: 'userId'
+};
+
+exports.Prisma.ScreeningSessionScalarFieldEnum = {
+  id: 'id',
+  strategyId: 'strategyId',
+  strategyName: 'strategyName',
+  executedAt: 'executedAt',
+  totalScanned: 'totalScanned',
+  executionTime: 'executionTime',
+  topStocks: 'topStocks',
+  otherStockCodes: 'otherStockCodes',
+  filtersSnapshot: 'filtersSnapshot',
+  scoringConfigSnapshot: 'scoringConfigSnapshot',
+  userId: 'userId'
+};
+
+exports.Prisma.WatchListScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  stocks: 'stocks',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  userId: 'userId'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
+};
+
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
 };
 
 exports.Prisma.QueryMode = {
@@ -181,13 +222,22 @@ exports.Prisma.NullsOrder = {
   last: 'last'
 };
 
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
+};
+
 
 exports.Prisma.ModelName = {
   Post: 'Post',
   Account: 'Account',
   Session: 'Session',
   User: 'User',
-  VerificationToken: 'VerificationToken'
+  VerificationToken: 'VerificationToken',
+  ScreeningStrategy: 'ScreeningStrategy',
+  ScreeningSession: 'ScreeningSession',
+  WatchList: 'WatchList'
 };
 
 /**

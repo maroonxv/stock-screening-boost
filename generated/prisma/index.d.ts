@@ -38,6 +38,21 @@ export type User = $Result.DefaultSelection<Prisma.$UserPayload>
  * 
  */
 export type VerificationToken = $Result.DefaultSelection<Prisma.$VerificationTokenPayload>
+/**
+ * Model ScreeningStrategy
+ * 
+ */
+export type ScreeningStrategy = $Result.DefaultSelection<Prisma.$ScreeningStrategyPayload>
+/**
+ * Model ScreeningSession
+ * 
+ */
+export type ScreeningSession = $Result.DefaultSelection<Prisma.$ScreeningSessionPayload>
+/**
+ * Model WatchList
+ * 
+ */
+export type WatchList = $Result.DefaultSelection<Prisma.$WatchListPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -206,6 +221,36 @@ export class PrismaClient<
     * ```
     */
   get verificationToken(): Prisma.VerificationTokenDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.screeningStrategy`: Exposes CRUD operations for the **ScreeningStrategy** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ScreeningStrategies
+    * const screeningStrategies = await prisma.screeningStrategy.findMany()
+    * ```
+    */
+  get screeningStrategy(): Prisma.ScreeningStrategyDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.screeningSession`: Exposes CRUD operations for the **ScreeningSession** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ScreeningSessions
+    * const screeningSessions = await prisma.screeningSession.findMany()
+    * ```
+    */
+  get screeningSession(): Prisma.ScreeningSessionDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.watchList`: Exposes CRUD operations for the **WatchList** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WatchLists
+    * const watchLists = await prisma.watchList.findMany()
+    * ```
+    */
+  get watchList(): Prisma.WatchListDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -651,7 +696,10 @@ export namespace Prisma {
     Account: 'Account',
     Session: 'Session',
     User: 'User',
-    VerificationToken: 'VerificationToken'
+    VerificationToken: 'VerificationToken',
+    ScreeningStrategy: 'ScreeningStrategy',
+    ScreeningSession: 'ScreeningSession',
+    WatchList: 'WatchList'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -670,7 +718,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "post" | "account" | "session" | "user" | "verificationToken"
+      modelProps: "post" | "account" | "session" | "user" | "verificationToken" | "screeningStrategy" | "screeningSession" | "watchList"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1044,6 +1092,228 @@ export namespace Prisma {
           }
         }
       }
+      ScreeningStrategy: {
+        payload: Prisma.$ScreeningStrategyPayload<ExtArgs>
+        fields: Prisma.ScreeningStrategyFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ScreeningStrategyFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ScreeningStrategyFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload>
+          }
+          findFirst: {
+            args: Prisma.ScreeningStrategyFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ScreeningStrategyFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload>
+          }
+          findMany: {
+            args: Prisma.ScreeningStrategyFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload>[]
+          }
+          create: {
+            args: Prisma.ScreeningStrategyCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload>
+          }
+          createMany: {
+            args: Prisma.ScreeningStrategyCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ScreeningStrategyCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload>[]
+          }
+          delete: {
+            args: Prisma.ScreeningStrategyDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload>
+          }
+          update: {
+            args: Prisma.ScreeningStrategyUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload>
+          }
+          deleteMany: {
+            args: Prisma.ScreeningStrategyDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ScreeningStrategyUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ScreeningStrategyUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload>[]
+          }
+          upsert: {
+            args: Prisma.ScreeningStrategyUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningStrategyPayload>
+          }
+          aggregate: {
+            args: Prisma.ScreeningStrategyAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateScreeningStrategy>
+          }
+          groupBy: {
+            args: Prisma.ScreeningStrategyGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ScreeningStrategyGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ScreeningStrategyCountArgs<ExtArgs>
+            result: $Utils.Optional<ScreeningStrategyCountAggregateOutputType> | number
+          }
+        }
+      }
+      ScreeningSession: {
+        payload: Prisma.$ScreeningSessionPayload<ExtArgs>
+        fields: Prisma.ScreeningSessionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ScreeningSessionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ScreeningSessionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload>
+          }
+          findFirst: {
+            args: Prisma.ScreeningSessionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ScreeningSessionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload>
+          }
+          findMany: {
+            args: Prisma.ScreeningSessionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload>[]
+          }
+          create: {
+            args: Prisma.ScreeningSessionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload>
+          }
+          createMany: {
+            args: Prisma.ScreeningSessionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ScreeningSessionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload>[]
+          }
+          delete: {
+            args: Prisma.ScreeningSessionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload>
+          }
+          update: {
+            args: Prisma.ScreeningSessionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload>
+          }
+          deleteMany: {
+            args: Prisma.ScreeningSessionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ScreeningSessionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ScreeningSessionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload>[]
+          }
+          upsert: {
+            args: Prisma.ScreeningSessionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ScreeningSessionPayload>
+          }
+          aggregate: {
+            args: Prisma.ScreeningSessionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateScreeningSession>
+          }
+          groupBy: {
+            args: Prisma.ScreeningSessionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ScreeningSessionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ScreeningSessionCountArgs<ExtArgs>
+            result: $Utils.Optional<ScreeningSessionCountAggregateOutputType> | number
+          }
+        }
+      }
+      WatchList: {
+        payload: Prisma.$WatchListPayload<ExtArgs>
+        fields: Prisma.WatchListFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WatchListFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WatchListFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload>
+          }
+          findFirst: {
+            args: Prisma.WatchListFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WatchListFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload>
+          }
+          findMany: {
+            args: Prisma.WatchListFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload>[]
+          }
+          create: {
+            args: Prisma.WatchListCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload>
+          }
+          createMany: {
+            args: Prisma.WatchListCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WatchListCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload>[]
+          }
+          delete: {
+            args: Prisma.WatchListDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload>
+          }
+          update: {
+            args: Prisma.WatchListUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload>
+          }
+          deleteMany: {
+            args: Prisma.WatchListDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WatchListUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.WatchListUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload>[]
+          }
+          upsert: {
+            args: Prisma.WatchListUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WatchListPayload>
+          }
+          aggregate: {
+            args: Prisma.WatchListAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWatchList>
+          }
+          groupBy: {
+            args: Prisma.WatchListGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WatchListGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WatchListCountArgs<ExtArgs>
+            result: $Utils.Optional<WatchListCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1145,6 +1415,9 @@ export namespace Prisma {
     session?: SessionOmit
     user?: UserOmit
     verificationToken?: VerificationTokenOmit
+    screeningStrategy?: ScreeningStrategyOmit
+    screeningSession?: ScreeningSessionOmit
+    watchList?: WatchListOmit
   }
 
   /* Types for Logging */
@@ -1228,12 +1501,18 @@ export namespace Prisma {
     accounts: number
     sessions: number
     posts: number
+    strategies: number
+    screeningSessions: number
+    watchLists: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     accounts?: boolean | UserCountOutputTypeCountAccountsArgs
     sessions?: boolean | UserCountOutputTypeCountSessionsArgs
     posts?: boolean | UserCountOutputTypeCountPostsArgs
+    strategies?: boolean | UserCountOutputTypeCountStrategiesArgs
+    screeningSessions?: boolean | UserCountOutputTypeCountScreeningSessionsArgs
+    watchLists?: boolean | UserCountOutputTypeCountWatchListsArgs
   }
 
   // Custom InputTypes
@@ -1266,6 +1545,58 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountPostsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: PostWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountStrategiesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ScreeningStrategyWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountScreeningSessionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ScreeningSessionWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountWatchListsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WatchListWhereInput
+  }
+
+
+  /**
+   * Count Type ScreeningStrategyCountOutputType
+   */
+
+  export type ScreeningStrategyCountOutputType = {
+    sessions: number
+  }
+
+  export type ScreeningStrategyCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sessions?: boolean | ScreeningStrategyCountOutputTypeCountSessionsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ScreeningStrategyCountOutputType without action
+   */
+  export type ScreeningStrategyCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategyCountOutputType
+     */
+    select?: ScreeningStrategyCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ScreeningStrategyCountOutputType without action
+   */
+  export type ScreeningStrategyCountOutputTypeCountSessionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ScreeningSessionWhereInput
   }
 
 
@@ -4777,6 +5108,9 @@ export namespace Prisma {
     accounts?: boolean | User$accountsArgs<ExtArgs>
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     posts?: boolean | User$postsArgs<ExtArgs>
+    strategies?: boolean | User$strategiesArgs<ExtArgs>
+    screeningSessions?: boolean | User$screeningSessionsArgs<ExtArgs>
+    watchLists?: boolean | User$watchListsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -4809,6 +5143,9 @@ export namespace Prisma {
     accounts?: boolean | User$accountsArgs<ExtArgs>
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     posts?: boolean | User$postsArgs<ExtArgs>
+    strategies?: boolean | User$strategiesArgs<ExtArgs>
+    screeningSessions?: boolean | User$screeningSessionsArgs<ExtArgs>
+    watchLists?: boolean | User$watchListsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -4820,6 +5157,9 @@ export namespace Prisma {
       accounts: Prisma.$AccountPayload<ExtArgs>[]
       sessions: Prisma.$SessionPayload<ExtArgs>[]
       posts: Prisma.$PostPayload<ExtArgs>[]
+      strategies: Prisma.$ScreeningStrategyPayload<ExtArgs>[]
+      screeningSessions: Prisma.$ScreeningSessionPayload<ExtArgs>[]
+      watchLists: Prisma.$WatchListPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -5224,6 +5564,9 @@ export namespace Prisma {
     accounts<T extends User$accountsArgs<ExtArgs> = {}>(args?: Subset<T, User$accountsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AccountPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     sessions<T extends User$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     posts<T extends User$postsArgs<ExtArgs> = {}>(args?: Subset<T, User$postsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PostPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    strategies<T extends User$strategiesArgs<ExtArgs> = {}>(args?: Subset<T, User$strategiesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    screeningSessions<T extends User$screeningSessionsArgs<ExtArgs> = {}>(args?: Subset<T, User$screeningSessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    watchLists<T extends User$watchListsArgs<ExtArgs> = {}>(args?: Subset<T, User$watchListsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5715,6 +6058,78 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PostScalarFieldEnum | PostScalarFieldEnum[]
+  }
+
+  /**
+   * User.strategies
+   */
+  export type User$strategiesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    where?: ScreeningStrategyWhereInput
+    orderBy?: ScreeningStrategyOrderByWithRelationInput | ScreeningStrategyOrderByWithRelationInput[]
+    cursor?: ScreeningStrategyWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ScreeningStrategyScalarFieldEnum | ScreeningStrategyScalarFieldEnum[]
+  }
+
+  /**
+   * User.screeningSessions
+   */
+  export type User$screeningSessionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    where?: ScreeningSessionWhereInput
+    orderBy?: ScreeningSessionOrderByWithRelationInput | ScreeningSessionOrderByWithRelationInput[]
+    cursor?: ScreeningSessionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ScreeningSessionScalarFieldEnum | ScreeningSessionScalarFieldEnum[]
+  }
+
+  /**
+   * User.watchLists
+   */
+  export type User$watchListsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    where?: WatchListWhereInput
+    orderBy?: WatchListOrderByWithRelationInput | WatchListOrderByWithRelationInput[]
+    cursor?: WatchListWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WatchListScalarFieldEnum | WatchListScalarFieldEnum[]
   }
 
   /**
@@ -6706,6 +7121,3412 @@ export namespace Prisma {
 
 
   /**
+   * Model ScreeningStrategy
+   */
+
+  export type AggregateScreeningStrategy = {
+    _count: ScreeningStrategyCountAggregateOutputType | null
+    _min: ScreeningStrategyMinAggregateOutputType | null
+    _max: ScreeningStrategyMaxAggregateOutputType | null
+  }
+
+  export type ScreeningStrategyMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    isTemplate: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    userId: string | null
+  }
+
+  export type ScreeningStrategyMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    isTemplate: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    userId: string | null
+  }
+
+  export type ScreeningStrategyCountAggregateOutputType = {
+    id: number
+    name: number
+    description: number
+    filters: number
+    scoringConfig: number
+    tags: number
+    isTemplate: number
+    createdAt: number
+    updatedAt: number
+    userId: number
+    _all: number
+  }
+
+
+  export type ScreeningStrategyMinAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    isTemplate?: true
+    createdAt?: true
+    updatedAt?: true
+    userId?: true
+  }
+
+  export type ScreeningStrategyMaxAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    isTemplate?: true
+    createdAt?: true
+    updatedAt?: true
+    userId?: true
+  }
+
+  export type ScreeningStrategyCountAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    filters?: true
+    scoringConfig?: true
+    tags?: true
+    isTemplate?: true
+    createdAt?: true
+    updatedAt?: true
+    userId?: true
+    _all?: true
+  }
+
+  export type ScreeningStrategyAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ScreeningStrategy to aggregate.
+     */
+    where?: ScreeningStrategyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScreeningStrategies to fetch.
+     */
+    orderBy?: ScreeningStrategyOrderByWithRelationInput | ScreeningStrategyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ScreeningStrategyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScreeningStrategies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScreeningStrategies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ScreeningStrategies
+    **/
+    _count?: true | ScreeningStrategyCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ScreeningStrategyMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ScreeningStrategyMaxAggregateInputType
+  }
+
+  export type GetScreeningStrategyAggregateType<T extends ScreeningStrategyAggregateArgs> = {
+        [P in keyof T & keyof AggregateScreeningStrategy]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateScreeningStrategy[P]>
+      : GetScalarType<T[P], AggregateScreeningStrategy[P]>
+  }
+
+
+
+
+  export type ScreeningStrategyGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ScreeningStrategyWhereInput
+    orderBy?: ScreeningStrategyOrderByWithAggregationInput | ScreeningStrategyOrderByWithAggregationInput[]
+    by: ScreeningStrategyScalarFieldEnum[] | ScreeningStrategyScalarFieldEnum
+    having?: ScreeningStrategyScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ScreeningStrategyCountAggregateInputType | true
+    _min?: ScreeningStrategyMinAggregateInputType
+    _max?: ScreeningStrategyMaxAggregateInputType
+  }
+
+  export type ScreeningStrategyGroupByOutputType = {
+    id: string
+    name: string
+    description: string | null
+    filters: JsonValue
+    scoringConfig: JsonValue
+    tags: string[]
+    isTemplate: boolean
+    createdAt: Date
+    updatedAt: Date
+    userId: string
+    _count: ScreeningStrategyCountAggregateOutputType | null
+    _min: ScreeningStrategyMinAggregateOutputType | null
+    _max: ScreeningStrategyMaxAggregateOutputType | null
+  }
+
+  type GetScreeningStrategyGroupByPayload<T extends ScreeningStrategyGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ScreeningStrategyGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ScreeningStrategyGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ScreeningStrategyGroupByOutputType[P]>
+            : GetScalarType<T[P], ScreeningStrategyGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ScreeningStrategySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    filters?: boolean
+    scoringConfig?: boolean
+    tags?: boolean
+    isTemplate?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    userId?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    sessions?: boolean | ScreeningStrategy$sessionsArgs<ExtArgs>
+    _count?: boolean | ScreeningStrategyCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["screeningStrategy"]>
+
+  export type ScreeningStrategySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    filters?: boolean
+    scoringConfig?: boolean
+    tags?: boolean
+    isTemplate?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    userId?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["screeningStrategy"]>
+
+  export type ScreeningStrategySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    filters?: boolean
+    scoringConfig?: boolean
+    tags?: boolean
+    isTemplate?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    userId?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["screeningStrategy"]>
+
+  export type ScreeningStrategySelectScalar = {
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    filters?: boolean
+    scoringConfig?: boolean
+    tags?: boolean
+    isTemplate?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    userId?: boolean
+  }
+
+  export type ScreeningStrategyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "filters" | "scoringConfig" | "tags" | "isTemplate" | "createdAt" | "updatedAt" | "userId", ExtArgs["result"]["screeningStrategy"]>
+  export type ScreeningStrategyInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    sessions?: boolean | ScreeningStrategy$sessionsArgs<ExtArgs>
+    _count?: boolean | ScreeningStrategyCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ScreeningStrategyIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ScreeningStrategyIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $ScreeningStrategyPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ScreeningStrategy"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+      sessions: Prisma.$ScreeningSessionPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      description: string | null
+      filters: Prisma.JsonValue
+      scoringConfig: Prisma.JsonValue
+      tags: string[]
+      isTemplate: boolean
+      createdAt: Date
+      updatedAt: Date
+      userId: string
+    }, ExtArgs["result"]["screeningStrategy"]>
+    composites: {}
+  }
+
+  type ScreeningStrategyGetPayload<S extends boolean | null | undefined | ScreeningStrategyDefaultArgs> = $Result.GetResult<Prisma.$ScreeningStrategyPayload, S>
+
+  type ScreeningStrategyCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ScreeningStrategyFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ScreeningStrategyCountAggregateInputType | true
+    }
+
+  export interface ScreeningStrategyDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ScreeningStrategy'], meta: { name: 'ScreeningStrategy' } }
+    /**
+     * Find zero or one ScreeningStrategy that matches the filter.
+     * @param {ScreeningStrategyFindUniqueArgs} args - Arguments to find a ScreeningStrategy
+     * @example
+     * // Get one ScreeningStrategy
+     * const screeningStrategy = await prisma.screeningStrategy.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ScreeningStrategyFindUniqueArgs>(args: SelectSubset<T, ScreeningStrategyFindUniqueArgs<ExtArgs>>): Prisma__ScreeningStrategyClient<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ScreeningStrategy that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ScreeningStrategyFindUniqueOrThrowArgs} args - Arguments to find a ScreeningStrategy
+     * @example
+     * // Get one ScreeningStrategy
+     * const screeningStrategy = await prisma.screeningStrategy.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ScreeningStrategyFindUniqueOrThrowArgs>(args: SelectSubset<T, ScreeningStrategyFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ScreeningStrategyClient<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ScreeningStrategy that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningStrategyFindFirstArgs} args - Arguments to find a ScreeningStrategy
+     * @example
+     * // Get one ScreeningStrategy
+     * const screeningStrategy = await prisma.screeningStrategy.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ScreeningStrategyFindFirstArgs>(args?: SelectSubset<T, ScreeningStrategyFindFirstArgs<ExtArgs>>): Prisma__ScreeningStrategyClient<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ScreeningStrategy that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningStrategyFindFirstOrThrowArgs} args - Arguments to find a ScreeningStrategy
+     * @example
+     * // Get one ScreeningStrategy
+     * const screeningStrategy = await prisma.screeningStrategy.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ScreeningStrategyFindFirstOrThrowArgs>(args?: SelectSubset<T, ScreeningStrategyFindFirstOrThrowArgs<ExtArgs>>): Prisma__ScreeningStrategyClient<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ScreeningStrategies that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningStrategyFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ScreeningStrategies
+     * const screeningStrategies = await prisma.screeningStrategy.findMany()
+     * 
+     * // Get first 10 ScreeningStrategies
+     * const screeningStrategies = await prisma.screeningStrategy.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const screeningStrategyWithIdOnly = await prisma.screeningStrategy.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ScreeningStrategyFindManyArgs>(args?: SelectSubset<T, ScreeningStrategyFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ScreeningStrategy.
+     * @param {ScreeningStrategyCreateArgs} args - Arguments to create a ScreeningStrategy.
+     * @example
+     * // Create one ScreeningStrategy
+     * const ScreeningStrategy = await prisma.screeningStrategy.create({
+     *   data: {
+     *     // ... data to create a ScreeningStrategy
+     *   }
+     * })
+     * 
+     */
+    create<T extends ScreeningStrategyCreateArgs>(args: SelectSubset<T, ScreeningStrategyCreateArgs<ExtArgs>>): Prisma__ScreeningStrategyClient<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ScreeningStrategies.
+     * @param {ScreeningStrategyCreateManyArgs} args - Arguments to create many ScreeningStrategies.
+     * @example
+     * // Create many ScreeningStrategies
+     * const screeningStrategy = await prisma.screeningStrategy.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ScreeningStrategyCreateManyArgs>(args?: SelectSubset<T, ScreeningStrategyCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ScreeningStrategies and returns the data saved in the database.
+     * @param {ScreeningStrategyCreateManyAndReturnArgs} args - Arguments to create many ScreeningStrategies.
+     * @example
+     * // Create many ScreeningStrategies
+     * const screeningStrategy = await prisma.screeningStrategy.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ScreeningStrategies and only return the `id`
+     * const screeningStrategyWithIdOnly = await prisma.screeningStrategy.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ScreeningStrategyCreateManyAndReturnArgs>(args?: SelectSubset<T, ScreeningStrategyCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ScreeningStrategy.
+     * @param {ScreeningStrategyDeleteArgs} args - Arguments to delete one ScreeningStrategy.
+     * @example
+     * // Delete one ScreeningStrategy
+     * const ScreeningStrategy = await prisma.screeningStrategy.delete({
+     *   where: {
+     *     // ... filter to delete one ScreeningStrategy
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ScreeningStrategyDeleteArgs>(args: SelectSubset<T, ScreeningStrategyDeleteArgs<ExtArgs>>): Prisma__ScreeningStrategyClient<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ScreeningStrategy.
+     * @param {ScreeningStrategyUpdateArgs} args - Arguments to update one ScreeningStrategy.
+     * @example
+     * // Update one ScreeningStrategy
+     * const screeningStrategy = await prisma.screeningStrategy.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ScreeningStrategyUpdateArgs>(args: SelectSubset<T, ScreeningStrategyUpdateArgs<ExtArgs>>): Prisma__ScreeningStrategyClient<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ScreeningStrategies.
+     * @param {ScreeningStrategyDeleteManyArgs} args - Arguments to filter ScreeningStrategies to delete.
+     * @example
+     * // Delete a few ScreeningStrategies
+     * const { count } = await prisma.screeningStrategy.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ScreeningStrategyDeleteManyArgs>(args?: SelectSubset<T, ScreeningStrategyDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ScreeningStrategies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningStrategyUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ScreeningStrategies
+     * const screeningStrategy = await prisma.screeningStrategy.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ScreeningStrategyUpdateManyArgs>(args: SelectSubset<T, ScreeningStrategyUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ScreeningStrategies and returns the data updated in the database.
+     * @param {ScreeningStrategyUpdateManyAndReturnArgs} args - Arguments to update many ScreeningStrategies.
+     * @example
+     * // Update many ScreeningStrategies
+     * const screeningStrategy = await prisma.screeningStrategy.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ScreeningStrategies and only return the `id`
+     * const screeningStrategyWithIdOnly = await prisma.screeningStrategy.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ScreeningStrategyUpdateManyAndReturnArgs>(args: SelectSubset<T, ScreeningStrategyUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ScreeningStrategy.
+     * @param {ScreeningStrategyUpsertArgs} args - Arguments to update or create a ScreeningStrategy.
+     * @example
+     * // Update or create a ScreeningStrategy
+     * const screeningStrategy = await prisma.screeningStrategy.upsert({
+     *   create: {
+     *     // ... data to create a ScreeningStrategy
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ScreeningStrategy we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ScreeningStrategyUpsertArgs>(args: SelectSubset<T, ScreeningStrategyUpsertArgs<ExtArgs>>): Prisma__ScreeningStrategyClient<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ScreeningStrategies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningStrategyCountArgs} args - Arguments to filter ScreeningStrategies to count.
+     * @example
+     * // Count the number of ScreeningStrategies
+     * const count = await prisma.screeningStrategy.count({
+     *   where: {
+     *     // ... the filter for the ScreeningStrategies we want to count
+     *   }
+     * })
+    **/
+    count<T extends ScreeningStrategyCountArgs>(
+      args?: Subset<T, ScreeningStrategyCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ScreeningStrategyCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ScreeningStrategy.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningStrategyAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ScreeningStrategyAggregateArgs>(args: Subset<T, ScreeningStrategyAggregateArgs>): Prisma.PrismaPromise<GetScreeningStrategyAggregateType<T>>
+
+    /**
+     * Group by ScreeningStrategy.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningStrategyGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ScreeningStrategyGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ScreeningStrategyGroupByArgs['orderBy'] }
+        : { orderBy?: ScreeningStrategyGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ScreeningStrategyGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetScreeningStrategyGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ScreeningStrategy model
+   */
+  readonly fields: ScreeningStrategyFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ScreeningStrategy.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ScreeningStrategyClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    sessions<T extends ScreeningStrategy$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, ScreeningStrategy$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ScreeningStrategy model
+   */
+  interface ScreeningStrategyFieldRefs {
+    readonly id: FieldRef<"ScreeningStrategy", 'String'>
+    readonly name: FieldRef<"ScreeningStrategy", 'String'>
+    readonly description: FieldRef<"ScreeningStrategy", 'String'>
+    readonly filters: FieldRef<"ScreeningStrategy", 'Json'>
+    readonly scoringConfig: FieldRef<"ScreeningStrategy", 'Json'>
+    readonly tags: FieldRef<"ScreeningStrategy", 'String[]'>
+    readonly isTemplate: FieldRef<"ScreeningStrategy", 'Boolean'>
+    readonly createdAt: FieldRef<"ScreeningStrategy", 'DateTime'>
+    readonly updatedAt: FieldRef<"ScreeningStrategy", 'DateTime'>
+    readonly userId: FieldRef<"ScreeningStrategy", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ScreeningStrategy findUnique
+   */
+  export type ScreeningStrategyFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningStrategy to fetch.
+     */
+    where: ScreeningStrategyWhereUniqueInput
+  }
+
+  /**
+   * ScreeningStrategy findUniqueOrThrow
+   */
+  export type ScreeningStrategyFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningStrategy to fetch.
+     */
+    where: ScreeningStrategyWhereUniqueInput
+  }
+
+  /**
+   * ScreeningStrategy findFirst
+   */
+  export type ScreeningStrategyFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningStrategy to fetch.
+     */
+    where?: ScreeningStrategyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScreeningStrategies to fetch.
+     */
+    orderBy?: ScreeningStrategyOrderByWithRelationInput | ScreeningStrategyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ScreeningStrategies.
+     */
+    cursor?: ScreeningStrategyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScreeningStrategies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScreeningStrategies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScreeningStrategies.
+     */
+    distinct?: ScreeningStrategyScalarFieldEnum | ScreeningStrategyScalarFieldEnum[]
+  }
+
+  /**
+   * ScreeningStrategy findFirstOrThrow
+   */
+  export type ScreeningStrategyFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningStrategy to fetch.
+     */
+    where?: ScreeningStrategyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScreeningStrategies to fetch.
+     */
+    orderBy?: ScreeningStrategyOrderByWithRelationInput | ScreeningStrategyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ScreeningStrategies.
+     */
+    cursor?: ScreeningStrategyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScreeningStrategies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScreeningStrategies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScreeningStrategies.
+     */
+    distinct?: ScreeningStrategyScalarFieldEnum | ScreeningStrategyScalarFieldEnum[]
+  }
+
+  /**
+   * ScreeningStrategy findMany
+   */
+  export type ScreeningStrategyFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningStrategies to fetch.
+     */
+    where?: ScreeningStrategyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScreeningStrategies to fetch.
+     */
+    orderBy?: ScreeningStrategyOrderByWithRelationInput | ScreeningStrategyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ScreeningStrategies.
+     */
+    cursor?: ScreeningStrategyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScreeningStrategies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScreeningStrategies.
+     */
+    skip?: number
+    distinct?: ScreeningStrategyScalarFieldEnum | ScreeningStrategyScalarFieldEnum[]
+  }
+
+  /**
+   * ScreeningStrategy create
+   */
+  export type ScreeningStrategyCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ScreeningStrategy.
+     */
+    data: XOR<ScreeningStrategyCreateInput, ScreeningStrategyUncheckedCreateInput>
+  }
+
+  /**
+   * ScreeningStrategy createMany
+   */
+  export type ScreeningStrategyCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ScreeningStrategies.
+     */
+    data: ScreeningStrategyCreateManyInput | ScreeningStrategyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ScreeningStrategy createManyAndReturn
+   */
+  export type ScreeningStrategyCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * The data used to create many ScreeningStrategies.
+     */
+    data: ScreeningStrategyCreateManyInput | ScreeningStrategyCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ScreeningStrategy update
+   */
+  export type ScreeningStrategyUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ScreeningStrategy.
+     */
+    data: XOR<ScreeningStrategyUpdateInput, ScreeningStrategyUncheckedUpdateInput>
+    /**
+     * Choose, which ScreeningStrategy to update.
+     */
+    where: ScreeningStrategyWhereUniqueInput
+  }
+
+  /**
+   * ScreeningStrategy updateMany
+   */
+  export type ScreeningStrategyUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ScreeningStrategies.
+     */
+    data: XOR<ScreeningStrategyUpdateManyMutationInput, ScreeningStrategyUncheckedUpdateManyInput>
+    /**
+     * Filter which ScreeningStrategies to update
+     */
+    where?: ScreeningStrategyWhereInput
+    /**
+     * Limit how many ScreeningStrategies to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ScreeningStrategy updateManyAndReturn
+   */
+  export type ScreeningStrategyUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * The data used to update ScreeningStrategies.
+     */
+    data: XOR<ScreeningStrategyUpdateManyMutationInput, ScreeningStrategyUncheckedUpdateManyInput>
+    /**
+     * Filter which ScreeningStrategies to update
+     */
+    where?: ScreeningStrategyWhereInput
+    /**
+     * Limit how many ScreeningStrategies to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ScreeningStrategy upsert
+   */
+  export type ScreeningStrategyUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ScreeningStrategy to update in case it exists.
+     */
+    where: ScreeningStrategyWhereUniqueInput
+    /**
+     * In case the ScreeningStrategy found by the `where` argument doesn't exist, create a new ScreeningStrategy with this data.
+     */
+    create: XOR<ScreeningStrategyCreateInput, ScreeningStrategyUncheckedCreateInput>
+    /**
+     * In case the ScreeningStrategy was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ScreeningStrategyUpdateInput, ScreeningStrategyUncheckedUpdateInput>
+  }
+
+  /**
+   * ScreeningStrategy delete
+   */
+  export type ScreeningStrategyDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    /**
+     * Filter which ScreeningStrategy to delete.
+     */
+    where: ScreeningStrategyWhereUniqueInput
+  }
+
+  /**
+   * ScreeningStrategy deleteMany
+   */
+  export type ScreeningStrategyDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ScreeningStrategies to delete
+     */
+    where?: ScreeningStrategyWhereInput
+    /**
+     * Limit how many ScreeningStrategies to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ScreeningStrategy.sessions
+   */
+  export type ScreeningStrategy$sessionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    where?: ScreeningSessionWhereInput
+    orderBy?: ScreeningSessionOrderByWithRelationInput | ScreeningSessionOrderByWithRelationInput[]
+    cursor?: ScreeningSessionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ScreeningSessionScalarFieldEnum | ScreeningSessionScalarFieldEnum[]
+  }
+
+  /**
+   * ScreeningStrategy without action
+   */
+  export type ScreeningStrategyDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ScreeningSession
+   */
+
+  export type AggregateScreeningSession = {
+    _count: ScreeningSessionCountAggregateOutputType | null
+    _avg: ScreeningSessionAvgAggregateOutputType | null
+    _sum: ScreeningSessionSumAggregateOutputType | null
+    _min: ScreeningSessionMinAggregateOutputType | null
+    _max: ScreeningSessionMaxAggregateOutputType | null
+  }
+
+  export type ScreeningSessionAvgAggregateOutputType = {
+    totalScanned: number | null
+    executionTime: number | null
+  }
+
+  export type ScreeningSessionSumAggregateOutputType = {
+    totalScanned: number | null
+    executionTime: number | null
+  }
+
+  export type ScreeningSessionMinAggregateOutputType = {
+    id: string | null
+    strategyId: string | null
+    strategyName: string | null
+    executedAt: Date | null
+    totalScanned: number | null
+    executionTime: number | null
+    userId: string | null
+  }
+
+  export type ScreeningSessionMaxAggregateOutputType = {
+    id: string | null
+    strategyId: string | null
+    strategyName: string | null
+    executedAt: Date | null
+    totalScanned: number | null
+    executionTime: number | null
+    userId: string | null
+  }
+
+  export type ScreeningSessionCountAggregateOutputType = {
+    id: number
+    strategyId: number
+    strategyName: number
+    executedAt: number
+    totalScanned: number
+    executionTime: number
+    topStocks: number
+    otherStockCodes: number
+    filtersSnapshot: number
+    scoringConfigSnapshot: number
+    userId: number
+    _all: number
+  }
+
+
+  export type ScreeningSessionAvgAggregateInputType = {
+    totalScanned?: true
+    executionTime?: true
+  }
+
+  export type ScreeningSessionSumAggregateInputType = {
+    totalScanned?: true
+    executionTime?: true
+  }
+
+  export type ScreeningSessionMinAggregateInputType = {
+    id?: true
+    strategyId?: true
+    strategyName?: true
+    executedAt?: true
+    totalScanned?: true
+    executionTime?: true
+    userId?: true
+  }
+
+  export type ScreeningSessionMaxAggregateInputType = {
+    id?: true
+    strategyId?: true
+    strategyName?: true
+    executedAt?: true
+    totalScanned?: true
+    executionTime?: true
+    userId?: true
+  }
+
+  export type ScreeningSessionCountAggregateInputType = {
+    id?: true
+    strategyId?: true
+    strategyName?: true
+    executedAt?: true
+    totalScanned?: true
+    executionTime?: true
+    topStocks?: true
+    otherStockCodes?: true
+    filtersSnapshot?: true
+    scoringConfigSnapshot?: true
+    userId?: true
+    _all?: true
+  }
+
+  export type ScreeningSessionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ScreeningSession to aggregate.
+     */
+    where?: ScreeningSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScreeningSessions to fetch.
+     */
+    orderBy?: ScreeningSessionOrderByWithRelationInput | ScreeningSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ScreeningSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScreeningSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScreeningSessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ScreeningSessions
+    **/
+    _count?: true | ScreeningSessionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ScreeningSessionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ScreeningSessionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ScreeningSessionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ScreeningSessionMaxAggregateInputType
+  }
+
+  export type GetScreeningSessionAggregateType<T extends ScreeningSessionAggregateArgs> = {
+        [P in keyof T & keyof AggregateScreeningSession]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateScreeningSession[P]>
+      : GetScalarType<T[P], AggregateScreeningSession[P]>
+  }
+
+
+
+
+  export type ScreeningSessionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ScreeningSessionWhereInput
+    orderBy?: ScreeningSessionOrderByWithAggregationInput | ScreeningSessionOrderByWithAggregationInput[]
+    by: ScreeningSessionScalarFieldEnum[] | ScreeningSessionScalarFieldEnum
+    having?: ScreeningSessionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ScreeningSessionCountAggregateInputType | true
+    _avg?: ScreeningSessionAvgAggregateInputType
+    _sum?: ScreeningSessionSumAggregateInputType
+    _min?: ScreeningSessionMinAggregateInputType
+    _max?: ScreeningSessionMaxAggregateInputType
+  }
+
+  export type ScreeningSessionGroupByOutputType = {
+    id: string
+    strategyId: string | null
+    strategyName: string
+    executedAt: Date
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonValue
+    otherStockCodes: string[]
+    filtersSnapshot: JsonValue
+    scoringConfigSnapshot: JsonValue
+    userId: string
+    _count: ScreeningSessionCountAggregateOutputType | null
+    _avg: ScreeningSessionAvgAggregateOutputType | null
+    _sum: ScreeningSessionSumAggregateOutputType | null
+    _min: ScreeningSessionMinAggregateOutputType | null
+    _max: ScreeningSessionMaxAggregateOutputType | null
+  }
+
+  type GetScreeningSessionGroupByPayload<T extends ScreeningSessionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ScreeningSessionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ScreeningSessionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ScreeningSessionGroupByOutputType[P]>
+            : GetScalarType<T[P], ScreeningSessionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ScreeningSessionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    strategyId?: boolean
+    strategyName?: boolean
+    executedAt?: boolean
+    totalScanned?: boolean
+    executionTime?: boolean
+    topStocks?: boolean
+    otherStockCodes?: boolean
+    filtersSnapshot?: boolean
+    scoringConfigSnapshot?: boolean
+    userId?: boolean
+    strategy?: boolean | ScreeningSession$strategyArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["screeningSession"]>
+
+  export type ScreeningSessionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    strategyId?: boolean
+    strategyName?: boolean
+    executedAt?: boolean
+    totalScanned?: boolean
+    executionTime?: boolean
+    topStocks?: boolean
+    otherStockCodes?: boolean
+    filtersSnapshot?: boolean
+    scoringConfigSnapshot?: boolean
+    userId?: boolean
+    strategy?: boolean | ScreeningSession$strategyArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["screeningSession"]>
+
+  export type ScreeningSessionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    strategyId?: boolean
+    strategyName?: boolean
+    executedAt?: boolean
+    totalScanned?: boolean
+    executionTime?: boolean
+    topStocks?: boolean
+    otherStockCodes?: boolean
+    filtersSnapshot?: boolean
+    scoringConfigSnapshot?: boolean
+    userId?: boolean
+    strategy?: boolean | ScreeningSession$strategyArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["screeningSession"]>
+
+  export type ScreeningSessionSelectScalar = {
+    id?: boolean
+    strategyId?: boolean
+    strategyName?: boolean
+    executedAt?: boolean
+    totalScanned?: boolean
+    executionTime?: boolean
+    topStocks?: boolean
+    otherStockCodes?: boolean
+    filtersSnapshot?: boolean
+    scoringConfigSnapshot?: boolean
+    userId?: boolean
+  }
+
+  export type ScreeningSessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "strategyId" | "strategyName" | "executedAt" | "totalScanned" | "executionTime" | "topStocks" | "otherStockCodes" | "filtersSnapshot" | "scoringConfigSnapshot" | "userId", ExtArgs["result"]["screeningSession"]>
+  export type ScreeningSessionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    strategy?: boolean | ScreeningSession$strategyArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ScreeningSessionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    strategy?: boolean | ScreeningSession$strategyArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ScreeningSessionIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    strategy?: boolean | ScreeningSession$strategyArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $ScreeningSessionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ScreeningSession"
+    objects: {
+      strategy: Prisma.$ScreeningStrategyPayload<ExtArgs> | null
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      strategyId: string | null
+      strategyName: string
+      executedAt: Date
+      totalScanned: number
+      executionTime: number
+      topStocks: Prisma.JsonValue
+      otherStockCodes: string[]
+      filtersSnapshot: Prisma.JsonValue
+      scoringConfigSnapshot: Prisma.JsonValue
+      userId: string
+    }, ExtArgs["result"]["screeningSession"]>
+    composites: {}
+  }
+
+  type ScreeningSessionGetPayload<S extends boolean | null | undefined | ScreeningSessionDefaultArgs> = $Result.GetResult<Prisma.$ScreeningSessionPayload, S>
+
+  type ScreeningSessionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ScreeningSessionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ScreeningSessionCountAggregateInputType | true
+    }
+
+  export interface ScreeningSessionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ScreeningSession'], meta: { name: 'ScreeningSession' } }
+    /**
+     * Find zero or one ScreeningSession that matches the filter.
+     * @param {ScreeningSessionFindUniqueArgs} args - Arguments to find a ScreeningSession
+     * @example
+     * // Get one ScreeningSession
+     * const screeningSession = await prisma.screeningSession.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ScreeningSessionFindUniqueArgs>(args: SelectSubset<T, ScreeningSessionFindUniqueArgs<ExtArgs>>): Prisma__ScreeningSessionClient<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ScreeningSession that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ScreeningSessionFindUniqueOrThrowArgs} args - Arguments to find a ScreeningSession
+     * @example
+     * // Get one ScreeningSession
+     * const screeningSession = await prisma.screeningSession.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ScreeningSessionFindUniqueOrThrowArgs>(args: SelectSubset<T, ScreeningSessionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ScreeningSessionClient<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ScreeningSession that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningSessionFindFirstArgs} args - Arguments to find a ScreeningSession
+     * @example
+     * // Get one ScreeningSession
+     * const screeningSession = await prisma.screeningSession.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ScreeningSessionFindFirstArgs>(args?: SelectSubset<T, ScreeningSessionFindFirstArgs<ExtArgs>>): Prisma__ScreeningSessionClient<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ScreeningSession that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningSessionFindFirstOrThrowArgs} args - Arguments to find a ScreeningSession
+     * @example
+     * // Get one ScreeningSession
+     * const screeningSession = await prisma.screeningSession.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ScreeningSessionFindFirstOrThrowArgs>(args?: SelectSubset<T, ScreeningSessionFindFirstOrThrowArgs<ExtArgs>>): Prisma__ScreeningSessionClient<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ScreeningSessions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningSessionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ScreeningSessions
+     * const screeningSessions = await prisma.screeningSession.findMany()
+     * 
+     * // Get first 10 ScreeningSessions
+     * const screeningSessions = await prisma.screeningSession.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const screeningSessionWithIdOnly = await prisma.screeningSession.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ScreeningSessionFindManyArgs>(args?: SelectSubset<T, ScreeningSessionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ScreeningSession.
+     * @param {ScreeningSessionCreateArgs} args - Arguments to create a ScreeningSession.
+     * @example
+     * // Create one ScreeningSession
+     * const ScreeningSession = await prisma.screeningSession.create({
+     *   data: {
+     *     // ... data to create a ScreeningSession
+     *   }
+     * })
+     * 
+     */
+    create<T extends ScreeningSessionCreateArgs>(args: SelectSubset<T, ScreeningSessionCreateArgs<ExtArgs>>): Prisma__ScreeningSessionClient<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ScreeningSessions.
+     * @param {ScreeningSessionCreateManyArgs} args - Arguments to create many ScreeningSessions.
+     * @example
+     * // Create many ScreeningSessions
+     * const screeningSession = await prisma.screeningSession.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ScreeningSessionCreateManyArgs>(args?: SelectSubset<T, ScreeningSessionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ScreeningSessions and returns the data saved in the database.
+     * @param {ScreeningSessionCreateManyAndReturnArgs} args - Arguments to create many ScreeningSessions.
+     * @example
+     * // Create many ScreeningSessions
+     * const screeningSession = await prisma.screeningSession.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ScreeningSessions and only return the `id`
+     * const screeningSessionWithIdOnly = await prisma.screeningSession.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ScreeningSessionCreateManyAndReturnArgs>(args?: SelectSubset<T, ScreeningSessionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ScreeningSession.
+     * @param {ScreeningSessionDeleteArgs} args - Arguments to delete one ScreeningSession.
+     * @example
+     * // Delete one ScreeningSession
+     * const ScreeningSession = await prisma.screeningSession.delete({
+     *   where: {
+     *     // ... filter to delete one ScreeningSession
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ScreeningSessionDeleteArgs>(args: SelectSubset<T, ScreeningSessionDeleteArgs<ExtArgs>>): Prisma__ScreeningSessionClient<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ScreeningSession.
+     * @param {ScreeningSessionUpdateArgs} args - Arguments to update one ScreeningSession.
+     * @example
+     * // Update one ScreeningSession
+     * const screeningSession = await prisma.screeningSession.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ScreeningSessionUpdateArgs>(args: SelectSubset<T, ScreeningSessionUpdateArgs<ExtArgs>>): Prisma__ScreeningSessionClient<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ScreeningSessions.
+     * @param {ScreeningSessionDeleteManyArgs} args - Arguments to filter ScreeningSessions to delete.
+     * @example
+     * // Delete a few ScreeningSessions
+     * const { count } = await prisma.screeningSession.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ScreeningSessionDeleteManyArgs>(args?: SelectSubset<T, ScreeningSessionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ScreeningSessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningSessionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ScreeningSessions
+     * const screeningSession = await prisma.screeningSession.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ScreeningSessionUpdateManyArgs>(args: SelectSubset<T, ScreeningSessionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ScreeningSessions and returns the data updated in the database.
+     * @param {ScreeningSessionUpdateManyAndReturnArgs} args - Arguments to update many ScreeningSessions.
+     * @example
+     * // Update many ScreeningSessions
+     * const screeningSession = await prisma.screeningSession.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ScreeningSessions and only return the `id`
+     * const screeningSessionWithIdOnly = await prisma.screeningSession.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ScreeningSessionUpdateManyAndReturnArgs>(args: SelectSubset<T, ScreeningSessionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ScreeningSession.
+     * @param {ScreeningSessionUpsertArgs} args - Arguments to update or create a ScreeningSession.
+     * @example
+     * // Update or create a ScreeningSession
+     * const screeningSession = await prisma.screeningSession.upsert({
+     *   create: {
+     *     // ... data to create a ScreeningSession
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ScreeningSession we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ScreeningSessionUpsertArgs>(args: SelectSubset<T, ScreeningSessionUpsertArgs<ExtArgs>>): Prisma__ScreeningSessionClient<$Result.GetResult<Prisma.$ScreeningSessionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ScreeningSessions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningSessionCountArgs} args - Arguments to filter ScreeningSessions to count.
+     * @example
+     * // Count the number of ScreeningSessions
+     * const count = await prisma.screeningSession.count({
+     *   where: {
+     *     // ... the filter for the ScreeningSessions we want to count
+     *   }
+     * })
+    **/
+    count<T extends ScreeningSessionCountArgs>(
+      args?: Subset<T, ScreeningSessionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ScreeningSessionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ScreeningSession.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningSessionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ScreeningSessionAggregateArgs>(args: Subset<T, ScreeningSessionAggregateArgs>): Prisma.PrismaPromise<GetScreeningSessionAggregateType<T>>
+
+    /**
+     * Group by ScreeningSession.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ScreeningSessionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ScreeningSessionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ScreeningSessionGroupByArgs['orderBy'] }
+        : { orderBy?: ScreeningSessionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ScreeningSessionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetScreeningSessionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ScreeningSession model
+   */
+  readonly fields: ScreeningSessionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ScreeningSession.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ScreeningSessionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    strategy<T extends ScreeningSession$strategyArgs<ExtArgs> = {}>(args?: Subset<T, ScreeningSession$strategyArgs<ExtArgs>>): Prisma__ScreeningStrategyClient<$Result.GetResult<Prisma.$ScreeningStrategyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ScreeningSession model
+   */
+  interface ScreeningSessionFieldRefs {
+    readonly id: FieldRef<"ScreeningSession", 'String'>
+    readonly strategyId: FieldRef<"ScreeningSession", 'String'>
+    readonly strategyName: FieldRef<"ScreeningSession", 'String'>
+    readonly executedAt: FieldRef<"ScreeningSession", 'DateTime'>
+    readonly totalScanned: FieldRef<"ScreeningSession", 'Int'>
+    readonly executionTime: FieldRef<"ScreeningSession", 'Float'>
+    readonly topStocks: FieldRef<"ScreeningSession", 'Json'>
+    readonly otherStockCodes: FieldRef<"ScreeningSession", 'String[]'>
+    readonly filtersSnapshot: FieldRef<"ScreeningSession", 'Json'>
+    readonly scoringConfigSnapshot: FieldRef<"ScreeningSession", 'Json'>
+    readonly userId: FieldRef<"ScreeningSession", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ScreeningSession findUnique
+   */
+  export type ScreeningSessionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningSession to fetch.
+     */
+    where: ScreeningSessionWhereUniqueInput
+  }
+
+  /**
+   * ScreeningSession findUniqueOrThrow
+   */
+  export type ScreeningSessionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningSession to fetch.
+     */
+    where: ScreeningSessionWhereUniqueInput
+  }
+
+  /**
+   * ScreeningSession findFirst
+   */
+  export type ScreeningSessionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningSession to fetch.
+     */
+    where?: ScreeningSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScreeningSessions to fetch.
+     */
+    orderBy?: ScreeningSessionOrderByWithRelationInput | ScreeningSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ScreeningSessions.
+     */
+    cursor?: ScreeningSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScreeningSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScreeningSessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScreeningSessions.
+     */
+    distinct?: ScreeningSessionScalarFieldEnum | ScreeningSessionScalarFieldEnum[]
+  }
+
+  /**
+   * ScreeningSession findFirstOrThrow
+   */
+  export type ScreeningSessionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningSession to fetch.
+     */
+    where?: ScreeningSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScreeningSessions to fetch.
+     */
+    orderBy?: ScreeningSessionOrderByWithRelationInput | ScreeningSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ScreeningSessions.
+     */
+    cursor?: ScreeningSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScreeningSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScreeningSessions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ScreeningSessions.
+     */
+    distinct?: ScreeningSessionScalarFieldEnum | ScreeningSessionScalarFieldEnum[]
+  }
+
+  /**
+   * ScreeningSession findMany
+   */
+  export type ScreeningSessionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    /**
+     * Filter, which ScreeningSessions to fetch.
+     */
+    where?: ScreeningSessionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ScreeningSessions to fetch.
+     */
+    orderBy?: ScreeningSessionOrderByWithRelationInput | ScreeningSessionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ScreeningSessions.
+     */
+    cursor?: ScreeningSessionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ScreeningSessions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ScreeningSessions.
+     */
+    skip?: number
+    distinct?: ScreeningSessionScalarFieldEnum | ScreeningSessionScalarFieldEnum[]
+  }
+
+  /**
+   * ScreeningSession create
+   */
+  export type ScreeningSessionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ScreeningSession.
+     */
+    data: XOR<ScreeningSessionCreateInput, ScreeningSessionUncheckedCreateInput>
+  }
+
+  /**
+   * ScreeningSession createMany
+   */
+  export type ScreeningSessionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ScreeningSessions.
+     */
+    data: ScreeningSessionCreateManyInput | ScreeningSessionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ScreeningSession createManyAndReturn
+   */
+  export type ScreeningSessionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * The data used to create many ScreeningSessions.
+     */
+    data: ScreeningSessionCreateManyInput | ScreeningSessionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ScreeningSession update
+   */
+  export type ScreeningSessionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ScreeningSession.
+     */
+    data: XOR<ScreeningSessionUpdateInput, ScreeningSessionUncheckedUpdateInput>
+    /**
+     * Choose, which ScreeningSession to update.
+     */
+    where: ScreeningSessionWhereUniqueInput
+  }
+
+  /**
+   * ScreeningSession updateMany
+   */
+  export type ScreeningSessionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ScreeningSessions.
+     */
+    data: XOR<ScreeningSessionUpdateManyMutationInput, ScreeningSessionUncheckedUpdateManyInput>
+    /**
+     * Filter which ScreeningSessions to update
+     */
+    where?: ScreeningSessionWhereInput
+    /**
+     * Limit how many ScreeningSessions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ScreeningSession updateManyAndReturn
+   */
+  export type ScreeningSessionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * The data used to update ScreeningSessions.
+     */
+    data: XOR<ScreeningSessionUpdateManyMutationInput, ScreeningSessionUncheckedUpdateManyInput>
+    /**
+     * Filter which ScreeningSessions to update
+     */
+    where?: ScreeningSessionWhereInput
+    /**
+     * Limit how many ScreeningSessions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ScreeningSession upsert
+   */
+  export type ScreeningSessionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ScreeningSession to update in case it exists.
+     */
+    where: ScreeningSessionWhereUniqueInput
+    /**
+     * In case the ScreeningSession found by the `where` argument doesn't exist, create a new ScreeningSession with this data.
+     */
+    create: XOR<ScreeningSessionCreateInput, ScreeningSessionUncheckedCreateInput>
+    /**
+     * In case the ScreeningSession was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ScreeningSessionUpdateInput, ScreeningSessionUncheckedUpdateInput>
+  }
+
+  /**
+   * ScreeningSession delete
+   */
+  export type ScreeningSessionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+    /**
+     * Filter which ScreeningSession to delete.
+     */
+    where: ScreeningSessionWhereUniqueInput
+  }
+
+  /**
+   * ScreeningSession deleteMany
+   */
+  export type ScreeningSessionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ScreeningSessions to delete
+     */
+    where?: ScreeningSessionWhereInput
+    /**
+     * Limit how many ScreeningSessions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ScreeningSession.strategy
+   */
+  export type ScreeningSession$strategyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningStrategy
+     */
+    select?: ScreeningStrategySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningStrategy
+     */
+    omit?: ScreeningStrategyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningStrategyInclude<ExtArgs> | null
+    where?: ScreeningStrategyWhereInput
+  }
+
+  /**
+   * ScreeningSession without action
+   */
+  export type ScreeningSessionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScreeningSession
+     */
+    select?: ScreeningSessionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScreeningSession
+     */
+    omit?: ScreeningSessionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScreeningSessionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model WatchList
+   */
+
+  export type AggregateWatchList = {
+    _count: WatchListCountAggregateOutputType | null
+    _min: WatchListMinAggregateOutputType | null
+    _max: WatchListMaxAggregateOutputType | null
+  }
+
+  export type WatchListMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    userId: string | null
+  }
+
+  export type WatchListMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+    userId: string | null
+  }
+
+  export type WatchListCountAggregateOutputType = {
+    id: number
+    name: number
+    description: number
+    stocks: number
+    createdAt: number
+    updatedAt: number
+    userId: number
+    _all: number
+  }
+
+
+  export type WatchListMinAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    createdAt?: true
+    updatedAt?: true
+    userId?: true
+  }
+
+  export type WatchListMaxAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    createdAt?: true
+    updatedAt?: true
+    userId?: true
+  }
+
+  export type WatchListCountAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    stocks?: true
+    createdAt?: true
+    updatedAt?: true
+    userId?: true
+    _all?: true
+  }
+
+  export type WatchListAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WatchList to aggregate.
+     */
+    where?: WatchListWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WatchLists to fetch.
+     */
+    orderBy?: WatchListOrderByWithRelationInput | WatchListOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WatchListWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WatchLists from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WatchLists.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WatchLists
+    **/
+    _count?: true | WatchListCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WatchListMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WatchListMaxAggregateInputType
+  }
+
+  export type GetWatchListAggregateType<T extends WatchListAggregateArgs> = {
+        [P in keyof T & keyof AggregateWatchList]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWatchList[P]>
+      : GetScalarType<T[P], AggregateWatchList[P]>
+  }
+
+
+
+
+  export type WatchListGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WatchListWhereInput
+    orderBy?: WatchListOrderByWithAggregationInput | WatchListOrderByWithAggregationInput[]
+    by: WatchListScalarFieldEnum[] | WatchListScalarFieldEnum
+    having?: WatchListScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WatchListCountAggregateInputType | true
+    _min?: WatchListMinAggregateInputType
+    _max?: WatchListMaxAggregateInputType
+  }
+
+  export type WatchListGroupByOutputType = {
+    id: string
+    name: string
+    description: string | null
+    stocks: JsonValue
+    createdAt: Date
+    updatedAt: Date
+    userId: string
+    _count: WatchListCountAggregateOutputType | null
+    _min: WatchListMinAggregateOutputType | null
+    _max: WatchListMaxAggregateOutputType | null
+  }
+
+  type GetWatchListGroupByPayload<T extends WatchListGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WatchListGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WatchListGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WatchListGroupByOutputType[P]>
+            : GetScalarType<T[P], WatchListGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WatchListSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    stocks?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    userId?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["watchList"]>
+
+  export type WatchListSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    stocks?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    userId?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["watchList"]>
+
+  export type WatchListSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    stocks?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    userId?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["watchList"]>
+
+  export type WatchListSelectScalar = {
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    stocks?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    userId?: boolean
+  }
+
+  export type WatchListOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "stocks" | "createdAt" | "updatedAt" | "userId", ExtArgs["result"]["watchList"]>
+  export type WatchListInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type WatchListIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type WatchListIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $WatchListPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WatchList"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      description: string | null
+      stocks: Prisma.JsonValue
+      createdAt: Date
+      updatedAt: Date
+      userId: string
+    }, ExtArgs["result"]["watchList"]>
+    composites: {}
+  }
+
+  type WatchListGetPayload<S extends boolean | null | undefined | WatchListDefaultArgs> = $Result.GetResult<Prisma.$WatchListPayload, S>
+
+  type WatchListCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<WatchListFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: WatchListCountAggregateInputType | true
+    }
+
+  export interface WatchListDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WatchList'], meta: { name: 'WatchList' } }
+    /**
+     * Find zero or one WatchList that matches the filter.
+     * @param {WatchListFindUniqueArgs} args - Arguments to find a WatchList
+     * @example
+     * // Get one WatchList
+     * const watchList = await prisma.watchList.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WatchListFindUniqueArgs>(args: SelectSubset<T, WatchListFindUniqueArgs<ExtArgs>>): Prisma__WatchListClient<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one WatchList that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {WatchListFindUniqueOrThrowArgs} args - Arguments to find a WatchList
+     * @example
+     * // Get one WatchList
+     * const watchList = await prisma.watchList.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WatchListFindUniqueOrThrowArgs>(args: SelectSubset<T, WatchListFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WatchListClient<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WatchList that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WatchListFindFirstArgs} args - Arguments to find a WatchList
+     * @example
+     * // Get one WatchList
+     * const watchList = await prisma.watchList.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WatchListFindFirstArgs>(args?: SelectSubset<T, WatchListFindFirstArgs<ExtArgs>>): Prisma__WatchListClient<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WatchList that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WatchListFindFirstOrThrowArgs} args - Arguments to find a WatchList
+     * @example
+     * // Get one WatchList
+     * const watchList = await prisma.watchList.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WatchListFindFirstOrThrowArgs>(args?: SelectSubset<T, WatchListFindFirstOrThrowArgs<ExtArgs>>): Prisma__WatchListClient<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more WatchLists that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WatchListFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WatchLists
+     * const watchLists = await prisma.watchList.findMany()
+     * 
+     * // Get first 10 WatchLists
+     * const watchLists = await prisma.watchList.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const watchListWithIdOnly = await prisma.watchList.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WatchListFindManyArgs>(args?: SelectSubset<T, WatchListFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a WatchList.
+     * @param {WatchListCreateArgs} args - Arguments to create a WatchList.
+     * @example
+     * // Create one WatchList
+     * const WatchList = await prisma.watchList.create({
+     *   data: {
+     *     // ... data to create a WatchList
+     *   }
+     * })
+     * 
+     */
+    create<T extends WatchListCreateArgs>(args: SelectSubset<T, WatchListCreateArgs<ExtArgs>>): Prisma__WatchListClient<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many WatchLists.
+     * @param {WatchListCreateManyArgs} args - Arguments to create many WatchLists.
+     * @example
+     * // Create many WatchLists
+     * const watchList = await prisma.watchList.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WatchListCreateManyArgs>(args?: SelectSubset<T, WatchListCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WatchLists and returns the data saved in the database.
+     * @param {WatchListCreateManyAndReturnArgs} args - Arguments to create many WatchLists.
+     * @example
+     * // Create many WatchLists
+     * const watchList = await prisma.watchList.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WatchLists and only return the `id`
+     * const watchListWithIdOnly = await prisma.watchList.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WatchListCreateManyAndReturnArgs>(args?: SelectSubset<T, WatchListCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a WatchList.
+     * @param {WatchListDeleteArgs} args - Arguments to delete one WatchList.
+     * @example
+     * // Delete one WatchList
+     * const WatchList = await prisma.watchList.delete({
+     *   where: {
+     *     // ... filter to delete one WatchList
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WatchListDeleteArgs>(args: SelectSubset<T, WatchListDeleteArgs<ExtArgs>>): Prisma__WatchListClient<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one WatchList.
+     * @param {WatchListUpdateArgs} args - Arguments to update one WatchList.
+     * @example
+     * // Update one WatchList
+     * const watchList = await prisma.watchList.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WatchListUpdateArgs>(args: SelectSubset<T, WatchListUpdateArgs<ExtArgs>>): Prisma__WatchListClient<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more WatchLists.
+     * @param {WatchListDeleteManyArgs} args - Arguments to filter WatchLists to delete.
+     * @example
+     * // Delete a few WatchLists
+     * const { count } = await prisma.watchList.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WatchListDeleteManyArgs>(args?: SelectSubset<T, WatchListDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WatchLists.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WatchListUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WatchLists
+     * const watchList = await prisma.watchList.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WatchListUpdateManyArgs>(args: SelectSubset<T, WatchListUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WatchLists and returns the data updated in the database.
+     * @param {WatchListUpdateManyAndReturnArgs} args - Arguments to update many WatchLists.
+     * @example
+     * // Update many WatchLists
+     * const watchList = await prisma.watchList.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more WatchLists and only return the `id`
+     * const watchListWithIdOnly = await prisma.watchList.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends WatchListUpdateManyAndReturnArgs>(args: SelectSubset<T, WatchListUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one WatchList.
+     * @param {WatchListUpsertArgs} args - Arguments to update or create a WatchList.
+     * @example
+     * // Update or create a WatchList
+     * const watchList = await prisma.watchList.upsert({
+     *   create: {
+     *     // ... data to create a WatchList
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WatchList we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WatchListUpsertArgs>(args: SelectSubset<T, WatchListUpsertArgs<ExtArgs>>): Prisma__WatchListClient<$Result.GetResult<Prisma.$WatchListPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of WatchLists.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WatchListCountArgs} args - Arguments to filter WatchLists to count.
+     * @example
+     * // Count the number of WatchLists
+     * const count = await prisma.watchList.count({
+     *   where: {
+     *     // ... the filter for the WatchLists we want to count
+     *   }
+     * })
+    **/
+    count<T extends WatchListCountArgs>(
+      args?: Subset<T, WatchListCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WatchListCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WatchList.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WatchListAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WatchListAggregateArgs>(args: Subset<T, WatchListAggregateArgs>): Prisma.PrismaPromise<GetWatchListAggregateType<T>>
+
+    /**
+     * Group by WatchList.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WatchListGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WatchListGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WatchListGroupByArgs['orderBy'] }
+        : { orderBy?: WatchListGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WatchListGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWatchListGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WatchList model
+   */
+  readonly fields: WatchListFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WatchList.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WatchListClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WatchList model
+   */
+  interface WatchListFieldRefs {
+    readonly id: FieldRef<"WatchList", 'String'>
+    readonly name: FieldRef<"WatchList", 'String'>
+    readonly description: FieldRef<"WatchList", 'String'>
+    readonly stocks: FieldRef<"WatchList", 'Json'>
+    readonly createdAt: FieldRef<"WatchList", 'DateTime'>
+    readonly updatedAt: FieldRef<"WatchList", 'DateTime'>
+    readonly userId: FieldRef<"WatchList", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WatchList findUnique
+   */
+  export type WatchListFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    /**
+     * Filter, which WatchList to fetch.
+     */
+    where: WatchListWhereUniqueInput
+  }
+
+  /**
+   * WatchList findUniqueOrThrow
+   */
+  export type WatchListFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    /**
+     * Filter, which WatchList to fetch.
+     */
+    where: WatchListWhereUniqueInput
+  }
+
+  /**
+   * WatchList findFirst
+   */
+  export type WatchListFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    /**
+     * Filter, which WatchList to fetch.
+     */
+    where?: WatchListWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WatchLists to fetch.
+     */
+    orderBy?: WatchListOrderByWithRelationInput | WatchListOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WatchLists.
+     */
+    cursor?: WatchListWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WatchLists from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WatchLists.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WatchLists.
+     */
+    distinct?: WatchListScalarFieldEnum | WatchListScalarFieldEnum[]
+  }
+
+  /**
+   * WatchList findFirstOrThrow
+   */
+  export type WatchListFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    /**
+     * Filter, which WatchList to fetch.
+     */
+    where?: WatchListWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WatchLists to fetch.
+     */
+    orderBy?: WatchListOrderByWithRelationInput | WatchListOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WatchLists.
+     */
+    cursor?: WatchListWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WatchLists from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WatchLists.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WatchLists.
+     */
+    distinct?: WatchListScalarFieldEnum | WatchListScalarFieldEnum[]
+  }
+
+  /**
+   * WatchList findMany
+   */
+  export type WatchListFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    /**
+     * Filter, which WatchLists to fetch.
+     */
+    where?: WatchListWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WatchLists to fetch.
+     */
+    orderBy?: WatchListOrderByWithRelationInput | WatchListOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WatchLists.
+     */
+    cursor?: WatchListWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WatchLists from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WatchLists.
+     */
+    skip?: number
+    distinct?: WatchListScalarFieldEnum | WatchListScalarFieldEnum[]
+  }
+
+  /**
+   * WatchList create
+   */
+  export type WatchListCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    /**
+     * The data needed to create a WatchList.
+     */
+    data: XOR<WatchListCreateInput, WatchListUncheckedCreateInput>
+  }
+
+  /**
+   * WatchList createMany
+   */
+  export type WatchListCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WatchLists.
+     */
+    data: WatchListCreateManyInput | WatchListCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WatchList createManyAndReturn
+   */
+  export type WatchListCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * The data used to create many WatchLists.
+     */
+    data: WatchListCreateManyInput | WatchListCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WatchList update
+   */
+  export type WatchListUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    /**
+     * The data needed to update a WatchList.
+     */
+    data: XOR<WatchListUpdateInput, WatchListUncheckedUpdateInput>
+    /**
+     * Choose, which WatchList to update.
+     */
+    where: WatchListWhereUniqueInput
+  }
+
+  /**
+   * WatchList updateMany
+   */
+  export type WatchListUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WatchLists.
+     */
+    data: XOR<WatchListUpdateManyMutationInput, WatchListUncheckedUpdateManyInput>
+    /**
+     * Filter which WatchLists to update
+     */
+    where?: WatchListWhereInput
+    /**
+     * Limit how many WatchLists to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * WatchList updateManyAndReturn
+   */
+  export type WatchListUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * The data used to update WatchLists.
+     */
+    data: XOR<WatchListUpdateManyMutationInput, WatchListUncheckedUpdateManyInput>
+    /**
+     * Filter which WatchLists to update
+     */
+    where?: WatchListWhereInput
+    /**
+     * Limit how many WatchLists to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WatchList upsert
+   */
+  export type WatchListUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    /**
+     * The filter to search for the WatchList to update in case it exists.
+     */
+    where: WatchListWhereUniqueInput
+    /**
+     * In case the WatchList found by the `where` argument doesn't exist, create a new WatchList with this data.
+     */
+    create: XOR<WatchListCreateInput, WatchListUncheckedCreateInput>
+    /**
+     * In case the WatchList was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WatchListUpdateInput, WatchListUncheckedUpdateInput>
+  }
+
+  /**
+   * WatchList delete
+   */
+  export type WatchListDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+    /**
+     * Filter which WatchList to delete.
+     */
+    where: WatchListWhereUniqueInput
+  }
+
+  /**
+   * WatchList deleteMany
+   */
+  export type WatchListDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WatchLists to delete
+     */
+    where?: WatchListWhereInput
+    /**
+     * Limit how many WatchLists to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * WatchList without action
+   */
+  export type WatchListDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WatchList
+     */
+    select?: WatchListSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WatchList
+     */
+    omit?: WatchListOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WatchListInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -6779,12 +10600,65 @@ export namespace Prisma {
   export type VerificationTokenScalarFieldEnum = (typeof VerificationTokenScalarFieldEnum)[keyof typeof VerificationTokenScalarFieldEnum]
 
 
+  export const ScreeningStrategyScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    description: 'description',
+    filters: 'filters',
+    scoringConfig: 'scoringConfig',
+    tags: 'tags',
+    isTemplate: 'isTemplate',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    userId: 'userId'
+  };
+
+  export type ScreeningStrategyScalarFieldEnum = (typeof ScreeningStrategyScalarFieldEnum)[keyof typeof ScreeningStrategyScalarFieldEnum]
+
+
+  export const ScreeningSessionScalarFieldEnum: {
+    id: 'id',
+    strategyId: 'strategyId',
+    strategyName: 'strategyName',
+    executedAt: 'executedAt',
+    totalScanned: 'totalScanned',
+    executionTime: 'executionTime',
+    topStocks: 'topStocks',
+    otherStockCodes: 'otherStockCodes',
+    filtersSnapshot: 'filtersSnapshot',
+    scoringConfigSnapshot: 'scoringConfigSnapshot',
+    userId: 'userId'
+  };
+
+  export type ScreeningSessionScalarFieldEnum = (typeof ScreeningSessionScalarFieldEnum)[keyof typeof ScreeningSessionScalarFieldEnum]
+
+
+  export const WatchListScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    description: 'description',
+    stocks: 'stocks',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt',
+    userId: 'userId'
+  };
+
+  export type WatchListScalarFieldEnum = (typeof WatchListScalarFieldEnum)[keyof typeof WatchListScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
   };
 
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
+
+
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -6801,6 +10675,15 @@ export namespace Prisma {
   };
 
   export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
+
+  export const JsonNullValueFilter: {
+    DbNull: typeof DbNull,
+    JsonNull: typeof JsonNull,
+    AnyNull: typeof AnyNull
+  };
+
+  export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 
 
   /**
@@ -6847,6 +10730,27 @@ export namespace Prisma {
    * Reference to a field of type 'DateTime[]'
    */
   export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Json'
+   */
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
+    
+
+
+  /**
+   * Reference to a field of type 'QueryMode'
+   */
+  export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -7084,6 +10988,9 @@ export namespace Prisma {
     accounts?: AccountListRelationFilter
     sessions?: SessionListRelationFilter
     posts?: PostListRelationFilter
+    strategies?: ScreeningStrategyListRelationFilter
+    screeningSessions?: ScreeningSessionListRelationFilter
+    watchLists?: WatchListListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -7095,6 +11002,9 @@ export namespace Prisma {
     accounts?: AccountOrderByRelationAggregateInput
     sessions?: SessionOrderByRelationAggregateInput
     posts?: PostOrderByRelationAggregateInput
+    strategies?: ScreeningStrategyOrderByRelationAggregateInput
+    screeningSessions?: ScreeningSessionOrderByRelationAggregateInput
+    watchLists?: WatchListOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -7109,6 +11019,9 @@ export namespace Prisma {
     accounts?: AccountListRelationFilter
     sessions?: SessionListRelationFilter
     posts?: PostListRelationFilter
+    strategies?: ScreeningStrategyListRelationFilter
+    screeningSessions?: ScreeningSessionListRelationFilter
+    watchLists?: WatchListListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -7174,6 +11087,244 @@ export namespace Prisma {
     identifier?: StringWithAggregatesFilter<"VerificationToken"> | string
     token?: StringWithAggregatesFilter<"VerificationToken"> | string
     expires?: DateTimeWithAggregatesFilter<"VerificationToken"> | Date | string
+  }
+
+  export type ScreeningStrategyWhereInput = {
+    AND?: ScreeningStrategyWhereInput | ScreeningStrategyWhereInput[]
+    OR?: ScreeningStrategyWhereInput[]
+    NOT?: ScreeningStrategyWhereInput | ScreeningStrategyWhereInput[]
+    id?: StringFilter<"ScreeningStrategy"> | string
+    name?: StringFilter<"ScreeningStrategy"> | string
+    description?: StringNullableFilter<"ScreeningStrategy"> | string | null
+    filters?: JsonFilter<"ScreeningStrategy">
+    scoringConfig?: JsonFilter<"ScreeningStrategy">
+    tags?: StringNullableListFilter<"ScreeningStrategy">
+    isTemplate?: BoolFilter<"ScreeningStrategy"> | boolean
+    createdAt?: DateTimeFilter<"ScreeningStrategy"> | Date | string
+    updatedAt?: DateTimeFilter<"ScreeningStrategy"> | Date | string
+    userId?: StringFilter<"ScreeningStrategy"> | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    sessions?: ScreeningSessionListRelationFilter
+  }
+
+  export type ScreeningStrategyOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    filters?: SortOrder
+    scoringConfig?: SortOrder
+    tags?: SortOrder
+    isTemplate?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
+    user?: UserOrderByWithRelationInput
+    sessions?: ScreeningSessionOrderByRelationAggregateInput
+  }
+
+  export type ScreeningStrategyWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ScreeningStrategyWhereInput | ScreeningStrategyWhereInput[]
+    OR?: ScreeningStrategyWhereInput[]
+    NOT?: ScreeningStrategyWhereInput | ScreeningStrategyWhereInput[]
+    name?: StringFilter<"ScreeningStrategy"> | string
+    description?: StringNullableFilter<"ScreeningStrategy"> | string | null
+    filters?: JsonFilter<"ScreeningStrategy">
+    scoringConfig?: JsonFilter<"ScreeningStrategy">
+    tags?: StringNullableListFilter<"ScreeningStrategy">
+    isTemplate?: BoolFilter<"ScreeningStrategy"> | boolean
+    createdAt?: DateTimeFilter<"ScreeningStrategy"> | Date | string
+    updatedAt?: DateTimeFilter<"ScreeningStrategy"> | Date | string
+    userId?: StringFilter<"ScreeningStrategy"> | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    sessions?: ScreeningSessionListRelationFilter
+  }, "id">
+
+  export type ScreeningStrategyOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    filters?: SortOrder
+    scoringConfig?: SortOrder
+    tags?: SortOrder
+    isTemplate?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
+    _count?: ScreeningStrategyCountOrderByAggregateInput
+    _max?: ScreeningStrategyMaxOrderByAggregateInput
+    _min?: ScreeningStrategyMinOrderByAggregateInput
+  }
+
+  export type ScreeningStrategyScalarWhereWithAggregatesInput = {
+    AND?: ScreeningStrategyScalarWhereWithAggregatesInput | ScreeningStrategyScalarWhereWithAggregatesInput[]
+    OR?: ScreeningStrategyScalarWhereWithAggregatesInput[]
+    NOT?: ScreeningStrategyScalarWhereWithAggregatesInput | ScreeningStrategyScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ScreeningStrategy"> | string
+    name?: StringWithAggregatesFilter<"ScreeningStrategy"> | string
+    description?: StringNullableWithAggregatesFilter<"ScreeningStrategy"> | string | null
+    filters?: JsonWithAggregatesFilter<"ScreeningStrategy">
+    scoringConfig?: JsonWithAggregatesFilter<"ScreeningStrategy">
+    tags?: StringNullableListFilter<"ScreeningStrategy">
+    isTemplate?: BoolWithAggregatesFilter<"ScreeningStrategy"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"ScreeningStrategy"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ScreeningStrategy"> | Date | string
+    userId?: StringWithAggregatesFilter<"ScreeningStrategy"> | string
+  }
+
+  export type ScreeningSessionWhereInput = {
+    AND?: ScreeningSessionWhereInput | ScreeningSessionWhereInput[]
+    OR?: ScreeningSessionWhereInput[]
+    NOT?: ScreeningSessionWhereInput | ScreeningSessionWhereInput[]
+    id?: StringFilter<"ScreeningSession"> | string
+    strategyId?: StringNullableFilter<"ScreeningSession"> | string | null
+    strategyName?: StringFilter<"ScreeningSession"> | string
+    executedAt?: DateTimeFilter<"ScreeningSession"> | Date | string
+    totalScanned?: IntFilter<"ScreeningSession"> | number
+    executionTime?: FloatFilter<"ScreeningSession"> | number
+    topStocks?: JsonFilter<"ScreeningSession">
+    otherStockCodes?: StringNullableListFilter<"ScreeningSession">
+    filtersSnapshot?: JsonFilter<"ScreeningSession">
+    scoringConfigSnapshot?: JsonFilter<"ScreeningSession">
+    userId?: StringFilter<"ScreeningSession"> | string
+    strategy?: XOR<ScreeningStrategyNullableScalarRelationFilter, ScreeningStrategyWhereInput> | null
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type ScreeningSessionOrderByWithRelationInput = {
+    id?: SortOrder
+    strategyId?: SortOrderInput | SortOrder
+    strategyName?: SortOrder
+    executedAt?: SortOrder
+    totalScanned?: SortOrder
+    executionTime?: SortOrder
+    topStocks?: SortOrder
+    otherStockCodes?: SortOrder
+    filtersSnapshot?: SortOrder
+    scoringConfigSnapshot?: SortOrder
+    userId?: SortOrder
+    strategy?: ScreeningStrategyOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type ScreeningSessionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ScreeningSessionWhereInput | ScreeningSessionWhereInput[]
+    OR?: ScreeningSessionWhereInput[]
+    NOT?: ScreeningSessionWhereInput | ScreeningSessionWhereInput[]
+    strategyId?: StringNullableFilter<"ScreeningSession"> | string | null
+    strategyName?: StringFilter<"ScreeningSession"> | string
+    executedAt?: DateTimeFilter<"ScreeningSession"> | Date | string
+    totalScanned?: IntFilter<"ScreeningSession"> | number
+    executionTime?: FloatFilter<"ScreeningSession"> | number
+    topStocks?: JsonFilter<"ScreeningSession">
+    otherStockCodes?: StringNullableListFilter<"ScreeningSession">
+    filtersSnapshot?: JsonFilter<"ScreeningSession">
+    scoringConfigSnapshot?: JsonFilter<"ScreeningSession">
+    userId?: StringFilter<"ScreeningSession"> | string
+    strategy?: XOR<ScreeningStrategyNullableScalarRelationFilter, ScreeningStrategyWhereInput> | null
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id">
+
+  export type ScreeningSessionOrderByWithAggregationInput = {
+    id?: SortOrder
+    strategyId?: SortOrderInput | SortOrder
+    strategyName?: SortOrder
+    executedAt?: SortOrder
+    totalScanned?: SortOrder
+    executionTime?: SortOrder
+    topStocks?: SortOrder
+    otherStockCodes?: SortOrder
+    filtersSnapshot?: SortOrder
+    scoringConfigSnapshot?: SortOrder
+    userId?: SortOrder
+    _count?: ScreeningSessionCountOrderByAggregateInput
+    _avg?: ScreeningSessionAvgOrderByAggregateInput
+    _max?: ScreeningSessionMaxOrderByAggregateInput
+    _min?: ScreeningSessionMinOrderByAggregateInput
+    _sum?: ScreeningSessionSumOrderByAggregateInput
+  }
+
+  export type ScreeningSessionScalarWhereWithAggregatesInput = {
+    AND?: ScreeningSessionScalarWhereWithAggregatesInput | ScreeningSessionScalarWhereWithAggregatesInput[]
+    OR?: ScreeningSessionScalarWhereWithAggregatesInput[]
+    NOT?: ScreeningSessionScalarWhereWithAggregatesInput | ScreeningSessionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ScreeningSession"> | string
+    strategyId?: StringNullableWithAggregatesFilter<"ScreeningSession"> | string | null
+    strategyName?: StringWithAggregatesFilter<"ScreeningSession"> | string
+    executedAt?: DateTimeWithAggregatesFilter<"ScreeningSession"> | Date | string
+    totalScanned?: IntWithAggregatesFilter<"ScreeningSession"> | number
+    executionTime?: FloatWithAggregatesFilter<"ScreeningSession"> | number
+    topStocks?: JsonWithAggregatesFilter<"ScreeningSession">
+    otherStockCodes?: StringNullableListFilter<"ScreeningSession">
+    filtersSnapshot?: JsonWithAggregatesFilter<"ScreeningSession">
+    scoringConfigSnapshot?: JsonWithAggregatesFilter<"ScreeningSession">
+    userId?: StringWithAggregatesFilter<"ScreeningSession"> | string
+  }
+
+  export type WatchListWhereInput = {
+    AND?: WatchListWhereInput | WatchListWhereInput[]
+    OR?: WatchListWhereInput[]
+    NOT?: WatchListWhereInput | WatchListWhereInput[]
+    id?: StringFilter<"WatchList"> | string
+    name?: StringFilter<"WatchList"> | string
+    description?: StringNullableFilter<"WatchList"> | string | null
+    stocks?: JsonFilter<"WatchList">
+    createdAt?: DateTimeFilter<"WatchList"> | Date | string
+    updatedAt?: DateTimeFilter<"WatchList"> | Date | string
+    userId?: StringFilter<"WatchList"> | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type WatchListOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    stocks?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type WatchListWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WatchListWhereInput | WatchListWhereInput[]
+    OR?: WatchListWhereInput[]
+    NOT?: WatchListWhereInput | WatchListWhereInput[]
+    name?: StringFilter<"WatchList"> | string
+    description?: StringNullableFilter<"WatchList"> | string | null
+    stocks?: JsonFilter<"WatchList">
+    createdAt?: DateTimeFilter<"WatchList"> | Date | string
+    updatedAt?: DateTimeFilter<"WatchList"> | Date | string
+    userId?: StringFilter<"WatchList"> | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id">
+
+  export type WatchListOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    stocks?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
+    _count?: WatchListCountOrderByAggregateInput
+    _max?: WatchListMaxOrderByAggregateInput
+    _min?: WatchListMinOrderByAggregateInput
+  }
+
+  export type WatchListScalarWhereWithAggregatesInput = {
+    AND?: WatchListScalarWhereWithAggregatesInput | WatchListScalarWhereWithAggregatesInput[]
+    OR?: WatchListScalarWhereWithAggregatesInput[]
+    NOT?: WatchListScalarWhereWithAggregatesInput | WatchListScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WatchList"> | string
+    name?: StringWithAggregatesFilter<"WatchList"> | string
+    description?: StringNullableWithAggregatesFilter<"WatchList"> | string | null
+    stocks?: JsonWithAggregatesFilter<"WatchList">
+    createdAt?: DateTimeWithAggregatesFilter<"WatchList"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"WatchList"> | Date | string
+    userId?: StringWithAggregatesFilter<"WatchList"> | string
   }
 
   export type PostCreateInput = {
@@ -7396,6 +11547,9 @@ export namespace Prisma {
     accounts?: AccountCreateNestedManyWithoutUserInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     posts?: PostCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionCreateNestedManyWithoutUserInput
+    watchLists?: WatchListCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -7407,6 +11561,9 @@ export namespace Prisma {
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     posts?: PostUncheckedCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyUncheckedCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionUncheckedCreateNestedManyWithoutUserInput
+    watchLists?: WatchListUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -7418,6 +11575,9 @@ export namespace Prisma {
     accounts?: AccountUpdateManyWithoutUserNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     posts?: PostUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -7429,6 +11589,9 @@ export namespace Prisma {
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     posts?: PostUncheckedUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUncheckedUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUncheckedUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -7495,6 +11658,265 @@ export namespace Prisma {
     identifier?: StringFieldUpdateOperationsInput | string
     token?: StringFieldUpdateOperationsInput | string
     expires?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ScreeningStrategyCreateInput = {
+    id?: string
+    name: string
+    description?: string | null
+    filters: JsonNullValueInput | InputJsonValue
+    scoringConfig: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyCreatetagsInput | string[]
+    isTemplate?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutStrategiesInput
+    sessions?: ScreeningSessionCreateNestedManyWithoutStrategyInput
+  }
+
+  export type ScreeningStrategyUncheckedCreateInput = {
+    id?: string
+    name: string
+    description?: string | null
+    filters: JsonNullValueInput | InputJsonValue
+    scoringConfig: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyCreatetagsInput | string[]
+    isTemplate?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userId: string
+    sessions?: ScreeningSessionUncheckedCreateNestedManyWithoutStrategyInput
+  }
+
+  export type ScreeningStrategyUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    filters?: JsonNullValueInput | InputJsonValue
+    scoringConfig?: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyUpdatetagsInput | string[]
+    isTemplate?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutStrategiesNestedInput
+    sessions?: ScreeningSessionUpdateManyWithoutStrategyNestedInput
+  }
+
+  export type ScreeningStrategyUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    filters?: JsonNullValueInput | InputJsonValue
+    scoringConfig?: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyUpdatetagsInput | string[]
+    isTemplate?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: StringFieldUpdateOperationsInput | string
+    sessions?: ScreeningSessionUncheckedUpdateManyWithoutStrategyNestedInput
+  }
+
+  export type ScreeningStrategyCreateManyInput = {
+    id?: string
+    name: string
+    description?: string | null
+    filters: JsonNullValueInput | InputJsonValue
+    scoringConfig: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyCreatetagsInput | string[]
+    isTemplate?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userId: string
+  }
+
+  export type ScreeningStrategyUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    filters?: JsonNullValueInput | InputJsonValue
+    scoringConfig?: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyUpdatetagsInput | string[]
+    isTemplate?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ScreeningStrategyUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    filters?: JsonNullValueInput | InputJsonValue
+    scoringConfig?: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyUpdatetagsInput | string[]
+    isTemplate?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type ScreeningSessionCreateInput = {
+    id?: string
+    strategyName: string
+    executedAt?: Date | string
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionCreateotherStockCodesInput | string[]
+    filtersSnapshot: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot: JsonNullValueInput | InputJsonValue
+    strategy?: ScreeningStrategyCreateNestedOneWithoutSessionsInput
+    user: UserCreateNestedOneWithoutScreeningSessionsInput
+  }
+
+  export type ScreeningSessionUncheckedCreateInput = {
+    id?: string
+    strategyId?: string | null
+    strategyName: string
+    executedAt?: Date | string
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionCreateotherStockCodesInput | string[]
+    filtersSnapshot: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot: JsonNullValueInput | InputJsonValue
+    userId: string
+  }
+
+  export type ScreeningSessionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+    strategy?: ScreeningStrategyUpdateOneWithoutSessionsNestedInput
+    user?: UserUpdateOneRequiredWithoutScreeningSessionsNestedInput
+  }
+
+  export type ScreeningSessionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyId?: NullableStringFieldUpdateOperationsInput | string | null
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+    userId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type ScreeningSessionCreateManyInput = {
+    id?: string
+    strategyId?: string | null
+    strategyName: string
+    executedAt?: Date | string
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionCreateotherStockCodesInput | string[]
+    filtersSnapshot: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot: JsonNullValueInput | InputJsonValue
+    userId: string
+  }
+
+  export type ScreeningSessionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type ScreeningSessionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyId?: NullableStringFieldUpdateOperationsInput | string | null
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+    userId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type WatchListCreateInput = {
+    id?: string
+    name: string
+    description?: string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutWatchListsInput
+  }
+
+  export type WatchListUncheckedCreateInput = {
+    id?: string
+    name: string
+    description?: string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userId: string
+  }
+
+  export type WatchListUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutWatchListsNestedInput
+  }
+
+  export type WatchListUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type WatchListCreateManyInput = {
+    id?: string
+    name: string
+    description?: string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userId: string
+  }
+
+  export type WatchListUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WatchListUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: StringFieldUpdateOperationsInput | string
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -7797,6 +12219,24 @@ export namespace Prisma {
     none?: PostWhereInput
   }
 
+  export type ScreeningStrategyListRelationFilter = {
+    every?: ScreeningStrategyWhereInput
+    some?: ScreeningStrategyWhereInput
+    none?: ScreeningStrategyWhereInput
+  }
+
+  export type ScreeningSessionListRelationFilter = {
+    every?: ScreeningSessionWhereInput
+    some?: ScreeningSessionWhereInput
+    none?: ScreeningSessionWhereInput
+  }
+
+  export type WatchListListRelationFilter = {
+    every?: WatchListWhereInput
+    some?: WatchListWhereInput
+    none?: WatchListWhereInput
+  }
+
   export type AccountOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -7806,6 +12246,18 @@ export namespace Prisma {
   }
 
   export type PostOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ScreeningStrategyOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ScreeningSessionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type WatchListOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -7868,6 +12320,213 @@ export namespace Prisma {
     identifier?: SortOrder
     token?: SortOrder
     expires?: SortOrder
+  }
+  export type JsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type StringNullableListFilter<$PrismaModel = never> = {
+    equals?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    has?: string | StringFieldRefInput<$PrismaModel> | null
+    hasEvery?: string[] | ListStringFieldRefInput<$PrismaModel>
+    hasSome?: string[] | ListStringFieldRefInput<$PrismaModel>
+    isEmpty?: boolean
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type ScreeningStrategyCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    filters?: SortOrder
+    scoringConfig?: SortOrder
+    tags?: SortOrder
+    isTemplate?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
+  }
+
+  export type ScreeningStrategyMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    isTemplate?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
+  }
+
+  export type ScreeningStrategyMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    isTemplate?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type ScreeningStrategyNullableScalarRelationFilter = {
+    is?: ScreeningStrategyWhereInput | null
+    isNot?: ScreeningStrategyWhereInput | null
+  }
+
+  export type ScreeningSessionCountOrderByAggregateInput = {
+    id?: SortOrder
+    strategyId?: SortOrder
+    strategyName?: SortOrder
+    executedAt?: SortOrder
+    totalScanned?: SortOrder
+    executionTime?: SortOrder
+    topStocks?: SortOrder
+    otherStockCodes?: SortOrder
+    filtersSnapshot?: SortOrder
+    scoringConfigSnapshot?: SortOrder
+    userId?: SortOrder
+  }
+
+  export type ScreeningSessionAvgOrderByAggregateInput = {
+    totalScanned?: SortOrder
+    executionTime?: SortOrder
+  }
+
+  export type ScreeningSessionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    strategyId?: SortOrder
+    strategyName?: SortOrder
+    executedAt?: SortOrder
+    totalScanned?: SortOrder
+    executionTime?: SortOrder
+    userId?: SortOrder
+  }
+
+  export type ScreeningSessionMinOrderByAggregateInput = {
+    id?: SortOrder
+    strategyId?: SortOrder
+    strategyName?: SortOrder
+    executedAt?: SortOrder
+    totalScanned?: SortOrder
+    executionTime?: SortOrder
+    userId?: SortOrder
+  }
+
+  export type ScreeningSessionSumOrderByAggregateInput = {
+    totalScanned?: SortOrder
+    executionTime?: SortOrder
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
+  export type WatchListCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    stocks?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
+  }
+
+  export type WatchListMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
+  }
+
+  export type WatchListMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    userId?: SortOrder
   }
 
   export type UserCreateNestedOneWithoutPostsInput = {
@@ -7961,6 +12620,27 @@ export namespace Prisma {
     connect?: PostWhereUniqueInput | PostWhereUniqueInput[]
   }
 
+  export type ScreeningStrategyCreateNestedManyWithoutUserInput = {
+    create?: XOR<ScreeningStrategyCreateWithoutUserInput, ScreeningStrategyUncheckedCreateWithoutUserInput> | ScreeningStrategyCreateWithoutUserInput[] | ScreeningStrategyUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ScreeningStrategyCreateOrConnectWithoutUserInput | ScreeningStrategyCreateOrConnectWithoutUserInput[]
+    createMany?: ScreeningStrategyCreateManyUserInputEnvelope
+    connect?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+  }
+
+  export type ScreeningSessionCreateNestedManyWithoutUserInput = {
+    create?: XOR<ScreeningSessionCreateWithoutUserInput, ScreeningSessionUncheckedCreateWithoutUserInput> | ScreeningSessionCreateWithoutUserInput[] | ScreeningSessionUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ScreeningSessionCreateOrConnectWithoutUserInput | ScreeningSessionCreateOrConnectWithoutUserInput[]
+    createMany?: ScreeningSessionCreateManyUserInputEnvelope
+    connect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+  }
+
+  export type WatchListCreateNestedManyWithoutUserInput = {
+    create?: XOR<WatchListCreateWithoutUserInput, WatchListUncheckedCreateWithoutUserInput> | WatchListCreateWithoutUserInput[] | WatchListUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: WatchListCreateOrConnectWithoutUserInput | WatchListCreateOrConnectWithoutUserInput[]
+    createMany?: WatchListCreateManyUserInputEnvelope
+    connect?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -7980,6 +12660,27 @@ export namespace Prisma {
     connectOrCreate?: PostCreateOrConnectWithoutCreatedByInput | PostCreateOrConnectWithoutCreatedByInput[]
     createMany?: PostCreateManyCreatedByInputEnvelope
     connect?: PostWhereUniqueInput | PostWhereUniqueInput[]
+  }
+
+  export type ScreeningStrategyUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<ScreeningStrategyCreateWithoutUserInput, ScreeningStrategyUncheckedCreateWithoutUserInput> | ScreeningStrategyCreateWithoutUserInput[] | ScreeningStrategyUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ScreeningStrategyCreateOrConnectWithoutUserInput | ScreeningStrategyCreateOrConnectWithoutUserInput[]
+    createMany?: ScreeningStrategyCreateManyUserInputEnvelope
+    connect?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+  }
+
+  export type ScreeningSessionUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<ScreeningSessionCreateWithoutUserInput, ScreeningSessionUncheckedCreateWithoutUserInput> | ScreeningSessionCreateWithoutUserInput[] | ScreeningSessionUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ScreeningSessionCreateOrConnectWithoutUserInput | ScreeningSessionCreateOrConnectWithoutUserInput[]
+    createMany?: ScreeningSessionCreateManyUserInputEnvelope
+    connect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+  }
+
+  export type WatchListUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<WatchListCreateWithoutUserInput, WatchListUncheckedCreateWithoutUserInput> | WatchListCreateWithoutUserInput[] | WatchListUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: WatchListCreateOrConnectWithoutUserInput | WatchListCreateOrConnectWithoutUserInput[]
+    createMany?: WatchListCreateManyUserInputEnvelope
+    connect?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
   }
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
@@ -8028,6 +12729,48 @@ export namespace Prisma {
     deleteMany?: PostScalarWhereInput | PostScalarWhereInput[]
   }
 
+  export type ScreeningStrategyUpdateManyWithoutUserNestedInput = {
+    create?: XOR<ScreeningStrategyCreateWithoutUserInput, ScreeningStrategyUncheckedCreateWithoutUserInput> | ScreeningStrategyCreateWithoutUserInput[] | ScreeningStrategyUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ScreeningStrategyCreateOrConnectWithoutUserInput | ScreeningStrategyCreateOrConnectWithoutUserInput[]
+    upsert?: ScreeningStrategyUpsertWithWhereUniqueWithoutUserInput | ScreeningStrategyUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: ScreeningStrategyCreateManyUserInputEnvelope
+    set?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+    disconnect?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+    delete?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+    connect?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+    update?: ScreeningStrategyUpdateWithWhereUniqueWithoutUserInput | ScreeningStrategyUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: ScreeningStrategyUpdateManyWithWhereWithoutUserInput | ScreeningStrategyUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: ScreeningStrategyScalarWhereInput | ScreeningStrategyScalarWhereInput[]
+  }
+
+  export type ScreeningSessionUpdateManyWithoutUserNestedInput = {
+    create?: XOR<ScreeningSessionCreateWithoutUserInput, ScreeningSessionUncheckedCreateWithoutUserInput> | ScreeningSessionCreateWithoutUserInput[] | ScreeningSessionUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ScreeningSessionCreateOrConnectWithoutUserInput | ScreeningSessionCreateOrConnectWithoutUserInput[]
+    upsert?: ScreeningSessionUpsertWithWhereUniqueWithoutUserInput | ScreeningSessionUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: ScreeningSessionCreateManyUserInputEnvelope
+    set?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    disconnect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    delete?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    connect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    update?: ScreeningSessionUpdateWithWhereUniqueWithoutUserInput | ScreeningSessionUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: ScreeningSessionUpdateManyWithWhereWithoutUserInput | ScreeningSessionUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: ScreeningSessionScalarWhereInput | ScreeningSessionScalarWhereInput[]
+  }
+
+  export type WatchListUpdateManyWithoutUserNestedInput = {
+    create?: XOR<WatchListCreateWithoutUserInput, WatchListUncheckedCreateWithoutUserInput> | WatchListCreateWithoutUserInput[] | WatchListUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: WatchListCreateOrConnectWithoutUserInput | WatchListCreateOrConnectWithoutUserInput[]
+    upsert?: WatchListUpsertWithWhereUniqueWithoutUserInput | WatchListUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: WatchListCreateManyUserInputEnvelope
+    set?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
+    disconnect?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
+    delete?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
+    connect?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
+    update?: WatchListUpdateWithWhereUniqueWithoutUserInput | WatchListUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: WatchListUpdateManyWithWhereWithoutUserInput | WatchListUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: WatchListScalarWhereInput | WatchListScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -8068,6 +12811,178 @@ export namespace Prisma {
     update?: PostUpdateWithWhereUniqueWithoutCreatedByInput | PostUpdateWithWhereUniqueWithoutCreatedByInput[]
     updateMany?: PostUpdateManyWithWhereWithoutCreatedByInput | PostUpdateManyWithWhereWithoutCreatedByInput[]
     deleteMany?: PostScalarWhereInput | PostScalarWhereInput[]
+  }
+
+  export type ScreeningStrategyUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<ScreeningStrategyCreateWithoutUserInput, ScreeningStrategyUncheckedCreateWithoutUserInput> | ScreeningStrategyCreateWithoutUserInput[] | ScreeningStrategyUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ScreeningStrategyCreateOrConnectWithoutUserInput | ScreeningStrategyCreateOrConnectWithoutUserInput[]
+    upsert?: ScreeningStrategyUpsertWithWhereUniqueWithoutUserInput | ScreeningStrategyUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: ScreeningStrategyCreateManyUserInputEnvelope
+    set?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+    disconnect?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+    delete?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+    connect?: ScreeningStrategyWhereUniqueInput | ScreeningStrategyWhereUniqueInput[]
+    update?: ScreeningStrategyUpdateWithWhereUniqueWithoutUserInput | ScreeningStrategyUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: ScreeningStrategyUpdateManyWithWhereWithoutUserInput | ScreeningStrategyUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: ScreeningStrategyScalarWhereInput | ScreeningStrategyScalarWhereInput[]
+  }
+
+  export type ScreeningSessionUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<ScreeningSessionCreateWithoutUserInput, ScreeningSessionUncheckedCreateWithoutUserInput> | ScreeningSessionCreateWithoutUserInput[] | ScreeningSessionUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: ScreeningSessionCreateOrConnectWithoutUserInput | ScreeningSessionCreateOrConnectWithoutUserInput[]
+    upsert?: ScreeningSessionUpsertWithWhereUniqueWithoutUserInput | ScreeningSessionUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: ScreeningSessionCreateManyUserInputEnvelope
+    set?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    disconnect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    delete?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    connect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    update?: ScreeningSessionUpdateWithWhereUniqueWithoutUserInput | ScreeningSessionUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: ScreeningSessionUpdateManyWithWhereWithoutUserInput | ScreeningSessionUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: ScreeningSessionScalarWhereInput | ScreeningSessionScalarWhereInput[]
+  }
+
+  export type WatchListUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<WatchListCreateWithoutUserInput, WatchListUncheckedCreateWithoutUserInput> | WatchListCreateWithoutUserInput[] | WatchListUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: WatchListCreateOrConnectWithoutUserInput | WatchListCreateOrConnectWithoutUserInput[]
+    upsert?: WatchListUpsertWithWhereUniqueWithoutUserInput | WatchListUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: WatchListCreateManyUserInputEnvelope
+    set?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
+    disconnect?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
+    delete?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
+    connect?: WatchListWhereUniqueInput | WatchListWhereUniqueInput[]
+    update?: WatchListUpdateWithWhereUniqueWithoutUserInput | WatchListUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: WatchListUpdateManyWithWhereWithoutUserInput | WatchListUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: WatchListScalarWhereInput | WatchListScalarWhereInput[]
+  }
+
+  export type ScreeningStrategyCreatetagsInput = {
+    set: string[]
+  }
+
+  export type UserCreateNestedOneWithoutStrategiesInput = {
+    create?: XOR<UserCreateWithoutStrategiesInput, UserUncheckedCreateWithoutStrategiesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutStrategiesInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ScreeningSessionCreateNestedManyWithoutStrategyInput = {
+    create?: XOR<ScreeningSessionCreateWithoutStrategyInput, ScreeningSessionUncheckedCreateWithoutStrategyInput> | ScreeningSessionCreateWithoutStrategyInput[] | ScreeningSessionUncheckedCreateWithoutStrategyInput[]
+    connectOrCreate?: ScreeningSessionCreateOrConnectWithoutStrategyInput | ScreeningSessionCreateOrConnectWithoutStrategyInput[]
+    createMany?: ScreeningSessionCreateManyStrategyInputEnvelope
+    connect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+  }
+
+  export type ScreeningSessionUncheckedCreateNestedManyWithoutStrategyInput = {
+    create?: XOR<ScreeningSessionCreateWithoutStrategyInput, ScreeningSessionUncheckedCreateWithoutStrategyInput> | ScreeningSessionCreateWithoutStrategyInput[] | ScreeningSessionUncheckedCreateWithoutStrategyInput[]
+    connectOrCreate?: ScreeningSessionCreateOrConnectWithoutStrategyInput | ScreeningSessionCreateOrConnectWithoutStrategyInput[]
+    createMany?: ScreeningSessionCreateManyStrategyInputEnvelope
+    connect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+  }
+
+  export type ScreeningStrategyUpdatetagsInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
+  export type UserUpdateOneRequiredWithoutStrategiesNestedInput = {
+    create?: XOR<UserCreateWithoutStrategiesInput, UserUncheckedCreateWithoutStrategiesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutStrategiesInput
+    upsert?: UserUpsertWithoutStrategiesInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutStrategiesInput, UserUpdateWithoutStrategiesInput>, UserUncheckedUpdateWithoutStrategiesInput>
+  }
+
+  export type ScreeningSessionUpdateManyWithoutStrategyNestedInput = {
+    create?: XOR<ScreeningSessionCreateWithoutStrategyInput, ScreeningSessionUncheckedCreateWithoutStrategyInput> | ScreeningSessionCreateWithoutStrategyInput[] | ScreeningSessionUncheckedCreateWithoutStrategyInput[]
+    connectOrCreate?: ScreeningSessionCreateOrConnectWithoutStrategyInput | ScreeningSessionCreateOrConnectWithoutStrategyInput[]
+    upsert?: ScreeningSessionUpsertWithWhereUniqueWithoutStrategyInput | ScreeningSessionUpsertWithWhereUniqueWithoutStrategyInput[]
+    createMany?: ScreeningSessionCreateManyStrategyInputEnvelope
+    set?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    disconnect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    delete?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    connect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    update?: ScreeningSessionUpdateWithWhereUniqueWithoutStrategyInput | ScreeningSessionUpdateWithWhereUniqueWithoutStrategyInput[]
+    updateMany?: ScreeningSessionUpdateManyWithWhereWithoutStrategyInput | ScreeningSessionUpdateManyWithWhereWithoutStrategyInput[]
+    deleteMany?: ScreeningSessionScalarWhereInput | ScreeningSessionScalarWhereInput[]
+  }
+
+  export type ScreeningSessionUncheckedUpdateManyWithoutStrategyNestedInput = {
+    create?: XOR<ScreeningSessionCreateWithoutStrategyInput, ScreeningSessionUncheckedCreateWithoutStrategyInput> | ScreeningSessionCreateWithoutStrategyInput[] | ScreeningSessionUncheckedCreateWithoutStrategyInput[]
+    connectOrCreate?: ScreeningSessionCreateOrConnectWithoutStrategyInput | ScreeningSessionCreateOrConnectWithoutStrategyInput[]
+    upsert?: ScreeningSessionUpsertWithWhereUniqueWithoutStrategyInput | ScreeningSessionUpsertWithWhereUniqueWithoutStrategyInput[]
+    createMany?: ScreeningSessionCreateManyStrategyInputEnvelope
+    set?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    disconnect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    delete?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    connect?: ScreeningSessionWhereUniqueInput | ScreeningSessionWhereUniqueInput[]
+    update?: ScreeningSessionUpdateWithWhereUniqueWithoutStrategyInput | ScreeningSessionUpdateWithWhereUniqueWithoutStrategyInput[]
+    updateMany?: ScreeningSessionUpdateManyWithWhereWithoutStrategyInput | ScreeningSessionUpdateManyWithWhereWithoutStrategyInput[]
+    deleteMany?: ScreeningSessionScalarWhereInput | ScreeningSessionScalarWhereInput[]
+  }
+
+  export type ScreeningSessionCreateotherStockCodesInput = {
+    set: string[]
+  }
+
+  export type ScreeningStrategyCreateNestedOneWithoutSessionsInput = {
+    create?: XOR<ScreeningStrategyCreateWithoutSessionsInput, ScreeningStrategyUncheckedCreateWithoutSessionsInput>
+    connectOrCreate?: ScreeningStrategyCreateOrConnectWithoutSessionsInput
+    connect?: ScreeningStrategyWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutScreeningSessionsInput = {
+    create?: XOR<UserCreateWithoutScreeningSessionsInput, UserUncheckedCreateWithoutScreeningSessionsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutScreeningSessionsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type ScreeningSessionUpdateotherStockCodesInput = {
+    set?: string[]
+    push?: string | string[]
+  }
+
+  export type ScreeningStrategyUpdateOneWithoutSessionsNestedInput = {
+    create?: XOR<ScreeningStrategyCreateWithoutSessionsInput, ScreeningStrategyUncheckedCreateWithoutSessionsInput>
+    connectOrCreate?: ScreeningStrategyCreateOrConnectWithoutSessionsInput
+    upsert?: ScreeningStrategyUpsertWithoutSessionsInput
+    disconnect?: ScreeningStrategyWhereInput | boolean
+    delete?: ScreeningStrategyWhereInput | boolean
+    connect?: ScreeningStrategyWhereUniqueInput
+    update?: XOR<XOR<ScreeningStrategyUpdateToOneWithWhereWithoutSessionsInput, ScreeningStrategyUpdateWithoutSessionsInput>, ScreeningStrategyUncheckedUpdateWithoutSessionsInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutScreeningSessionsNestedInput = {
+    create?: XOR<UserCreateWithoutScreeningSessionsInput, UserUncheckedCreateWithoutScreeningSessionsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutScreeningSessionsInput
+    upsert?: UserUpsertWithoutScreeningSessionsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutScreeningSessionsInput, UserUpdateWithoutScreeningSessionsInput>, UserUncheckedUpdateWithoutScreeningSessionsInput>
+  }
+
+  export type UserCreateNestedOneWithoutWatchListsInput = {
+    create?: XOR<UserCreateWithoutWatchListsInput, UserUncheckedCreateWithoutWatchListsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutWatchListsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutWatchListsNestedInput = {
+    create?: XOR<UserCreateWithoutWatchListsInput, UserUncheckedCreateWithoutWatchListsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutWatchListsInput
+    upsert?: UserUpsertWithoutWatchListsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutWatchListsInput, UserUpdateWithoutWatchListsInput>, UserUncheckedUpdateWithoutWatchListsInput>
   }
 
   export type NestedIntFilter<$PrismaModel = never> = {
@@ -8258,6 +13173,58 @@ export namespace Prisma {
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+  export type NestedJsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
   export type UserCreateWithoutPostsInput = {
     id?: string
     name?: string | null
@@ -8266,6 +13233,9 @@ export namespace Prisma {
     image?: string | null
     accounts?: AccountCreateNestedManyWithoutUserInput
     sessions?: SessionCreateNestedManyWithoutUserInput
+    strategies?: ScreeningStrategyCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionCreateNestedManyWithoutUserInput
+    watchLists?: WatchListCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPostsInput = {
@@ -8276,6 +13246,9 @@ export namespace Prisma {
     image?: string | null
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    strategies?: ScreeningStrategyUncheckedCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionUncheckedCreateNestedManyWithoutUserInput
+    watchLists?: WatchListUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPostsInput = {
@@ -8302,6 +13275,9 @@ export namespace Prisma {
     image?: NullableStringFieldUpdateOperationsInput | string | null
     accounts?: AccountUpdateManyWithoutUserNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
+    strategies?: ScreeningStrategyUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPostsInput = {
@@ -8312,6 +13288,9 @@ export namespace Prisma {
     image?: NullableStringFieldUpdateOperationsInput | string | null
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    strategies?: ScreeningStrategyUncheckedUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUncheckedUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutAccountsInput = {
@@ -8322,6 +13301,9 @@ export namespace Prisma {
     image?: string | null
     sessions?: SessionCreateNestedManyWithoutUserInput
     posts?: PostCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionCreateNestedManyWithoutUserInput
+    watchLists?: WatchListCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -8332,6 +13314,9 @@ export namespace Prisma {
     image?: string | null
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     posts?: PostUncheckedCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyUncheckedCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionUncheckedCreateNestedManyWithoutUserInput
+    watchLists?: WatchListUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -8358,6 +13343,9 @@ export namespace Prisma {
     image?: NullableStringFieldUpdateOperationsInput | string | null
     sessions?: SessionUpdateManyWithoutUserNestedInput
     posts?: PostUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -8368,6 +13356,9 @@ export namespace Prisma {
     image?: NullableStringFieldUpdateOperationsInput | string | null
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     posts?: PostUncheckedUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUncheckedUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUncheckedUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -8378,6 +13369,9 @@ export namespace Prisma {
     image?: string | null
     accounts?: AccountCreateNestedManyWithoutUserInput
     posts?: PostCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionCreateNestedManyWithoutUserInput
+    watchLists?: WatchListCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -8388,6 +13382,9 @@ export namespace Prisma {
     image?: string | null
     accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
     posts?: PostUncheckedCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyUncheckedCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionUncheckedCreateNestedManyWithoutUserInput
+    watchLists?: WatchListUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -8414,6 +13411,9 @@ export namespace Prisma {
     image?: NullableStringFieldUpdateOperationsInput | string | null
     accounts?: AccountUpdateManyWithoutUserNestedInput
     posts?: PostUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -8424,6 +13424,9 @@ export namespace Prisma {
     image?: NullableStringFieldUpdateOperationsInput | string | null
     accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
     posts?: PostUncheckedUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUncheckedUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUncheckedUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AccountCreateWithoutUserInput = {
@@ -8508,6 +13511,106 @@ export namespace Prisma {
 
   export type PostCreateManyCreatedByInputEnvelope = {
     data: PostCreateManyCreatedByInput | PostCreateManyCreatedByInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ScreeningStrategyCreateWithoutUserInput = {
+    id?: string
+    name: string
+    description?: string | null
+    filters: JsonNullValueInput | InputJsonValue
+    scoringConfig: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyCreatetagsInput | string[]
+    isTemplate?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: ScreeningSessionCreateNestedManyWithoutStrategyInput
+  }
+
+  export type ScreeningStrategyUncheckedCreateWithoutUserInput = {
+    id?: string
+    name: string
+    description?: string | null
+    filters: JsonNullValueInput | InputJsonValue
+    scoringConfig: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyCreatetagsInput | string[]
+    isTemplate?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: ScreeningSessionUncheckedCreateNestedManyWithoutStrategyInput
+  }
+
+  export type ScreeningStrategyCreateOrConnectWithoutUserInput = {
+    where: ScreeningStrategyWhereUniqueInput
+    create: XOR<ScreeningStrategyCreateWithoutUserInput, ScreeningStrategyUncheckedCreateWithoutUserInput>
+  }
+
+  export type ScreeningStrategyCreateManyUserInputEnvelope = {
+    data: ScreeningStrategyCreateManyUserInput | ScreeningStrategyCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ScreeningSessionCreateWithoutUserInput = {
+    id?: string
+    strategyName: string
+    executedAt?: Date | string
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionCreateotherStockCodesInput | string[]
+    filtersSnapshot: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot: JsonNullValueInput | InputJsonValue
+    strategy?: ScreeningStrategyCreateNestedOneWithoutSessionsInput
+  }
+
+  export type ScreeningSessionUncheckedCreateWithoutUserInput = {
+    id?: string
+    strategyId?: string | null
+    strategyName: string
+    executedAt?: Date | string
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionCreateotherStockCodesInput | string[]
+    filtersSnapshot: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot: JsonNullValueInput | InputJsonValue
+  }
+
+  export type ScreeningSessionCreateOrConnectWithoutUserInput = {
+    where: ScreeningSessionWhereUniqueInput
+    create: XOR<ScreeningSessionCreateWithoutUserInput, ScreeningSessionUncheckedCreateWithoutUserInput>
+  }
+
+  export type ScreeningSessionCreateManyUserInputEnvelope = {
+    data: ScreeningSessionCreateManyUserInput | ScreeningSessionCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type WatchListCreateWithoutUserInput = {
+    id?: string
+    name: string
+    description?: string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WatchListUncheckedCreateWithoutUserInput = {
+    id?: string
+    name: string
+    description?: string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type WatchListCreateOrConnectWithoutUserInput = {
+    where: WatchListWhereUniqueInput
+    create: XOR<WatchListCreateWithoutUserInput, WatchListUncheckedCreateWithoutUserInput>
+  }
+
+  export type WatchListCreateManyUserInputEnvelope = {
+    data: WatchListCreateManyUserInput | WatchListCreateManyUserInput[]
     skipDuplicates?: boolean
   }
 
@@ -8599,6 +13702,424 @@ export namespace Prisma {
     createdById?: StringFilter<"Post"> | string
   }
 
+  export type ScreeningStrategyUpsertWithWhereUniqueWithoutUserInput = {
+    where: ScreeningStrategyWhereUniqueInput
+    update: XOR<ScreeningStrategyUpdateWithoutUserInput, ScreeningStrategyUncheckedUpdateWithoutUserInput>
+    create: XOR<ScreeningStrategyCreateWithoutUserInput, ScreeningStrategyUncheckedCreateWithoutUserInput>
+  }
+
+  export type ScreeningStrategyUpdateWithWhereUniqueWithoutUserInput = {
+    where: ScreeningStrategyWhereUniqueInput
+    data: XOR<ScreeningStrategyUpdateWithoutUserInput, ScreeningStrategyUncheckedUpdateWithoutUserInput>
+  }
+
+  export type ScreeningStrategyUpdateManyWithWhereWithoutUserInput = {
+    where: ScreeningStrategyScalarWhereInput
+    data: XOR<ScreeningStrategyUpdateManyMutationInput, ScreeningStrategyUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type ScreeningStrategyScalarWhereInput = {
+    AND?: ScreeningStrategyScalarWhereInput | ScreeningStrategyScalarWhereInput[]
+    OR?: ScreeningStrategyScalarWhereInput[]
+    NOT?: ScreeningStrategyScalarWhereInput | ScreeningStrategyScalarWhereInput[]
+    id?: StringFilter<"ScreeningStrategy"> | string
+    name?: StringFilter<"ScreeningStrategy"> | string
+    description?: StringNullableFilter<"ScreeningStrategy"> | string | null
+    filters?: JsonFilter<"ScreeningStrategy">
+    scoringConfig?: JsonFilter<"ScreeningStrategy">
+    tags?: StringNullableListFilter<"ScreeningStrategy">
+    isTemplate?: BoolFilter<"ScreeningStrategy"> | boolean
+    createdAt?: DateTimeFilter<"ScreeningStrategy"> | Date | string
+    updatedAt?: DateTimeFilter<"ScreeningStrategy"> | Date | string
+    userId?: StringFilter<"ScreeningStrategy"> | string
+  }
+
+  export type ScreeningSessionUpsertWithWhereUniqueWithoutUserInput = {
+    where: ScreeningSessionWhereUniqueInput
+    update: XOR<ScreeningSessionUpdateWithoutUserInput, ScreeningSessionUncheckedUpdateWithoutUserInput>
+    create: XOR<ScreeningSessionCreateWithoutUserInput, ScreeningSessionUncheckedCreateWithoutUserInput>
+  }
+
+  export type ScreeningSessionUpdateWithWhereUniqueWithoutUserInput = {
+    where: ScreeningSessionWhereUniqueInput
+    data: XOR<ScreeningSessionUpdateWithoutUserInput, ScreeningSessionUncheckedUpdateWithoutUserInput>
+  }
+
+  export type ScreeningSessionUpdateManyWithWhereWithoutUserInput = {
+    where: ScreeningSessionScalarWhereInput
+    data: XOR<ScreeningSessionUpdateManyMutationInput, ScreeningSessionUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type ScreeningSessionScalarWhereInput = {
+    AND?: ScreeningSessionScalarWhereInput | ScreeningSessionScalarWhereInput[]
+    OR?: ScreeningSessionScalarWhereInput[]
+    NOT?: ScreeningSessionScalarWhereInput | ScreeningSessionScalarWhereInput[]
+    id?: StringFilter<"ScreeningSession"> | string
+    strategyId?: StringNullableFilter<"ScreeningSession"> | string | null
+    strategyName?: StringFilter<"ScreeningSession"> | string
+    executedAt?: DateTimeFilter<"ScreeningSession"> | Date | string
+    totalScanned?: IntFilter<"ScreeningSession"> | number
+    executionTime?: FloatFilter<"ScreeningSession"> | number
+    topStocks?: JsonFilter<"ScreeningSession">
+    otherStockCodes?: StringNullableListFilter<"ScreeningSession">
+    filtersSnapshot?: JsonFilter<"ScreeningSession">
+    scoringConfigSnapshot?: JsonFilter<"ScreeningSession">
+    userId?: StringFilter<"ScreeningSession"> | string
+  }
+
+  export type WatchListUpsertWithWhereUniqueWithoutUserInput = {
+    where: WatchListWhereUniqueInput
+    update: XOR<WatchListUpdateWithoutUserInput, WatchListUncheckedUpdateWithoutUserInput>
+    create: XOR<WatchListCreateWithoutUserInput, WatchListUncheckedCreateWithoutUserInput>
+  }
+
+  export type WatchListUpdateWithWhereUniqueWithoutUserInput = {
+    where: WatchListWhereUniqueInput
+    data: XOR<WatchListUpdateWithoutUserInput, WatchListUncheckedUpdateWithoutUserInput>
+  }
+
+  export type WatchListUpdateManyWithWhereWithoutUserInput = {
+    where: WatchListScalarWhereInput
+    data: XOR<WatchListUpdateManyMutationInput, WatchListUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type WatchListScalarWhereInput = {
+    AND?: WatchListScalarWhereInput | WatchListScalarWhereInput[]
+    OR?: WatchListScalarWhereInput[]
+    NOT?: WatchListScalarWhereInput | WatchListScalarWhereInput[]
+    id?: StringFilter<"WatchList"> | string
+    name?: StringFilter<"WatchList"> | string
+    description?: StringNullableFilter<"WatchList"> | string | null
+    stocks?: JsonFilter<"WatchList">
+    createdAt?: DateTimeFilter<"WatchList"> | Date | string
+    updatedAt?: DateTimeFilter<"WatchList"> | Date | string
+    userId?: StringFilter<"WatchList"> | string
+  }
+
+  export type UserCreateWithoutStrategiesInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    posts?: PostCreateNestedManyWithoutCreatedByInput
+    screeningSessions?: ScreeningSessionCreateNestedManyWithoutUserInput
+    watchLists?: WatchListCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutStrategiesInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    posts?: PostUncheckedCreateNestedManyWithoutCreatedByInput
+    screeningSessions?: ScreeningSessionUncheckedCreateNestedManyWithoutUserInput
+    watchLists?: WatchListUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutStrategiesInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutStrategiesInput, UserUncheckedCreateWithoutStrategiesInput>
+  }
+
+  export type ScreeningSessionCreateWithoutStrategyInput = {
+    id?: string
+    strategyName: string
+    executedAt?: Date | string
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionCreateotherStockCodesInput | string[]
+    filtersSnapshot: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot: JsonNullValueInput | InputJsonValue
+    user: UserCreateNestedOneWithoutScreeningSessionsInput
+  }
+
+  export type ScreeningSessionUncheckedCreateWithoutStrategyInput = {
+    id?: string
+    strategyName: string
+    executedAt?: Date | string
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionCreateotherStockCodesInput | string[]
+    filtersSnapshot: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot: JsonNullValueInput | InputJsonValue
+    userId: string
+  }
+
+  export type ScreeningSessionCreateOrConnectWithoutStrategyInput = {
+    where: ScreeningSessionWhereUniqueInput
+    create: XOR<ScreeningSessionCreateWithoutStrategyInput, ScreeningSessionUncheckedCreateWithoutStrategyInput>
+  }
+
+  export type ScreeningSessionCreateManyStrategyInputEnvelope = {
+    data: ScreeningSessionCreateManyStrategyInput | ScreeningSessionCreateManyStrategyInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type UserUpsertWithoutStrategiesInput = {
+    update: XOR<UserUpdateWithoutStrategiesInput, UserUncheckedUpdateWithoutStrategiesInput>
+    create: XOR<UserCreateWithoutStrategiesInput, UserUncheckedCreateWithoutStrategiesInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutStrategiesInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutStrategiesInput, UserUncheckedUpdateWithoutStrategiesInput>
+  }
+
+  export type UserUpdateWithoutStrategiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    posts?: PostUpdateManyWithoutCreatedByNestedInput
+    screeningSessions?: ScreeningSessionUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutStrategiesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    posts?: PostUncheckedUpdateManyWithoutCreatedByNestedInput
+    screeningSessions?: ScreeningSessionUncheckedUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type ScreeningSessionUpsertWithWhereUniqueWithoutStrategyInput = {
+    where: ScreeningSessionWhereUniqueInput
+    update: XOR<ScreeningSessionUpdateWithoutStrategyInput, ScreeningSessionUncheckedUpdateWithoutStrategyInput>
+    create: XOR<ScreeningSessionCreateWithoutStrategyInput, ScreeningSessionUncheckedCreateWithoutStrategyInput>
+  }
+
+  export type ScreeningSessionUpdateWithWhereUniqueWithoutStrategyInput = {
+    where: ScreeningSessionWhereUniqueInput
+    data: XOR<ScreeningSessionUpdateWithoutStrategyInput, ScreeningSessionUncheckedUpdateWithoutStrategyInput>
+  }
+
+  export type ScreeningSessionUpdateManyWithWhereWithoutStrategyInput = {
+    where: ScreeningSessionScalarWhereInput
+    data: XOR<ScreeningSessionUpdateManyMutationInput, ScreeningSessionUncheckedUpdateManyWithoutStrategyInput>
+  }
+
+  export type ScreeningStrategyCreateWithoutSessionsInput = {
+    id?: string
+    name: string
+    description?: string | null
+    filters: JsonNullValueInput | InputJsonValue
+    scoringConfig: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyCreatetagsInput | string[]
+    isTemplate?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutStrategiesInput
+  }
+
+  export type ScreeningStrategyUncheckedCreateWithoutSessionsInput = {
+    id?: string
+    name: string
+    description?: string | null
+    filters: JsonNullValueInput | InputJsonValue
+    scoringConfig: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyCreatetagsInput | string[]
+    isTemplate?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    userId: string
+  }
+
+  export type ScreeningStrategyCreateOrConnectWithoutSessionsInput = {
+    where: ScreeningStrategyWhereUniqueInput
+    create: XOR<ScreeningStrategyCreateWithoutSessionsInput, ScreeningStrategyUncheckedCreateWithoutSessionsInput>
+  }
+
+  export type UserCreateWithoutScreeningSessionsInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    posts?: PostCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyCreateNestedManyWithoutUserInput
+    watchLists?: WatchListCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutScreeningSessionsInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    posts?: PostUncheckedCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyUncheckedCreateNestedManyWithoutUserInput
+    watchLists?: WatchListUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutScreeningSessionsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutScreeningSessionsInput, UserUncheckedCreateWithoutScreeningSessionsInput>
+  }
+
+  export type ScreeningStrategyUpsertWithoutSessionsInput = {
+    update: XOR<ScreeningStrategyUpdateWithoutSessionsInput, ScreeningStrategyUncheckedUpdateWithoutSessionsInput>
+    create: XOR<ScreeningStrategyCreateWithoutSessionsInput, ScreeningStrategyUncheckedCreateWithoutSessionsInput>
+    where?: ScreeningStrategyWhereInput
+  }
+
+  export type ScreeningStrategyUpdateToOneWithWhereWithoutSessionsInput = {
+    where?: ScreeningStrategyWhereInput
+    data: XOR<ScreeningStrategyUpdateWithoutSessionsInput, ScreeningStrategyUncheckedUpdateWithoutSessionsInput>
+  }
+
+  export type ScreeningStrategyUpdateWithoutSessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    filters?: JsonNullValueInput | InputJsonValue
+    scoringConfig?: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyUpdatetagsInput | string[]
+    isTemplate?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutStrategiesNestedInput
+  }
+
+  export type ScreeningStrategyUncheckedUpdateWithoutSessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    filters?: JsonNullValueInput | InputJsonValue
+    scoringConfig?: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyUpdatetagsInput | string[]
+    isTemplate?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    userId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type UserUpsertWithoutScreeningSessionsInput = {
+    update: XOR<UserUpdateWithoutScreeningSessionsInput, UserUncheckedUpdateWithoutScreeningSessionsInput>
+    create: XOR<UserCreateWithoutScreeningSessionsInput, UserUncheckedCreateWithoutScreeningSessionsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutScreeningSessionsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutScreeningSessionsInput, UserUncheckedUpdateWithoutScreeningSessionsInput>
+  }
+
+  export type UserUpdateWithoutScreeningSessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    posts?: PostUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutScreeningSessionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    posts?: PostUncheckedUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUncheckedUpdateManyWithoutUserNestedInput
+    watchLists?: WatchListUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserCreateWithoutWatchListsInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    posts?: PostCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutWatchListsInput = {
+    id?: string
+    name?: string | null
+    email?: string | null
+    emailVerified?: Date | string | null
+    image?: string | null
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    posts?: PostUncheckedCreateNestedManyWithoutCreatedByInput
+    strategies?: ScreeningStrategyUncheckedCreateNestedManyWithoutUserInput
+    screeningSessions?: ScreeningSessionUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutWatchListsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutWatchListsInput, UserUncheckedCreateWithoutWatchListsInput>
+  }
+
+  export type UserUpsertWithoutWatchListsInput = {
+    update: XOR<UserUpdateWithoutWatchListsInput, UserUncheckedUpdateWithoutWatchListsInput>
+    create: XOR<UserCreateWithoutWatchListsInput, UserUncheckedCreateWithoutWatchListsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutWatchListsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutWatchListsInput, UserUncheckedUpdateWithoutWatchListsInput>
+  }
+
+  export type UserUpdateWithoutWatchListsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    posts?: PostUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutWatchListsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    posts?: PostUncheckedUpdateManyWithoutCreatedByNestedInput
+    strategies?: ScreeningStrategyUncheckedUpdateManyWithoutUserNestedInput
+    screeningSessions?: ScreeningSessionUncheckedUpdateManyWithoutUserNestedInput
+  }
+
   export type AccountCreateManyUserInput = {
     id?: string
     type: string
@@ -8623,6 +14144,40 @@ export namespace Prisma {
   export type PostCreateManyCreatedByInput = {
     id?: number
     name: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ScreeningStrategyCreateManyUserInput = {
+    id?: string
+    name: string
+    description?: string | null
+    filters: JsonNullValueInput | InputJsonValue
+    scoringConfig: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyCreatetagsInput | string[]
+    isTemplate?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ScreeningSessionCreateManyUserInput = {
+    id?: string
+    strategyId?: string | null
+    strategyName: string
+    executedAt?: Date | string
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionCreateotherStockCodesInput | string[]
+    filtersSnapshot: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot: JsonNullValueInput | InputJsonValue
+  }
+
+  export type WatchListCreateManyUserInput = {
+    id?: string
+    name: string
+    description?: string | null
+    stocks?: JsonNullValueInput | InputJsonValue
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8708,6 +14263,162 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ScreeningStrategyUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    filters?: JsonNullValueInput | InputJsonValue
+    scoringConfig?: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyUpdatetagsInput | string[]
+    isTemplate?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: ScreeningSessionUpdateManyWithoutStrategyNestedInput
+  }
+
+  export type ScreeningStrategyUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    filters?: JsonNullValueInput | InputJsonValue
+    scoringConfig?: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyUpdatetagsInput | string[]
+    isTemplate?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: ScreeningSessionUncheckedUpdateManyWithoutStrategyNestedInput
+  }
+
+  export type ScreeningStrategyUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    filters?: JsonNullValueInput | InputJsonValue
+    scoringConfig?: JsonNullValueInput | InputJsonValue
+    tags?: ScreeningStrategyUpdatetagsInput | string[]
+    isTemplate?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ScreeningSessionUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+    strategy?: ScreeningStrategyUpdateOneWithoutSessionsNestedInput
+  }
+
+  export type ScreeningSessionUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyId?: NullableStringFieldUpdateOperationsInput | string | null
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type ScreeningSessionUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyId?: NullableStringFieldUpdateOperationsInput | string | null
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+  }
+
+  export type WatchListUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WatchListUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WatchListUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    stocks?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ScreeningSessionCreateManyStrategyInput = {
+    id?: string
+    strategyName: string
+    executedAt?: Date | string
+    totalScanned: number
+    executionTime: number
+    topStocks: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionCreateotherStockCodesInput | string[]
+    filtersSnapshot: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot: JsonNullValueInput | InputJsonValue
+    userId: string
+  }
+
+  export type ScreeningSessionUpdateWithoutStrategyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+    user?: UserUpdateOneRequiredWithoutScreeningSessionsNestedInput
+  }
+
+  export type ScreeningSessionUncheckedUpdateWithoutStrategyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+    userId?: StringFieldUpdateOperationsInput | string
+  }
+
+  export type ScreeningSessionUncheckedUpdateManyWithoutStrategyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    strategyName?: StringFieldUpdateOperationsInput | string
+    executedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    totalScanned?: IntFieldUpdateOperationsInput | number
+    executionTime?: FloatFieldUpdateOperationsInput | number
+    topStocks?: JsonNullValueInput | InputJsonValue
+    otherStockCodes?: ScreeningSessionUpdateotherStockCodesInput | string[]
+    filtersSnapshot?: JsonNullValueInput | InputJsonValue
+    scoringConfigSnapshot?: JsonNullValueInput | InputJsonValue
+    userId?: StringFieldUpdateOperationsInput | string
   }
 
 

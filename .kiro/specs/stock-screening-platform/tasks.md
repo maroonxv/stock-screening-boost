@@ -179,7 +179,7 @@
   - 确保所有领域层测试通过，如有问题请向用户确认。
 
 - [ ] 7. 数据层：Prisma Schema 与 Repository 实现
-  - [~] 7.1 扩展 Prisma Schema
+  - [-] 7.1 扩展 Prisma Schema
     - 在 `prisma/schema.prisma` 中新增 ScreeningStrategy、ScreeningSession、WatchList 模型
     - 在 User 模型中添加 strategies、screeningSessions、watchLists 关联字段
     - 添加必要的索引（userId、isTemplate、strategyId、executedAt、name）

@@ -143,7 +143,7 @@
     - **Validates: Requirements 5.5**
 
 - [ ] 5. 领域层：领域服务
-  - [~] 5.1 定义 Repository 接口
+  - [x] 5.1 定义 Repository 接口
     - 创建 `src/server/domain/screening/repositories/screening-strategy-repository.ts`
     - 创建 `src/server/domain/screening/repositories/screening-session-repository.ts`
     - 创建 `src/server/domain/screening/repositories/watch-list-repository.ts`

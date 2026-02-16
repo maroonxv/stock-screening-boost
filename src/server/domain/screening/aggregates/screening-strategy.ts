@@ -143,24 +143,45 @@ export class ScreeningStrategy {
   }
 
   update(params: UpdateScreeningStrategyParams): void {
-    if (params.name !== undefined) {
-      this._name = params.name;
-    }
-    if (params.description !== undefined) {
-      this._description = params.description;
-    }
-    if (params.filters !== undefined) {
-      this._filters = params.filters;
-    }
-    if (params.scoringConfig !== undefined) {
-      this._scoringConfig = params.scoringConfig;
-    }
-    if (params.tags !== undefined) {
-      this._tags = params.tags;
-    }
+    // 保存当前状态以便回滚
+    const originalName = this._name;
+    const originalDescription = this._description;
+    const originalFilters = this._filters;
+    const originalScoringConfig = this._scoringConfig;
+    const originalTags = this._tags;
 
-    this._updatedAt = new Date();
-    this.validateInvariants();
+    try {
+      // 应用更新
+      if (params.name !== undefined) {
+        this._name = params.name;
+      }
+      if (params.description !== undefined) {
+        this._description = params.description;
+      }
+      if (params.filters !== undefined) {
+        this._filters = params.filters;
+      }
+      if (params.scoringConfig !== undefined) {
+        this._scoringConfig = params.scoringConfig;
+      }
+      if (params.tags !== undefined) {
+        this._tags = params.tags;
+      }
+
+      // 验证不变量
+      this.validateInvariants();
+
+      // 验证通过，更新时间戳
+      this._updatedAt = new Date();
+    } catch (error) {
+      // 验证失败，回滚所有更改
+      this._name = originalName;
+      this._description = originalDescription;
+      this._filters = originalFilters;
+      this._scoringConfig = originalScoringConfig;
+      this._tags = originalTags;
+      throw error;
+    }
   }
 
   markAsTemplate(): void {

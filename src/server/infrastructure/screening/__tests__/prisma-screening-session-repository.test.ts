@@ -20,6 +20,8 @@ describe("PrismaScreeningSessionRepository", () => {
   let prisma: PrismaClient;
   let repository: PrismaScreeningSessionRepository;
   let testUserId: string;
+  let testStrategyId1: string;
+  let testStrategyId2: string;
 
   beforeEach(async () => {
     prisma = new PrismaClient();
@@ -33,11 +35,35 @@ describe("PrismaScreeningSessionRepository", () => {
       },
     });
     testUserId = user.id;
+
+    // 创建测试策略
+    const strategy1 = await prisma.screeningStrategy.create({
+      data: {
+        name: "测试策略 1",
+        filters: {},
+        scoringConfig: {},
+        userId: testUserId,
+      },
+    });
+    testStrategyId1 = strategy1.id;
+
+    const strategy2 = await prisma.screeningStrategy.create({
+      data: {
+        name: "测试策略 2",
+        filters: {},
+        scoringConfig: {},
+        userId: testUserId,
+      },
+    });
+    testStrategyId2 = strategy2.id;
   });
 
   afterEach(async () => {
     // 清理测试数据
     await prisma.screeningSession.deleteMany({
+      where: { userId: testUserId },
+    });
+    await prisma.screeningStrategy.deleteMany({
       where: { userId: testUserId },
     });
     await prisma.user.delete({
@@ -82,7 +108,7 @@ describe("PrismaScreeningSessionRepository", () => {
 
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
-        strategyId: "test-strategy-1",
+        strategyId: null,
         strategyName: "高 ROE 策略",
         userId: testUserId,
         result,
@@ -103,7 +129,7 @@ describe("PrismaScreeningSessionRepository", () => {
       const stocks = [createScoredStock("600519", "贵州茅台", 0.9)];
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
-        strategyId: "test-strategy-1",
+        strategyId: null,
         strategyName: "原始策略名",
         userId: testUserId,
         result,
@@ -134,7 +160,7 @@ describe("PrismaScreeningSessionRepository", () => {
       const stocks = [createScoredStock("600519", "贵州茅台", 0.9)];
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
-        strategyId: "test-strategy-1",
+        strategyId: null,
         strategyName: "测试策略",
         userId: testUserId,
         result,
@@ -160,7 +186,7 @@ describe("PrismaScreeningSessionRepository", () => {
       const stocks = [createScoredStock("600519", "贵州茅台", 0.9)];
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
       const session = ScreeningSession.create({
-        strategyId: "test-strategy-1",
+        strategyId: null,
         strategyName: "测试策略",
         userId: testUserId,
         result,
@@ -182,7 +208,7 @@ describe("PrismaScreeningSessionRepository", () => {
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
 
       const session1 = ScreeningSession.create({
-        strategyId: "strategy-1",
+        strategyId: testStrategyId1,
         strategyName: "策略 1",
         userId: testUserId,
         result,
@@ -191,7 +217,7 @@ describe("PrismaScreeningSessionRepository", () => {
       });
 
       const session2 = ScreeningSession.create({
-        strategyId: "strategy-1",
+        strategyId: testStrategyId1,
         strategyName: "策略 1",
         userId: testUserId,
         result,
@@ -200,7 +226,7 @@ describe("PrismaScreeningSessionRepository", () => {
       });
 
       const session3 = ScreeningSession.create({
-        strategyId: "strategy-2",
+        strategyId: testStrategyId2,
         strategyName: "策略 2",
         userId: testUserId,
         result,
@@ -212,9 +238,9 @@ describe("PrismaScreeningSessionRepository", () => {
       await repository.save(session2);
       await repository.save(session3);
 
-      const found = await repository.findByStrategy("strategy-1");
+      const found = await repository.findByStrategy(testStrategyId1);
       expect(found).toHaveLength(2);
-      expect(found.every((s) => s.strategyId === "strategy-1")).toBe(true);
+      expect(found.every((s) => s.strategyId === testStrategyId1)).toBe(true);
     });
 
     it("应该支持限制返回数量", async () => {
@@ -223,7 +249,7 @@ describe("PrismaScreeningSessionRepository", () => {
 
       for (let i = 0; i < 5; i++) {
         const session = ScreeningSession.create({
-          strategyId: "strategy-1",
+          strategyId: testStrategyId1,
           strategyName: "策略 1",
           userId: testUserId,
           result,
@@ -233,7 +259,7 @@ describe("PrismaScreeningSessionRepository", () => {
         await repository.save(session);
       }
 
-      const found = await repository.findByStrategy("strategy-1", 3);
+      const found = await repository.findByStrategy(testStrategyId1, 3);
       expect(found).toHaveLength(3);
     });
   });
@@ -244,7 +270,7 @@ describe("PrismaScreeningSessionRepository", () => {
       const result = ScreeningResult.create(stocks, 5000, 1250.5);
 
       const session1 = ScreeningSession.create({
-        strategyId: "strategy-1",
+        strategyId: testStrategyId1,
         strategyName: "策略 1",
         userId: testUserId,
         result,
@@ -254,7 +280,7 @@ describe("PrismaScreeningSessionRepository", () => {
       });
 
       const session2 = ScreeningSession.create({
-        strategyId: "strategy-2",
+        strategyId: testStrategyId2,
         strategyName: "策略 2",
         userId: testUserId,
         result,
@@ -264,7 +290,7 @@ describe("PrismaScreeningSessionRepository", () => {
       });
 
       const session3 = ScreeningSession.create({
-        strategyId: "strategy-3",
+        strategyId: testStrategyId1,
         strategyName: "策略 3",
         userId: testUserId,
         result,
@@ -293,7 +319,7 @@ describe("PrismaScreeningSessionRepository", () => {
 
       for (let i = 0; i < 5; i++) {
         const session = ScreeningSession.create({
-          strategyId: `strategy-${i}`,
+          strategyId: i % 2 === 0 ? testStrategyId1 : testStrategyId2,
           strategyName: `策略 ${i}`,
           userId: testUserId,
           result,

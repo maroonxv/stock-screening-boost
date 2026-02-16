@@ -191,7 +191,7 @@ import {
   StockCode,
   StockMarket,
   InvalidStockCodeError,
-} from "../stock-code";
+} from "../../value-objects/stock-code";
 
 describe("StockCode", () => {
   describe("create", () => {

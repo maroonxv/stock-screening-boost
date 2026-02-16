@@ -3,8 +3,9 @@
  *
  * Feature: stock-screening-platform
  * Property 10: WatchList 添加/移除/包含一致性
+ * Property 11: WatchList 标签过滤正确性
  *
- * **Validates: Requirements 5.2, 5.3, 5.4**
+ * **Validates: Requirements 5.2, 5.3, 5.4, 5.5**
  */
 
 import { describe, it } from "vitest";
@@ -254,6 +255,329 @@ describe("WatchList Property-Based Tests", () => {
             }
 
             return true;
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+  });
+
+  describe("Property 11: WatchList 标签过滤正确性", () => {
+    /**
+     * 生成随机标签列表
+     */
+    const arbTags = fc.array(
+      fc.string({ minLength: 1, maxLength: 10 }),
+      { minLength: 0, maxLength: 5 }
+    );
+
+    /**
+     * 生成带标签的股票数据
+     */
+    const arbStockWithTags = fc.record({
+      code: arbStockCode,
+      name: fc.string({ minLength: 2, maxLength: 10 }),
+      tags: arbTags,
+    });
+
+    it("getStocksByTag 返回的所有股票都应包含该标签", () => {
+      fc.assert(
+        fc.property(
+          fc.array(arbStockWithTags, { minLength: 1, maxLength: 20 }),
+          fc.string({ minLength: 1, maxLength: 10 }),
+          (stocks, queryTag) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
+
+            // 去重：确保所有股票代码不同
+            const uniqueStocks = Array.from(
+              new Map(stocks.map((s) => [s.code, s])).values()
+            );
+
+            // 添加所有股票
+            for (const stock of uniqueStocks) {
+              watchList.addStock(
+                StockCode.create(stock.code),
+                stock.name,
+                undefined,
+                stock.tags
+              );
+            }
+
+            // 查询包含指定标签的股票
+            const result = watchList.getStocksByTag(queryTag);
+
+            // 验证：返回的所有股票都应包含该标签
+            return result.every((watchedStock) =>
+              watchedStock.hasTag(queryTag)
+            );
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("WatchList 中所有包含该标签的股票都应出现在返回结果中", () => {
+      fc.assert(
+        fc.property(
+          fc.array(arbStockWithTags, { minLength: 1, maxLength: 20 }),
+          fc.string({ minLength: 1, maxLength: 10 }),
+          (stocks, queryTag) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
+
+            // 去重：确保所有股票代码不同
+            const uniqueStocks = Array.from(
+              new Map(stocks.map((s) => [s.code, s])).values()
+            );
+
+            // 添加所有股票
+            for (const stock of uniqueStocks) {
+              watchList.addStock(
+                StockCode.create(stock.code),
+                stock.name,
+                undefined,
+                stock.tags
+              );
+            }
+
+            // 查询包含指定标签的股票
+            const result = watchList.getStocksByTag(queryTag);
+
+            // 计算预期包含该标签的股票数量
+            const expectedStocksWithTag = uniqueStocks.filter((s) =>
+              s.tags.includes(queryTag)
+            );
+
+            // 验证：返回结果的数量应等于预期数量
+            if (result.length !== expectedStocksWithTag.length) {
+              return false;
+            }
+
+            // 验证：所有预期的股票都应出现在结果中
+            for (const expectedStock of expectedStocksWithTag) {
+              const found = result.some(
+                (watchedStock) =>
+                  watchedStock.stockCode.value === expectedStock.code
+              );
+              if (!found) {
+                return false;
+              }
+            }
+
+            return true;
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("查询不存在的标签应返回空数组", () => {
+      fc.assert(
+        fc.property(
+          fc.array(arbStockWithTags, { minLength: 1, maxLength: 20 }),
+          (stocks) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
+
+            // 去重：确保所有股票代码不同
+            const uniqueStocks = Array.from(
+              new Map(stocks.map((s) => [s.code, s])).values()
+            );
+
+            // 添加所有股票
+            for (const stock of uniqueStocks) {
+              watchList.addStock(
+                StockCode.create(stock.code),
+                stock.name,
+                undefined,
+                stock.tags
+              );
+            }
+
+            // 收集所有已使用的标签
+            const usedTags = new Set(
+              uniqueStocks.flatMap((s) => s.tags)
+            );
+
+            // 生成一个不存在的标签（使用UUID确保唯一性）
+            const nonExistentTag = `non-existent-tag-${Math.random().toString(36).substring(7)}`;
+
+            // 如果碰巧生成的标签已存在，跳过此测试
+            if (usedTags.has(nonExistentTag)) {
+              return true;
+            }
+
+            // 查询不存在的标签
+            const result = watchList.getStocksByTag(nonExistentTag);
+
+            // 验证：应返回空数组
+            return result.length === 0;
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("标签过滤应支持多个股票共享同一标签", () => {
+      fc.assert(
+        fc.property(
+          fc.string({ minLength: 1, maxLength: 10 }),
+          fc.array(arbStockCode, { minLength: 2, maxLength: 10 }),
+          (sharedTag, codes) => {
+            // 去重
+            const uniqueCodes = Array.from(new Set(codes));
+            if (uniqueCodes.length < 2) {
+              return true; // 跳过重复的情况
+            }
+
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
+
+            // 添加所有股票，都带有相同的标签
+            for (const code of uniqueCodes) {
+              watchList.addStock(
+                StockCode.create(code),
+                `股票-${code}`,
+                undefined,
+                [sharedTag]
+              );
+            }
+
+            // 查询共享标签
+            const result = watchList.getStocksByTag(sharedTag);
+
+            // 验证：返回的股票数量应等于添加的股票数量
+            return result.length === uniqueCodes.length;
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("标签过滤应支持股票有多个标签", () => {
+      fc.assert(
+        fc.property(
+          fc.array(arbStockWithTags, { minLength: 1, maxLength: 20 }),
+          (stocks) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
+
+            // 去重：确保所有股票代码不同
+            const uniqueStocks = Array.from(
+              new Map(stocks.map((s) => [s.code, s])).values()
+            );
+
+            // 添加所有股票
+            for (const stock of uniqueStocks) {
+              watchList.addStock(
+                StockCode.create(stock.code),
+                stock.name,
+                undefined,
+                stock.tags
+              );
+            }
+
+            // 收集所有标签
+            const allTags = new Set(
+              uniqueStocks.flatMap((s) => s.tags)
+            );
+
+            // 对每个标签进行查询验证
+            for (const tag of allTags) {
+              const result = watchList.getStocksByTag(tag);
+
+              // 计算预期包含该标签的股票
+              const expectedStocks = uniqueStocks.filter((s) =>
+                s.tags.includes(tag)
+              );
+
+              // 验证：返回结果的数量应等于预期数量
+              if (result.length !== expectedStocks.length) {
+                return false;
+              }
+
+              // 验证：所有返回的股票都应包含该标签
+              for (const watchedStock of result) {
+                if (!watchedStock.hasTag(tag)) {
+                  return false;
+                }
+              }
+            }
+
+            return true;
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("空 WatchList 查询任意标签应返回空数组", () => {
+      fc.assert(
+        fc.property(
+          fc.string({ minLength: 1, maxLength: 10 }),
+          (tag) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
+
+            // 查询标签
+            const result = watchList.getStocksByTag(tag);
+
+            // 验证：应返回空数组
+            return result.length === 0;
+          }
+        ),
+        { numRuns: 100 }
+      );
+    });
+
+    it("标签过滤应区分大小写", () => {
+      fc.assert(
+        fc.property(
+          arbStockCode,
+          fc.string({ minLength: 2, maxLength: 10 }).filter(s => s.toLowerCase() !== s.toUpperCase()),
+          (code, tag) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
+
+            const lowerTag = tag.toLowerCase();
+            const upperTag = tag.toUpperCase();
+
+            // 如果大小写相同，跳过此测试
+            if (lowerTag === upperTag) {
+              return true;
+            }
+
+            // 添加股票，使用小写标签
+            watchList.addStock(
+              StockCode.create(code),
+              "测试股票",
+              undefined,
+              [lowerTag]
+            );
+
+            // 查询大写标签
+            const resultUpper = watchList.getStocksByTag(upperTag);
+
+            // 查询小写标签
+            const resultLower = watchList.getStocksByTag(lowerTag);
+
+            // 验证：大写标签应返回空数组，小写标签应返回1个股票
+            return resultUpper.length === 0 && resultLower.length === 1;
           }
         ),
         { numRuns: 100 }

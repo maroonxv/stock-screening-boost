@@ -137,7 +137,7 @@
     - 生成随机操作序列，验证 add→contains=true、remove→contains=false、重复 add 抛错
     - **Validates: Requirements 5.2, 5.3, 5.4**
 
-  - [~] 4.8 编写 WatchList 标签过滤属性基测试
+  - [x] 4.8 编写 WatchList 标签过滤属性基测试
     - **Property 11: WatchList 标签过滤正确性**
     - 生成随机 WatchList 和标签，验证 getStocksByTag 返回结果的完整性和正确性
     - **Validates: Requirements 5.5**

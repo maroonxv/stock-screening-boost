@@ -170,7 +170,7 @@
     - 生成随机股票列表和 ScoringConfig，验证结果按 score 降序
     - **Validates: Requirements 3.1**
 
-  - [~] 5.5 编写评分归一化值域属性基测试
+  - [x] 5.5 编写评分归一化值域属性基测试
     - **Property 8: 评分归一化值域不变量**
     - 生成随机非空股票列表和 ScoringConfig，验证所有 score 和 scoreBreakdown 值在 [0, 1]
     - **Validates: Requirements 3.4**

@@ -11,8 +11,12 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
-    AUTH_DISCORD_ID: z.string().optional(),
-    AUTH_DISCORD_SECRET: z.string().optional(),
+    AUTH_WECHAT_ID: z.string().optional(),
+    AUTH_WECHAT_SECRET: z.string().optional(),
+    AUTH_QQ_ID: z.string().optional(),
+    AUTH_QQ_SECRET: z.string().optional(),
+    AUTH_CREDENTIALS_USERNAME: z.string().optional(),
+    AUTH_CREDENTIALS_PASSWORD: z.string().optional(),
     DATABASE_URL: z.string().url(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
@@ -34,8 +38,12 @@ export const env = createEnv({
    */
   runtimeEnv: {
     AUTH_SECRET: process.env.AUTH_SECRET,
-    AUTH_DISCORD_ID: process.env.AUTH_DISCORD_ID,
-    AUTH_DISCORD_SECRET: process.env.AUTH_DISCORD_SECRET,
+    AUTH_WECHAT_ID: process.env.AUTH_WECHAT_ID,
+    AUTH_WECHAT_SECRET: process.env.AUTH_WECHAT_SECRET,
+    AUTH_QQ_ID: process.env.AUTH_QQ_ID,
+    AUTH_QQ_SECRET: process.env.AUTH_QQ_SECRET,
+    AUTH_CREDENTIALS_USERNAME: process.env.AUTH_CREDENTIALS_USERNAME,
+    AUTH_CREDENTIALS_PASSWORD: process.env.AUTH_CREDENTIALS_PASSWORD,
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
   },

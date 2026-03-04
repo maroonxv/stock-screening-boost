@@ -1,7 +1,10 @@
+import type { OAuthConfig } from "@auth/core/providers";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
-import DiscordProvider from "next-auth/providers/discord";
+import CredentialsProvider from "next-auth/providers/credentials";
+import WeChatProvider from "next-auth/providers/wechat";
 
+import { env } from "~/env";
 import { db } from "~/server/db";
 
 /**
@@ -30,26 +33,197 @@ declare module "next-auth" {
  *
  * @see https://next-auth.js.org/configuration/options
  */
+const localCredentialsUsername = env.AUTH_CREDENTIALS_USERNAME ?? "admin";
+const localCredentialsPassword = env.AUTH_CREDENTIALS_PASSWORD ?? "admin123456";
+const localCredentialsEmail = "local-user@stock-screening-boost.local";
+
+type WeChatProfile = {
+  unionid?: string;
+  openid?: string;
+  nickname?: string;
+  headimgurl?: string;
+};
+
+type QQProfile = {
+  ret?: number;
+  msg?: string;
+  nickname?: string;
+  figureurl_qq_1?: string;
+  figureurl_qq_2?: string;
+  figureurl_1?: string;
+  figureurl_2?: string;
+  openid: string;
+};
+
+const createQQProvider = (options: {
+  clientId: string;
+  clientSecret: string;
+}): OAuthConfig<QQProfile> => ({
+  id: "qq",
+  name: "QQ",
+  type: "oauth",
+  checks: ["state"],
+  authorization: {
+    url: "https://graph.qq.com/oauth2.0/authorize",
+    params: {
+      scope: "get_user_info",
+    },
+  },
+  token: {
+    url: "https://graph.qq.com/oauth2.0/token",
+    params: {
+      fmt: "json",
+    },
+  },
+  userinfo: {
+    url: "https://graph.qq.com/user/get_user_info",
+    request: async ({ tokens }: { tokens: { access_token?: string } }) => {
+      if (!tokens.access_token) {
+        throw new Error("QQ access token is missing.");
+      }
+
+      const meUrl = new URL("https://graph.qq.com/oauth2.0/me");
+      meUrl.searchParams.set("access_token", tokens.access_token);
+      meUrl.searchParams.set("fmt", "json");
+
+      const meData = (await fetch(meUrl).then((response) =>
+        response.json(),
+      )) as { openid?: string };
+      const openid = meData.openid;
+
+      if (!openid) {
+        throw new Error("QQ openid is missing.");
+      }
+
+      const userInfoUrl = new URL("https://graph.qq.com/user/get_user_info");
+      userInfoUrl.searchParams.set("access_token", tokens.access_token);
+      userInfoUrl.searchParams.set("oauth_consumer_key", options.clientId);
+      userInfoUrl.searchParams.set("openid", openid);
+
+      const userInfo = (await fetch(userInfoUrl).then((response) =>
+        response.json(),
+      )) as Omit<QQProfile, "openid">;
+
+      return { ...userInfo, openid };
+    },
+  },
+  profile: (profile) => ({
+    id: profile.openid,
+    name: profile.nickname ?? "QQ 用户",
+    email: null,
+    image:
+      profile.figureurl_qq_2 ??
+      profile.figureurl_qq_1 ??
+      profile.figureurl_2 ??
+      profile.figureurl_1 ??
+      null,
+  }),
+  style: {
+    brandColor: "#12B7F5",
+  },
+  clientId: options.clientId,
+  clientSecret: options.clientSecret,
+});
+
+const providers: NextAuthConfig["providers"] = [
+  CredentialsProvider({
+    id: "local-credentials",
+    name: "本地账号密码",
+    credentials: {
+      username: { label: "用户名", type: "text" },
+      password: { label: "密码", type: "password" },
+    },
+    authorize: async (credentials) => {
+      const usernameInput = credentials?.username;
+      const passwordInput = credentials?.password;
+
+      if (
+        typeof usernameInput !== "string" ||
+        typeof passwordInput !== "string"
+      ) {
+        return null;
+      }
+
+      if (
+        usernameInput.trim() !== localCredentialsUsername ||
+        passwordInput !== localCredentialsPassword
+      ) {
+        return null;
+      }
+
+      const user = await db.user.upsert({
+        where: { email: localCredentialsEmail },
+        create: {
+          email: localCredentialsEmail,
+          name: localCredentialsUsername,
+        },
+        update: {
+          name: localCredentialsUsername,
+        },
+      });
+
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      };
+    },
+  }),
+];
+
+if (env.AUTH_WECHAT_ID && env.AUTH_WECHAT_SECRET) {
+  providers.unshift(
+    WeChatProvider({
+      clientId: env.AUTH_WECHAT_ID,
+      clientSecret: env.AUTH_WECHAT_SECRET,
+      platformType: "WebsiteApp",
+      profile: (profile) => {
+        const wechatProfile = profile as WeChatProfile;
+        const wechatId = wechatProfile.unionid ?? wechatProfile.openid;
+
+        if (!wechatId) {
+          throw new Error("WeChat user id is missing.");
+        }
+
+        return {
+          id: wechatId,
+          name: wechatProfile.nickname ?? "微信用户",
+          email: null,
+          image: wechatProfile.headimgurl ?? null,
+        };
+      },
+    }),
+  );
+}
+
+if (env.AUTH_QQ_ID && env.AUTH_QQ_SECRET) {
+  providers.unshift(
+    createQQProvider({
+      clientId: env.AUTH_QQ_ID,
+      clientSecret: env.AUTH_QQ_SECRET,
+    }),
+  );
+}
+
 export const authConfig = {
-  providers: [
-    DiscordProvider,
-    /**
-     * ...add more providers here.
-     *
-     * Most other providers require a bit more work than the Discord provider. For example, the
-     * GitHub provider requires you to add the `refresh_token_expires_in` field to the Account
-     * model. Refer to the NextAuth.js docs for the provider you want to use. Example:
-     *
-     * @see https://next-auth.js.org/providers/github
-     */
-  ],
+  providers,
   adapter: PrismaAdapter(db),
+  session: {
+    strategy: "jwt",
+  },
   callbacks: {
-    session: ({ session, user }) => ({
+    jwt: ({ token, user }) => {
+      if (user?.id) {
+        token.sub = user.id;
+      }
+
+      return token;
+    },
+    session: ({ session, token }) => ({
       ...session,
       user: {
         ...session.user,
-        id: user.id,
+        id: token.sub ?? "",
       },
     }),
   },

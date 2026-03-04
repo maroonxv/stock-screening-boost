@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-stock-screening-boost}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-stock-screening-boost}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  python-service:
+    build:
+      context: ..
+      dockerfile: deploy/python/Dockerfile
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: "1"
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:3000,http://localhost:3001}
+    ports:
+      - "${PYTHON_SERVICE_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request as r; r.urlopen('http://localhost:8000/health')",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/web/Dockerfile
+      args:
+        SKIP_ENV_VALIDATION: "1"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      python-service:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      NEXTAUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      AUTH_WECHAT_ID: ${AUTH_WECHAT_ID:-}
+      AUTH_WECHAT_SECRET: ${AUTH_WECHAT_SECRET:-}
+      AUTH_QQ_ID: ${AUTH_QQ_ID:-}
+      AUTH_QQ_SECRET: ${AUTH_QQ_SECRET:-}
+      AUTH_CREDENTIALS_USERNAME: ${AUTH_CREDENTIALS_USERNAME:-admin}
+      AUTH_CREDENTIALS_PASSWORD: ${AUTH_CREDENTIALS_PASSWORD:-admin123456}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-stock-screening-boost}
+      PYTHON_SERVICE_URL: http://python-service:8000/api
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    command: ["sh", "-c", "npm run db:push && npm run start"]
+
+volumes:
+  postgres_data:

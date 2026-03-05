@@ -36,17 +36,20 @@ export interface IScreeningSessionRepository {
    * 根据策略 ID 查找会话列表
    * @param strategyId 策略 ID
    * @param limit 限制数量（可选）
+   * @param offset 偏移量（可选）
    * @returns 会话列表
    */
   findByStrategy(
     strategyId: string,
-    limit?: number
+    limit?: number,
+    offset?: number
   ): Promise<ScreeningSession[]>;
 
   /**
    * 查找最近的会话列表（按执行时间降序）
    * @param limit 限制数量（可选）
+   * @param offset 偏移量（可选）
    * @returns 会话列表
    */
-  findRecentSessions(limit?: number): Promise<ScreeningSession[]>;
+  findRecentSessions(limit?: number, offset?: number): Promise<ScreeningSession[]>;
 }

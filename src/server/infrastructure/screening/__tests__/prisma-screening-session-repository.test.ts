@@ -262,6 +262,29 @@ describe("PrismaScreeningSessionRepository", () => {
       const found = await repository.findByStrategy(testStrategyId1, 3);
       expect(found).toHaveLength(3);
     });
+
+    it("应该支持 offset 分页", async () => {
+      const stocks = [createScoredStock("600519", "贵州茅台", 0.9)];
+      const result = ScreeningResult.create(stocks, 5000, 1250.5);
+
+      for (let i = 1; i <= 4; i++) {
+        const session = ScreeningSession.create({
+          strategyId: testStrategyId1,
+          strategyName: `策略 ${i}`,
+          userId: testUserId,
+          result,
+          filtersSnapshot: createTestFilterGroup(),
+          scoringConfigSnapshot: createTestScoringConfig(),
+          executedAt: new Date(`2024-01-0${i}`),
+        });
+        await repository.save(session);
+      }
+
+      const found = await repository.findByStrategy(testStrategyId1, 2, 1);
+      expect(found).toHaveLength(2);
+      expect(found[0]?.strategyName).toBe("策略 3");
+      expect(found[1]?.strategyName).toBe("策略 2");
+    });
   });
 
   describe("findRecentSessions", () => {
@@ -331,6 +354,28 @@ describe("PrismaScreeningSessionRepository", () => {
 
       const found = await repository.findRecentSessions(3);
       expect(found).toHaveLength(3);
+    });
+
+    it("应该支持 offset 分页", async () => {
+      const stocks = [createScoredStock("600519", "贵州茅台", 0.9)];
+      const result = ScreeningResult.create(stocks, 5000, 1250.5);
+
+      for (let i = 1; i <= 4; i++) {
+        const session = ScreeningSession.create({
+          strategyId: i % 2 === 0 ? testStrategyId1 : testStrategyId2,
+          strategyName: `最近策略 ${i}`,
+          userId: testUserId,
+          result,
+          filtersSnapshot: createTestFilterGroup(),
+          scoringConfigSnapshot: createTestScoringConfig(),
+          executedAt: new Date(`2024-02-0${i}`),
+        });
+        await repository.save(session);
+      }
+
+      const found = await repository.findRecentSessions(1, 2);
+      expect(found).toHaveLength(1);
+      expect(found[0]?.strategyName).toBe("最近策略 2");
     });
   });
 });

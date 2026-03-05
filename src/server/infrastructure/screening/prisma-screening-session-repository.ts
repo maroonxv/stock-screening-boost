@@ -88,15 +88,18 @@ export class PrismaScreeningSessionRepository
    * 根据策略 ID 查找会话列表
    * @param strategyId 策略 ID
    * @param limit 限制数量（可选）
+   * @param offset 偏移量（可选）
    * @returns 会话列表
    */
   async findByStrategy(
     strategyId: string,
-    limit?: number
+    limit?: number,
+    offset?: number
   ): Promise<ScreeningSession[]> {
     const records = await this.prisma.screeningSession.findMany({
       where: { strategyId },
       take: limit,
+      skip: offset,
       orderBy: { executedAt: "desc" },
     });
 
@@ -106,11 +109,13 @@ export class PrismaScreeningSessionRepository
   /**
    * 查找最近的会话列表（按执行时间降序）
    * @param limit 限制数量（可选）
+   * @param offset 偏移量（可选）
    * @returns 会话列表
    */
-  async findRecentSessions(limit?: number): Promise<ScreeningSession[]> {
+  async findRecentSessions(limit?: number, offset?: number): Promise<ScreeningSession[]> {
     const records = await this.prisma.screeningSession.findMany({
       take: limit,
+      skip: offset,
       orderBy: { executedAt: "desc" },
     });
 

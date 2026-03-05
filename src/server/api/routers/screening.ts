@@ -449,7 +449,7 @@ export const screeningRouter = createTRPCRouter({
       try {
         const repository = new PrismaScreeningSessionRepository(ctx.db);
 
-        const sessions = await repository.findRecentSessions(input.limit);
+        const sessions = await repository.findRecentSessions(input.limit, input.offset);
 
         // 过滤当前用户的会话
         const userSessions = sessions.filter(
@@ -475,12 +475,22 @@ export const screeningRouter = createTRPCRouter({
    * Requirements: 7.3, 7.5, 7.6
    */
   getSessionsByStrategy: protectedProcedure
-    .input(z.object({ strategyId: z.string(), limit: z.number().min(1).max(100).default(20) }))
+    .input(
+      z.object({
+        strategyId: z.string(),
+        limit: z.number().min(1).max(100).default(20),
+        offset: z.number().min(0).default(0),
+      })
+    )
     .query(async ({ ctx, input }) => {
       try {
         const repository = new PrismaScreeningSessionRepository(ctx.db);
 
-        const sessions = await repository.findByStrategy(input.strategyId, input.limit);
+        const sessions = await repository.findByStrategy(
+          input.strategyId,
+          input.limit,
+          input.offset
+        );
 
         // 过滤当前用户的会话
         const userSessions = sessions.filter(

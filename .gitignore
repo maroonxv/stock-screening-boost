@@ -24,6 +24,8 @@ next-env.d.ts
 # misc
 .DS_Store
 *.pem
+.runlogs/
+.codex/
 
 # debug
 npm-debug.log*
@@ -41,6 +43,10 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# prisma local generated engine binaries (platform-specific)
+generated/prisma/libquery_engine-*.so.node
+generated/prisma/libquery_engine-*.dylib.node
 
 # idea files
 .idea

@@ -25,6 +25,7 @@ venv/
 env/
 ENV/
 .venv
+.venv_wsl/
 
 # IDE
 .vscode/
@@ -38,6 +39,7 @@ ENV/
 .coverage
 htmlcov/
 .tox/
+.runlogs/
 
 # Environment variables
 .env

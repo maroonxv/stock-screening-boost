@@ -13,7 +13,7 @@
  * Requirements: 1.1, 1.7
  */
 
-import type { PrismaClient } from "~/generated/prisma/index.js";
+import type { PrismaClient } from "../../../../generated/prisma";
 import type { IScreeningStrategyRepository } from "~/server/domain/screening/repositories/screening-strategy-repository";
 import { ScreeningStrategy } from "~/server/domain/screening/aggregates/screening-strategy";
 import { FilterGroup } from "~/server/domain/screening/entities/filter-group";

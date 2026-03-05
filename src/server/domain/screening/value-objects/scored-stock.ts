@@ -22,7 +22,7 @@
  * );
  */
 
-import { StockCode } from "./stock-code.js";
+import { StockCode } from "./stock-code";
 import type { IndicatorField } from "../enums/indicator-field";
 
 /**

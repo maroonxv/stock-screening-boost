@@ -397,9 +397,9 @@ export const screeningRouter = createTRPCRouter({
         }
 
         // 初始化服务
-        const dataClient = new PythonDataServiceClient(
-          process.env.PYTHON_SERVICE_URL ?? "http://localhost:8000"
-        );
+        const dataClient = new PythonDataServiceClient({
+          baseUrl: process.env.PYTHON_SERVICE_URL ?? "http://localhost:8000",
+        });
         const calcService = new IndicatorCalculationService(dataClient);
         const scoringService = new ScoringService();
 
@@ -408,16 +408,19 @@ export const screeningRouter = createTRPCRouter({
         const candidateStocks = await dataClient.getStocksByCodes(stockCodes);
 
         // 执行筛选
-        const startTime = Date.now();
-        const result = strategy.execute(candidateStocks, scoringService, calcService);
-        const executionTime = (Date.now() - startTime) / 1000;
+        const result = await strategy.execute(
+          candidateStocks,
+          scoringService,
+          calcService
+        );
 
         // 创建会话
         const session = ScreeningSession.create({
           strategyId: strategy.id,
           strategyName: strategy.name,
           result,
-          executionTime,
+          filtersSnapshot: strategy.filters,
+          scoringConfigSnapshot: strategy.scoringConfig,
           userId: ctx.session.user.id,
         });
 

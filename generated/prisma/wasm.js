@@ -222,7 +222,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "D:\\课外项目\\stock-screening-boost\\generated\\prisma",
+      "value": "/mnt/d/课外项目/stock-screening-boost/generated/prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -231,12 +231,12 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "windows",
+        "value": "debian-openssl-3.0.x",
         "native": true
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "D:\\课外项目\\stock-screening-boost\\prisma\\schema.prisma",
+    "sourceFilePath": "/mnt/d/课外项目/stock-screening-boost/prisma/schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {

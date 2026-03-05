@@ -34,7 +34,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { LogicalOperator } from "../enums/logical-operator";
 import { FilterCondition, type IIndicatorCalculationService } from "../value-objects/filter-condition";
-import type { Stock } from "./stock.js";
+import type { Stock } from "./stock";
 import { InvalidFilterConditionError } from "../errors";
 
 /**
@@ -148,6 +148,40 @@ export class FilterGroup {
 
       case LogicalOperator.NOT:
         // NOT 组必须有且仅有一个子元素（已在 create 中验证）
+        return allResults.length === 1 ? !allResults[0] : false;
+
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * 异步递归匹配股票是否满足此条件组
+   *
+   * 用于支持异步指标计算（如历史指标）。
+   */
+  async matchAsync(
+    stock: Stock,
+    calcService: IIndicatorCalculationService
+  ): Promise<boolean> {
+    const conditionResults = await Promise.all(
+      this.conditions.map((condition) => condition.evaluateAsync(stock, calcService))
+    );
+
+    const subGroupResults = await Promise.all(
+      this.subGroups.map((subGroup) => subGroup.matchAsync(stock, calcService))
+    );
+
+    const allResults = [...conditionResults, ...subGroupResults];
+
+    switch (this.operator) {
+      case LogicalOperator.AND:
+        return allResults.length === 0 ? true : allResults.every((r) => r);
+
+      case LogicalOperator.OR:
+        return allResults.length === 0 ? false : allResults.some((r) => r);
+
+      case LogicalOperator.NOT:
         return allResults.length === 1 ? !allResults[0] : false;
 
       default:

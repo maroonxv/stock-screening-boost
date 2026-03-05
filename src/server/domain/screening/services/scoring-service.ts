@@ -14,7 +14,7 @@
 
 import type { Stock } from "../entities/stock";
 import type { ScoringConfig } from "../value-objects/scoring-config";
-import type { IIndicatorCalculationService } from "./indicator-calculation-service.js";
+import type { IIndicatorCalculationService } from "./indicator-calculation-service";
 import { ScoredStock, type MatchedCondition } from "../value-objects/scored-stock";
 import type { IndicatorField } from "../enums/indicator-field";
 import { ScoringError } from "../errors";

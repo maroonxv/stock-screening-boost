@@ -20,7 +20,7 @@
  * );
  */
 
-import { StockCode } from "./stock-code.js";
+import { StockCode } from "./stock-code";
 
 /**
  * WatchedStock 值对象

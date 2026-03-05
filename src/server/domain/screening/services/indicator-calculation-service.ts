@@ -10,7 +10,7 @@
  */
 
 import type { Stock } from "../entities/stock";
-import type { IndicatorField } from "../enums/indicator-field";
+import { IndicatorField } from "../enums/indicator-field";
 import type { IHistoricalDataProvider } from "../repositories/historical-data-provider";
 import {
   getIndicatorCategory,
@@ -176,14 +176,14 @@ export class IndicatorCalculationService
     stock: Stock
   ): Promise<number | null> {
     switch (indicator) {
-      case "REVENUE_CAGR_3Y":
-        return await this.calculateCAGR(stock, "REVENUE", 3);
+      case IndicatorField.REVENUE_CAGR_3Y:
+        return await this.calculateCAGR(stock, IndicatorField.REVENUE, 3);
 
-      case "NET_PROFIT_CAGR_3Y":
-        return await this.calculateCAGR(stock, "NET_PROFIT", 3);
+      case IndicatorField.NET_PROFIT_CAGR_3Y:
+        return await this.calculateCAGR(stock, IndicatorField.NET_PROFIT, 3);
 
-      case "ROE_AVG_3Y":
-        return await this.calculateAverage(stock, "ROE", 3);
+      case IndicatorField.ROE_AVG_3Y:
+        return await this.calculateAverage(stock, IndicatorField.ROE, 3);
 
       default:
         throw new IndicatorCalculationError(
@@ -202,10 +202,10 @@ export class IndicatorCalculationService
     stock: Stock
   ): number | null {
     switch (indicator) {
-      case "PEG":
+      case IndicatorField.PEG:
         return this.calculatePEG(stock);
 
-      case "ROE_MINUS_DEBT":
+      case IndicatorField.ROE_MINUS_DEBT:
         return this.calculateROEMinusDebt(stock);
 
       default:
@@ -240,11 +240,18 @@ export class IndicatorCalculationService
         return null;
       }
 
-      const startValue = dataPoints[0].value;
-      const endValue = dataPoints[dataPoints.length - 1].value;
+      const startPoint = dataPoints[0];
+      const endPoint = dataPoints[dataPoints.length - 1];
+
+      if (!startPoint || !endPoint) {
+        return null;
+      }
+
+      const startValue = startPoint.value;
+      const endValue = endPoint.value;
 
       // 起始值必须大于 0
-      if (startValue <= 0) {
+      if (startValue === null || endValue === null || startValue <= 0) {
         return null;
       }
 
@@ -285,8 +292,18 @@ export class IndicatorCalculationService
         return null;
       }
 
-      const sum = dataPoints.reduce((acc, point) => acc + point.value, 0);
-      const average = sum / dataPoints.length;
+      const validValues = dataPoints
+        .map((point) => point.value)
+        .filter((value): value is number =>
+          typeof value === "number" && Number.isFinite(value)
+        );
+
+      if (validValues.length === 0) {
+        return null;
+      }
+
+      const sum = validValues.reduce((acc, value) => acc + value, 0);
+      const average = sum / validValues.length;
 
       return average;
     } catch (error) {

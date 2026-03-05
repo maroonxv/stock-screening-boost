@@ -39,7 +39,7 @@ import {
   indicatorValueToDict,
   indicatorValueFromDict,
   indicatorValueEquals,
-} from "./indicator-value.js";
+} from "./indicator-value";
 import { InvalidFilterConditionError } from "../errors";
 import type { Stock } from "../entities/stock";
 
@@ -51,7 +51,7 @@ export interface IIndicatorCalculationService {
   calculateIndicator(
     indicator: IndicatorField,
     stock: Stock
-  ): number | string | null;
+  ): number | string | null | Promise<number | string | null>;
 }
 
 /**
@@ -225,12 +225,35 @@ export class FilterCondition {
     // 获取股票的指标值
     const stockValue = calcService.calculateIndicator(this.field, stock);
 
+    // 同步路径不处理 Promise（异步路径请使用 evaluateAsync）
+    if (stockValue instanceof Promise) {
+      return false;
+    }
+
     // null 值返回 false (Requirements: 3.3)
     if (stockValue === null) {
       return false;
     }
 
     // 根据运算符执行比较
+    return this.compareValues(stockValue, this.operator, this.value);
+  }
+
+  /**
+   * 异步评估股票是否匹配此筛选条件
+   *
+   * 用于支持异步指标计算（如历史数据指标）。
+   */
+  async evaluateAsync(
+    stock: Stock,
+    calcService: IIndicatorCalculationService
+  ): Promise<boolean> {
+    const stockValue = await calcService.calculateIndicator(this.field, stock);
+
+    if (stockValue === null) {
+      return false;
+    }
+
     return this.compareValues(stockValue, this.operator, this.value);
   }
 

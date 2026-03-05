@@ -13,7 +13,7 @@
  * Requirements: 4.1, 4.2, 4.3, 4.4
  */
 
-import type { PrismaClient } from "~/generated/prisma/index.js";
+import type { PrismaClient } from "../../../../generated/prisma";
 import type { IScreeningSessionRepository } from "~/server/domain/screening/repositories/screening-session-repository";
 import { ScreeningSession } from "~/server/domain/screening/aggregates/screening-session";
 import { ScoredStock } from "~/server/domain/screening/value-objects/scored-stock";

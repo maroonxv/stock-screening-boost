@@ -83,6 +83,12 @@ export default async function Home() {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
+                href="/screening"
+                className="rounded-full border border-amber-300/70 bg-amber-300/10 px-5 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-200 hover:bg-amber-300/20"
+              >
+                打开筛选研究台
+              </Link>
+              <Link
                 href="/workflows"
                 className="rounded-full border border-cyan-500/70 bg-cyan-500/10 px-5 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-400/20"
               >
@@ -112,8 +118,10 @@ export default async function Home() {
               >
                 <p className="text-sm text-slate-300">{card.label}</p>
                 <p className="mt-2 text-4xl font-semibold text-cyan-200">
-                  {signedIn ? card.value ?? "-" : "--"}
-                  <span className="ml-1 text-base text-slate-400">{card.unit}</span>
+                  {signedIn ? (card.value ?? "-") : "--"}
+                  <span className="ml-1 text-base text-slate-400">
+                    {card.unit}
+                  </span>
                 </p>
                 <p className="mt-2 text-xs text-slate-400">{card.hint}</p>
               </article>
@@ -125,13 +133,20 @@ export default async function Home() {
               <h2 className="text-lg font-semibold text-white">运行状态</h2>
               <div className="mt-4 grid gap-3 text-sm text-slate-200 sm:grid-cols-2">
                 <p className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-4 py-3">
-                  前端服务: <span className="text-emerald-300">http://localhost:3000</span>
+                  前端服务:{" "}
+                  <span className="text-emerald-300">
+                    http://localhost:3000
+                  </span>
                 </p>
                 <p className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-4 py-3">
-                  数据服务: <span className="text-emerald-300">http://localhost:8000</span>
+                  数据服务:{" "}
+                  <span className="text-emerald-300">
+                    http://localhost:8000
+                  </span>
                 </p>
                 <p className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-4 py-3 sm:col-span-2">
-                  数据库: <span className="text-emerald-300">localhost:5432</span>
+                  数据库:{" "}
+                  <span className="text-emerald-300">localhost:5432</span>
                 </p>
               </div>
             </article>
@@ -146,7 +161,9 @@ export default async function Home() {
               <p className="mt-3 text-sm text-slate-300">
                 最近执行:{" "}
                 <span className="text-cyan-200">
-                  {signedIn ? formatExecutedAt(latestExecutedAt) : "登录后可查看"}
+                  {signedIn
+                    ? formatExecutedAt(latestExecutedAt)
+                    : "登录后可查看"}
                 </span>
               </p>
               {loadError ? (

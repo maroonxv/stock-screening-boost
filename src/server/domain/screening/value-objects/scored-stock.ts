@@ -2,24 +2,6 @@
  * ScoredStock 值对象
  *
  * 表示经过筛选和评分后的股票，包含评分详情和匹配的筛选条件。
- *
- * 包含字段：
- * - stockCode: 股票代码
- * - stockName: 股票名称
- * - score: 总评分（0-1 区间）
- * - scoreBreakdown: 各指标的归一化得分
- * - indicatorValues: 各指标的原始值
- * - matchedConditions: 匹配的筛选条件
- *
- * @example
- * const scoredStock = ScoredStock.create(
- *   StockCode.create("600519"),
- *   "贵州茅台",
- *   0.85,
- *   new Map([[IndicatorField.ROE, 0.9], [IndicatorField.PE, 0.7]]),
- *   new Map([[IndicatorField.ROE, 0.28], [IndicatorField.PE, 35.5]]),
- *   []
- * );
  */
 
 import { StockCode } from "./stock-code";
@@ -42,100 +24,92 @@ export class ScoredStock {
   private readonly _stockName: string;
   private readonly _score: number;
   private readonly _scoreBreakdown: ReadonlyMap<IndicatorField, number>;
+  private readonly _scoreContributions: ReadonlyMap<IndicatorField, number>;
   private readonly _indicatorValues: ReadonlyMap<IndicatorField, unknown>;
   private readonly _matchedConditions: readonly MatchedCondition[];
+  private readonly _scoreExplanations: readonly string[];
 
-  /**
-   * 私有构造函数，通过静态工厂方法创建实例
-   */
   private constructor(
     stockCode: StockCode,
     stockName: string,
     score: number,
     scoreBreakdown: Map<IndicatorField, number>,
     indicatorValues: Map<IndicatorField, unknown>,
-    matchedConditions: MatchedCondition[]
+    matchedConditions: MatchedCondition[],
+    scoreContributions?: Map<IndicatorField, number>,
+    scoreExplanations?: string[]
   ) {
     this._stockCode = stockCode;
     this._stockName = stockName;
     this._score = score;
     this._scoreBreakdown = new Map(scoreBreakdown);
+    this._scoreContributions = new Map(scoreContributions ?? []);
     this._indicatorValues = new Map(indicatorValues);
     this._matchedConditions = [...matchedConditions];
+    this._scoreExplanations = [...(scoreExplanations ?? [])];
   }
 
-  /**
-   * 获取股票代码
-   */
   get stockCode(): StockCode {
     return this._stockCode;
   }
 
-  /**
-   * 获取股票名称
-   */
   get stockName(): string {
     return this._stockName;
   }
 
-  /**
-   * 获取总评分
-   */
   get score(): number {
     return this._score;
   }
 
-  /**
-   * 获取评分明细
-   */
   get scoreBreakdown(): ReadonlyMap<IndicatorField, number> {
     return this._scoreBreakdown;
   }
 
-  /**
-   * 获取指标原始值
-   */
+  get scoreContributions(): ReadonlyMap<IndicatorField, number> {
+    return this._scoreContributions;
+  }
+
   get indicatorValues(): ReadonlyMap<IndicatorField, unknown> {
     return this._indicatorValues;
   }
 
-  /**
-   * 获取匹配的筛选条件
-   */
   get matchedConditions(): readonly MatchedCondition[] {
     return this._matchedConditions;
   }
 
-  /**
-   * 创建 ScoredStock 实例
-   * @param stockCode 股票代码
-   * @param stockName 股票名称
-   * @param score 总评分
-   * @param scoreBreakdown 评分明细
-   * @param indicatorValues 指标原始值
-   * @param matchedConditions 匹配的筛选条件
-   * @returns ScoredStock 实例
-   * @throws Error 如果评分不在 [0, 1] 区间
-   */
+  get scoreExplanations(): readonly string[] {
+    return this._scoreExplanations;
+  }
+
   static create(
     stockCode: StockCode,
     stockName: string,
     score: number,
     scoreBreakdown: Map<IndicatorField, number>,
     indicatorValues: Map<IndicatorField, unknown>,
-    matchedConditions: MatchedCondition[]
+    matchedConditions: MatchedCondition[],
+    scoreContributions?: Map<IndicatorField, number>,
+    scoreExplanations?: string[]
   ): ScoredStock {
-    // 验证评分在 [0, 1] 区间
     if (score < 0 || score > 1) {
       throw new Error(`评分必须在 [0, 1] 区间内，当前值为 ${score}`);
     }
 
-    // 验证 scoreBreakdown 中的所有值都在 [0, 1] 区间
     for (const [field, breakdownScore] of scoreBreakdown.entries()) {
       if (breakdownScore < 0 || breakdownScore > 1) {
         throw new Error(
           `指标 ${field} 的归一化得分必须在 [0, 1] 区间内，当前值为 ${breakdownScore}`
         );
+      }
+    }
+
+    if (scoreContributions) {
+      for (const [field, contribution] of scoreContributions.entries()) {
+        if (contribution < 0 || contribution > 1) {
+          throw new Error(
+            `指标 ${field} 的贡献值必须在 [0, 1] 区间内，当前值为 ${contribution}`
+          );
+        }
       }
     }
 
@@ -145,36 +119,33 @@ export class ScoredStock {
       score,
       scoreBreakdown,
       indicatorValues,
-      matchedConditions
+      matchedConditions,
+      scoreContributions,
+      scoreExplanations
     );
   }
 
-  /**
-   * 获取指定指标的归一化得分
-   * @param field 指标字段
-   * @returns 归一化得分，如果不存在则返回 undefined
-   */
   getBreakdownScore(field: IndicatorField): number | undefined {
     return this._scoreBreakdown.get(field);
   }
 
-  /**
-   * 获取指定指标的原始值
-   * @param field 指标字段
-   * @returns 原始值，如果不存在则返回 undefined
-   */
+  getContribution(field: IndicatorField): number | undefined {
+    return this._scoreContributions.get(field);
+  }
+
   getIndicatorValue(field: IndicatorField): unknown {
     return this._indicatorValues.get(field);
   }
 
-  /**
-   * 序列化为普通对象
-   * @returns 序列化后的对象
-   */
   toDict(): Record<string, unknown> {
     const scoreBreakdownObj: Record<string, number> = {};
     for (const [field, score] of this._scoreBreakdown.entries()) {
       scoreBreakdownObj[field] = score;
+    }
+
+    const scoreContributionsObj: Record<string, number> = {};
+    for (const [field, contribution] of this._scoreContributions.entries()) {
+      scoreContributionsObj[field] = contribution;
     }
 
     const indicatorValuesObj: Record<string, unknown> = {};
@@ -187,22 +158,22 @@ export class ScoredStock {
       stockName: this._stockName,
       score: this._score,
       scoreBreakdown: scoreBreakdownObj,
+      scoreContributions: scoreContributionsObj,
+      scoreExplanations: [...this._scoreExplanations],
       indicatorValues: indicatorValuesObj,
       matchedConditions: this._matchedConditions.map((c) => ({ ...c })),
     };
   }
 
-  /**
-   * 从普通对象反序列化
-   * @param data 序列化的对象
-   * @returns ScoredStock 实例
-   * @throws Error 如果数据格式无效
-   */
   static fromDict(data: Record<string, unknown>): ScoredStock {
     const stockCode = data.stockCode as string;
     const stockName = data.stockName as string;
     const score = data.score as number;
     const scoreBreakdownObj = data.scoreBreakdown as Record<string, number>;
+    const scoreContributionsObj =
+      (data.scoreContributions as Record<string, number> | undefined) ?? {};
+    const scoreExplanations =
+      (data.scoreExplanations as string[] | undefined) ?? [];
     const indicatorValuesObj = data.indicatorValues as Record<string, unknown>;
     const matchedConditionsData = data.matchedConditions as MatchedCondition[];
 
@@ -218,6 +189,15 @@ export class ScoredStock {
     if (typeof scoreBreakdownObj !== "object" || scoreBreakdownObj === null) {
       throw new Error("scoreBreakdown 必须为对象");
     }
+    if (
+      typeof scoreContributionsObj !== "object" ||
+      scoreContributionsObj === null
+    ) {
+      throw new Error("scoreContributions 必须为对象");
+    }
+    if (!Array.isArray(scoreExplanations)) {
+      throw new Error("scoreExplanations 必须为数组");
+    }
     if (typeof indicatorValuesObj !== "object" || indicatorValuesObj === null) {
       throw new Error("indicatorValues 必须为对象");
     }
@@ -228,6 +208,11 @@ export class ScoredStock {
     const scoreBreakdown = new Map<IndicatorField, number>();
     for (const [field, breakdownScore] of Object.entries(scoreBreakdownObj)) {
       scoreBreakdown.set(field as IndicatorField, breakdownScore);
+    }
+
+    const scoreContributions = new Map<IndicatorField, number>();
+    for (const [field, contribution] of Object.entries(scoreContributionsObj)) {
+      scoreContributions.set(field as IndicatorField, contribution);
     }
 
     const indicatorValues = new Map<IndicatorField, unknown>();
@@ -241,7 +226,9 @@ export class ScoredStock {
       score,
       scoreBreakdown,
       indicatorValues,
-      matchedConditionsData
+      matchedConditionsData,
+      scoreContributions,
+      scoreExplanations
     );
   }
 }

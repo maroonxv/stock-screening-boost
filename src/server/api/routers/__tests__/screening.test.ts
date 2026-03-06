@@ -48,6 +48,7 @@ const filterGroupSchema: z.ZodType<FilterGroupInput> = z.lazy(() =>
 // ScoringConfig Schema
 const scoringConfigSchema = z.object({
   weights: z.record(z.string(), z.number()),
+  directions: z.record(z.string(), z.enum(["ASC", "DESC"])).optional(),
   normalizationMethod: z.string(),
 });
 

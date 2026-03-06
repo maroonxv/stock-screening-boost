@@ -51,8 +51,8 @@ export class WatchList {
 
   private constructor(params: CreateWatchListParams) {
     this._id = params.id ?? uuidv4();
-    this._name = params.name;
-    this._description = params.description ?? "";
+    this._name = WatchList.normalizeName(params.name);
+    this._description = WatchList.normalizeDescription(params.description);
     this._stocks = new Map();
     this._userId = params.userId;
     this._createdAt = params.createdAt ?? new Date();
@@ -101,6 +101,32 @@ export class WatchList {
    */
   static create(params: CreateWatchListParams): WatchList {
     return new WatchList(params);
+  }
+
+  /**
+   * 重命名列表
+   * @param name 新名称
+   */
+  rename(name: string): void {
+    const normalizedName = WatchList.normalizeName(name);
+    if (normalizedName === this._name) {
+      return;
+    }
+    this._name = normalizedName;
+    this._updatedAt = new Date();
+  }
+
+  /**
+   * 更新列表描述
+   * @param description 新描述
+   */
+  updateDescription(description?: string): void {
+    const normalizedDescription = WatchList.normalizeDescription(description);
+    if (normalizedDescription === this._description) {
+      return;
+    }
+    this._description = normalizedDescription;
+    this._updatedAt = new Date();
   }
 
   /**
@@ -270,5 +296,17 @@ export class WatchList {
    */
   toString(): string {
     return `WatchList(${this._id}, ${this._name}, ${this._stocks.size} stocks)`;
+  }
+
+  private static normalizeName(name: string): string {
+    const normalized = name.trim();
+    if (!normalized) {
+      throw new Error("自选股列表名称不能为空");
+    }
+    return normalized;
+  }
+
+  private static normalizeDescription(description?: string): string {
+    return description?.trim() ?? "";
   }
 }

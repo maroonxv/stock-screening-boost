@@ -6,6 +6,7 @@ import { describe, it, expect } from "vitest";
 import {
   ScoringConfig,
   NormalizationMethod,
+  ScoringDirection,
   InvalidScoringConfigError,
 } from "../scoring-config";
 import { IndicatorField } from "../../enums/indicator-field";
@@ -131,6 +132,38 @@ describe("ScoringConfig", () => {
 
       expect(config.normalizationMethod).toBe(NormalizationMethod.MIN_MAX);
     });
+
+    it("应该支持评分方向配置", () => {
+      const weights = new Map([
+        [IndicatorField.ROE, 0.6],
+        [IndicatorField.PE, 0.4],
+      ]);
+      const directions = new Map([
+        [IndicatorField.ROE, ScoringDirection.ASC],
+        [IndicatorField.PE, ScoringDirection.DESC],
+      ]);
+
+      const config = ScoringConfig.create(
+        weights,
+        NormalizationMethod.MIN_MAX,
+        directions
+      );
+
+      expect(config.getDirection(IndicatorField.ROE)).toBe(ScoringDirection.ASC);
+      expect(config.getDirection(IndicatorField.PE)).toBe(ScoringDirection.DESC);
+    });
+
+    it("应该拒绝文本指标进入评分配置", () => {
+      const weights = new Map([
+        [IndicatorField.ROE, 0.5],
+        [IndicatorField.INDUSTRY, 0.5],
+      ]);
+
+      expect(() => ScoringConfig.create(weights)).toThrow(
+        InvalidScoringConfigError
+      );
+      expect(() => ScoringConfig.create(weights)).toThrow(/文本型指标/);
+    });
   });
 
   describe("tryCreate", () => {
@@ -231,6 +264,13 @@ describe("ScoringConfig", () => {
     });
   });
 
+  describe("getDirection", () => {
+    it("未配置方向时应默认 ASC", () => {
+      const config = ScoringConfig.create(new Map([[IndicatorField.ROE, 1.0]]));
+      expect(config.getDirection(IndicatorField.ROE)).toBe(ScoringDirection.ASC);
+    });
+  });
+
   describe("hasField", () => {
     it("应该对存在的指标返回 true", () => {
       const weights = new Map([[IndicatorField.ROE, 1.0]]);
@@ -288,10 +328,15 @@ describe("ScoringConfig", () => {
       const dict = config.toDict();
 
       expect(dict).toHaveProperty("weights");
+      expect(dict).toHaveProperty("directions");
       expect(dict).toHaveProperty("normalizationMethod");
       expect(dict.weights).toEqual({
         [IndicatorField.ROE]: 0.6,
         [IndicatorField.PE]: 0.4,
+      });
+      expect(dict.directions).toEqual({
+        [IndicatorField.ROE]: ScoringDirection.ASC,
+        [IndicatorField.PE]: ScoringDirection.ASC,
       });
       expect(dict.normalizationMethod).toBe(NormalizationMethod.MIN_MAX);
     });
@@ -336,6 +381,20 @@ describe("ScoringConfig", () => {
       };
 
       expect(() => ScoringConfig.fromDict(dict)).toThrow(/未知的归一化方法/);
+    });
+
+    it("fromDict 应该拒绝非法评分方向", () => {
+      const dict = {
+        weights: {
+          [IndicatorField.ROE]: 1.0,
+        },
+        directions: {
+          [IndicatorField.ROE]: "INVALID",
+        },
+        normalizationMethod: NormalizationMethod.MIN_MAX,
+      };
+
+      expect(() => ScoringConfig.fromDict(dict)).toThrow(/评分方向无效/);
     });
 
     it("fromDict 应该使用默认归一化方法", () => {

@@ -20,6 +20,7 @@ import { PrismaWatchListRepository } from "~/server/infrastructure/screening/pri
 // 领域层
 import { WatchList } from "~/server/domain/screening/aggregates/watch-list";
 import { StockCode } from "~/server/domain/screening/value-objects/stock-code";
+import { normalizeTags } from "~/server/domain/screening/value-objects/watched-stock";
 
 // 领域异常
 import {
@@ -67,6 +68,26 @@ const createWatchListSchema = z.object({
   name: z.string().min(1, "列表名称不能为空"),
   description: z.string().optional(),
 });
+
+const listWatchListsSchema = z
+  .object({
+    limit: z.number().min(1).max(100).default(20),
+    offset: z.number().min(0).default(0),
+    sortBy: z.enum(["createdAt", "updatedAt", "stockCount"]).default("updatedAt"),
+    sortDirection: z.enum(["asc", "desc"]).default("desc"),
+  })
+  .optional();
+
+const updateWatchListMetaSchema = z
+  .object({
+    id: z.string(),
+    name: z.string().min(1, "列表名称不能为空").optional(),
+    description: z.string().optional(),
+  })
+  .refine(
+    (data) => data.name !== undefined || data.description !== undefined,
+    "至少提供一个需要更新的字段"
+  );
 
 // 添加股票 Schema
 const addStockSchema = z.object({
@@ -172,18 +193,17 @@ export const watchlistRouter = createTRPCRouter({
    * 列出所有自选股列表
    * Requirements: 7.4, 7.5, 7.6
    */
-  list: protectedProcedure.query(async ({ ctx }) => {
+  list: protectedProcedure.input(listWatchListsSchema).query(async ({ ctx, input }) => {
     try {
       const repository = new PrismaWatchListRepository(ctx.db);
+      const watchLists = await repository.findByUserId(ctx.session.user.id, {
+        limit: input?.limit ?? 20,
+        offset: input?.offset ?? 0,
+        sortBy: input?.sortBy ?? "updatedAt",
+        sortDirection: input?.sortDirection ?? "desc",
+      });
 
-      const watchLists = await repository.findAll();
-
-      // 过滤当前用户的列表
-      const userWatchLists = watchLists.filter(
-        (wl) => wl.userId === ctx.session.user.id
-      );
-
-      return userWatchLists.map((watchList) => ({
+      return watchLists.map((watchList) => ({
         id: watchList.id,
         name: watchList.name,
         description: watchList.description,
@@ -195,6 +215,50 @@ export const watchlistRouter = createTRPCRouter({
       throw mapDomainError(error);
     }
   }),
+
+  /**
+   * 更新列表元信息（名称/描述）
+   */
+  updateMeta: protectedProcedure
+    .input(updateWatchListMetaSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const repository = new PrismaWatchListRepository(ctx.db);
+        const watchList = await repository.findById(input.id);
+
+        if (!watchList) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "自选股列表不存在",
+          });
+        }
+
+        if (watchList.userId !== ctx.session.user.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "无权限修改此列表",
+          });
+        }
+
+        if (input.name !== undefined) {
+          watchList.rename(input.name);
+        }
+        if (input.description !== undefined) {
+          watchList.updateDescription(input.description);
+        }
+
+        await repository.save(watchList);
+
+        return {
+          id: watchList.id,
+          name: watchList.name,
+          description: watchList.description,
+          updatedAt: watchList.updatedAt,
+        };
+      } catch (error) {
+        throw mapDomainError(error);
+      }
+    }),
 
   /**
    * 获取自选股列表详情
@@ -268,7 +332,7 @@ export const watchlistRouter = createTRPCRouter({
           stockCode,
           input.stockName,
           input.note,
-          input.tags
+          normalizeTags(input.tags)
         );
 
         // 持久化
@@ -389,7 +453,7 @@ export const watchlistRouter = createTRPCRouter({
 
         // 更新标签
         const stockCode = StockCode.create(input.stockCode);
-        watchList.updateStockTags(stockCode, input.tags);
+        watchList.updateStockTags(stockCode, normalizeTags(input.tags));
 
         // 持久化
         await repository.save(watchList);
@@ -428,7 +492,7 @@ export const watchlistRouter = createTRPCRouter({
         }
 
         // 按标签查询
-        const stocks = watchList.getStocksByTag(input.tag);
+        const stocks = watchList.getStocksByTag(input.tag.trim().toLowerCase());
 
         return stocks.map((stock) => stock.toDict());
       } catch (error) {

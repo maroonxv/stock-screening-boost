@@ -118,6 +118,7 @@ const filterGroupSchema: z.ZodType<FilterGroupInput> = z.lazy(() =>
 // ScoringConfig Schema
 const scoringConfigSchema = z.object({
   weights: z.record(z.string(), z.number()),
+  directions: z.record(z.string(), z.enum(["ASC", "DESC"])).optional(),
   normalizationMethod: z.string(),
 });
 
@@ -347,14 +348,13 @@ export const screeningRouter = createTRPCRouter({
       try {
         const repository = new PrismaScreeningStrategyRepository(ctx.db);
 
-        const strategies = await repository.findAll(input.limit, input.offset);
-
-        // 过滤当前用户的策略
-        const userStrategies = strategies.filter(
-          (s) => s.userId === ctx.session.user.id
+        const strategies = await repository.findByUserId(
+          ctx.session.user.id,
+          input.limit,
+          input.offset
         );
 
-        return userStrategies.map((strategy) => ({
+        return strategies.map((strategy) => ({
           id: strategy.id,
           name: strategy.name,
           description: strategy.description,
@@ -449,14 +449,13 @@ export const screeningRouter = createTRPCRouter({
       try {
         const repository = new PrismaScreeningSessionRepository(ctx.db);
 
-        const sessions = await repository.findRecentSessions(input.limit, input.offset);
-
-        // 过滤当前用户的会话
-        const userSessions = sessions.filter(
-          (s) => s.userId === ctx.session.user.id
+        const sessions = await repository.findRecentSessionsByUser(
+          ctx.session.user.id,
+          input.limit,
+          input.offset
         );
 
-        return userSessions.map((session) => ({
+        return sessions.map((session) => ({
           id: session.id,
           strategyId: session.strategyId,
           strategyName: session.strategyName,
@@ -486,18 +485,14 @@ export const screeningRouter = createTRPCRouter({
       try {
         const repository = new PrismaScreeningSessionRepository(ctx.db);
 
-        const sessions = await repository.findByStrategy(
+        const sessions = await repository.findByStrategyForUser(
           input.strategyId,
+          ctx.session.user.id,
           input.limit,
           input.offset
         );
 
-        // 过滤当前用户的会话
-        const userSessions = sessions.filter(
-          (s) => s.userId === ctx.session.user.id
-        );
-
-        return userSessions.map((session) => ({
+        return sessions.map((session) => ({
           id: session.id,
           strategyId: session.strategyId,
           strategyName: session.strategyName,

@@ -12,7 +12,11 @@ import { describe, it, expect, vi } from "vitest";
 import { ScoringService } from "../scoring-service";
 import { Stock } from "../../entities/stock";
 import { StockCode } from "../../value-objects/stock-code";
-import { ScoringConfig } from "../../value-objects/scoring-config";
+import {
+  ScoringConfig,
+  NormalizationMethod,
+  ScoringDirection,
+} from "../../value-objects/scoring-config";
 import { IndicatorField } from "../../enums/indicator-field";
 import type { IIndicatorCalculationService } from "../indicator-calculation-service";
 
@@ -340,6 +344,115 @@ describe("ScoringService", () => {
       // 验证原始指标值被保存
       expect(result[0]!.getIndicatorValue(IndicatorField.ROE)).toBe(0.28);
       expect(result[0]!.getIndicatorValue(IndicatorField.PE)).toBe(35.5);
+    });
+
+    it("配置 DESC 方向后，低值指标应得分更高", async () => {
+      const stock1 = new Stock({
+        code: StockCode.create("600001"),
+        name: "高 PE 股票",
+        industry: "行业",
+        sector: "主板",
+        pe: 50,
+      });
+
+      const stock2 = new Stock({
+        code: StockCode.create("600002"),
+        name: "低 PE 股票",
+        industry: "行业",
+        sector: "主板",
+        pe: 10,
+      });
+
+      const stocks = [stock1, stock2];
+      const mockValues = new Map([
+        [stock1, new Map([[IndicatorField.PE, 50]])],
+        [stock2, new Map([[IndicatorField.PE, 10]])],
+      ]);
+      const calcService = createMockCalcService(mockValues);
+      const config = ScoringConfig.create(
+        new Map([[IndicatorField.PE, 1.0]]),
+        NormalizationMethod.MIN_MAX,
+        new Map([[IndicatorField.PE, ScoringDirection.DESC]])
+      );
+
+      const service = new ScoringService();
+      const result = await service.scoreStocks(stocks, config, calcService);
+
+      expect(result[0]!.stockCode.value).toBe("600002");
+      expect(result[0]!.score).toBeGreaterThan(result[1]!.score);
+    });
+
+    it("应输出每指标的贡献项与解释字段", async () => {
+      const stock = new Stock({
+        code: StockCode.create("600519"),
+        name: "贵州茅台",
+        industry: "白酒",
+        sector: "主板",
+        roe: 0.3,
+        pe: 20,
+      });
+
+      const mockValues = new Map([
+        [stock, new Map([[IndicatorField.ROE, 0.3], [IndicatorField.PE, 20]])],
+      ]);
+      const calcService = createMockCalcService(mockValues);
+      const config = ScoringConfig.create(
+        new Map([
+          [IndicatorField.ROE, 0.5],
+          [IndicatorField.PE, 0.5],
+        ]),
+        NormalizationMethod.MIN_MAX,
+        new Map([
+          [IndicatorField.ROE, ScoringDirection.ASC],
+          [IndicatorField.PE, ScoringDirection.DESC],
+        ])
+      );
+
+      const service = new ScoringService();
+      const result = await service.scoreStocks([stock], config, calcService);
+      const scored = result[0]!;
+
+      expect(scored.scoreContributions.size).toBe(2);
+      expect(scored.getContribution(IndicatorField.ROE)).toBeDefined();
+      expect(scored.getContribution(IndicatorField.PE)).toBeDefined();
+      expect(scored.scoreExplanations.length).toBe(2);
+      expect(scored.scoreExplanations[0]).toContain("direction=");
+    });
+
+    it("应支持 Z_SCORE 归一化策略", async () => {
+      const stock1 = new Stock({
+        code: StockCode.create("600100"),
+        name: "股票1",
+        industry: "行业",
+        sector: "主板",
+        roe: 0.1,
+      });
+      const stock2 = new Stock({
+        code: StockCode.create("600200"),
+        name: "股票2",
+        industry: "行业",
+        sector: "主板",
+        roe: 0.3,
+      });
+
+      const mockValues = new Map([
+        [stock1, new Map([[IndicatorField.ROE, 0.1]])],
+        [stock2, new Map([[IndicatorField.ROE, 0.3]])],
+      ]);
+      const calcService = createMockCalcService(mockValues);
+      const config = ScoringConfig.create(
+        new Map([[IndicatorField.ROE, 1.0]]),
+        NormalizationMethod.Z_SCORE
+      );
+
+      const service = new ScoringService();
+      const result = await service.scoreStocks([stock1, stock2], config, calcService);
+
+      expect(result).toHaveLength(2);
+      for (const scored of result) {
+        expect(scored.score).toBeGreaterThanOrEqual(0);
+        expect(scored.score).toBeLessThanOrEqual(1);
+      }
     });
   });
 });

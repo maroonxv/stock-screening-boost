@@ -13,8 +13,11 @@
  * Requirements: 5.1
  */
 
-import type { PrismaClient } from "../../../../generated/prisma";
-import type { IWatchListRepository } from "~/server/domain/screening/repositories/watch-list-repository";
+import type { PrismaClient } from "~/generated/prisma";
+import type {
+  IWatchListRepository,
+  WatchListQueryOptions,
+} from "~/server/domain/screening/repositories/watch-list-repository";
 import { WatchList } from "~/server/domain/screening/aggregates/watch-list";
 import { WatchedStock } from "~/server/domain/screening/value-objects/watched-stock";
 
@@ -82,6 +85,47 @@ export class PrismaWatchListRepository implements IWatchListRepository {
   async findAll(): Promise<WatchList[]> {
     const records = await this.prisma.watchList.findMany({
       orderBy: { createdAt: "desc" },
+    });
+
+    return records.map((record) => this.toDomain(record));
+  }
+
+  /**
+   * 根据用户查询列表（支持分页与排序）
+   * @param userId 用户 ID
+   * @param options 查询参数
+   */
+  async findByUserId(
+    userId: string,
+    options?: WatchListQueryOptions
+  ): Promise<WatchList[]> {
+    const limit = options?.limit;
+    const offset = options?.offset ?? 0;
+    const sortBy = options?.sortBy ?? "createdAt";
+    const sortDirection = options?.sortDirection ?? "desc";
+
+    if (sortBy === "stockCount") {
+      const records = await this.prisma.watchList.findMany({
+        where: { userId },
+      });
+
+      const allWatchLists = records.map((record) => this.toDomain(record));
+      allWatchLists.sort((a, b) => {
+        const diff = a.stocks.length - b.stocks.length;
+        return sortDirection === "asc" ? diff : -diff;
+      });
+
+      const end = limit === undefined ? undefined : offset + limit;
+      return allWatchLists.slice(offset, end);
+    }
+
+    const records = await this.prisma.watchList.findMany({
+      where: { userId },
+      take: limit,
+      skip: offset,
+      orderBy: sortBy === "updatedAt"
+        ? { updatedAt: sortDirection }
+        : { createdAt: sortDirection },
     });
 
     return records.map((record) => this.toDomain(record));

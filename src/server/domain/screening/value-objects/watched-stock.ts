@@ -23,6 +23,25 @@
 import { StockCode } from "./stock-code";
 
 /**
+ * 标签规范化：去空白 + 小写 + 去重
+ */
+export function normalizeTags(tags: string[]): string[] {
+  const normalized: string[] = [];
+  const seen = new Set<string>();
+
+  for (const rawTag of tags) {
+    const tag = rawTag.trim().toLowerCase();
+    if (!tag || seen.has(tag)) {
+      continue;
+    }
+    seen.add(tag);
+    normalized.push(tag);
+  }
+
+  return normalized;
+}
+
+/**
  * WatchedStock 值对象
  */
 export class WatchedStock {
@@ -46,7 +65,7 @@ export class WatchedStock {
     this._stockName = stockName;
     this._addedAt = addedAt;
     this._note = note;
-    this._tags = [...tags];
+    this._tags = normalizeTags(tags);
   }
 
   /**
@@ -109,7 +128,7 @@ export class WatchedStock {
    * @returns 是否包含
    */
   hasTag(tag: string): boolean {
-    return this._tags.includes(tag);
+    return this._tags.includes(tag.trim().toLowerCase());
   }
 
   /**
@@ -138,7 +157,7 @@ export class WatchedStock {
       this._stockName,
       this._addedAt,
       this._note,
-      tags
+      normalizeTags(tags)
     );
   }
 

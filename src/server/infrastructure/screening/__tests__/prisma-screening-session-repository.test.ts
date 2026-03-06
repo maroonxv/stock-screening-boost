@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { PrismaClient } from "../../../../../generated/prisma/index";
+import { PrismaClient } from "~/generated/prisma/index";
 import { PrismaScreeningSessionRepository } from "../prisma-screening-session-repository";
 import { ScreeningSession } from "../../../domain/screening/aggregates/screening-session";
 import { ScreeningResult } from "../../../domain/screening/value-objects/screening-result";
@@ -285,6 +285,49 @@ describe("PrismaScreeningSessionRepository", () => {
       expect(found[0]?.strategyName).toBe("策略 3");
       expect(found[1]?.strategyName).toBe("策略 2");
     });
+
+    it("findByStrategyForUser 应只返回指定用户的会话", async () => {
+      const stocks = [createScoredStock("600519", "贵州茅台", 0.9)];
+      const result = ScreeningResult.create(stocks, 5000, 1250.5);
+
+      const anotherUser = await prisma.user.create({
+        data: {
+          email: `another-${Date.now()}@example.com`,
+          name: "Another User",
+        },
+      });
+
+      const userSession = ScreeningSession.create({
+        strategyId: testStrategyId1,
+        strategyName: "策略 A",
+        userId: testUserId,
+        result,
+        filtersSnapshot: createTestFilterGroup(),
+        scoringConfigSnapshot: createTestScoringConfig(),
+      });
+
+      const anotherSession = ScreeningSession.create({
+        strategyId: testStrategyId1,
+        strategyName: "策略 B",
+        userId: anotherUser.id,
+        result,
+        filtersSnapshot: createTestFilterGroup(),
+        scoringConfigSnapshot: createTestScoringConfig(),
+      });
+
+      await repository.save(userSession);
+      await repository.save(anotherSession);
+
+      const found = await repository.findByStrategyForUser(
+        testStrategyId1,
+        testUserId
+      );
+      expect(found).toHaveLength(1);
+      expect(found[0]?.userId).toBe(testUserId);
+
+      await prisma.screeningSession.deleteMany({ where: { userId: anotherUser.id } });
+      await prisma.user.delete({ where: { id: anotherUser.id } });
+    });
   });
 
   describe("findRecentSessions", () => {
@@ -376,6 +419,46 @@ describe("PrismaScreeningSessionRepository", () => {
       const found = await repository.findRecentSessions(1, 2);
       expect(found).toHaveLength(1);
       expect(found[0]?.strategyName).toBe("最近策略 2");
+    });
+
+    it("findRecentSessionsByUser 应只返回当前用户会话", async () => {
+      const stocks = [createScoredStock("600519", "贵州茅台", 0.9)];
+      const result = ScreeningResult.create(stocks, 5000, 1250.5);
+
+      const anotherUser = await prisma.user.create({
+        data: {
+          email: `another-recent-${Date.now()}@example.com`,
+          name: "Another Recent User",
+        },
+      });
+
+      const userSession = ScreeningSession.create({
+        strategyId: testStrategyId1,
+        strategyName: "用户会话",
+        userId: testUserId,
+        result,
+        filtersSnapshot: createTestFilterGroup(),
+        scoringConfigSnapshot: createTestScoringConfig(),
+      });
+
+      const anotherSession = ScreeningSession.create({
+        strategyId: testStrategyId2,
+        strategyName: "其他会话",
+        userId: anotherUser.id,
+        result,
+        filtersSnapshot: createTestFilterGroup(),
+        scoringConfigSnapshot: createTestScoringConfig(),
+      });
+
+      await repository.save(userSession);
+      await repository.save(anotherSession);
+
+      const found = await repository.findRecentSessionsByUser(testUserId);
+      expect(found.length).toBeGreaterThanOrEqual(1);
+      expect(found.every((session) => session.userId === testUserId)).toBe(true);
+
+      await prisma.screeningSession.deleteMany({ where: { userId: anotherUser.id } });
+      await prisma.user.delete({ where: { id: anotherUser.id } });
     });
   });
 });

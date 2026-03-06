@@ -13,7 +13,7 @@
  * Requirements: 1.1, 1.7
  */
 
-import type { PrismaClient } from "../../../../generated/prisma";
+import type { PrismaClient } from "~/generated/prisma";
 import type { IScreeningStrategyRepository } from "~/server/domain/screening/repositories/screening-strategy-repository";
 import { ScreeningStrategy } from "~/server/domain/screening/aggregates/screening-strategy";
 import { FilterGroup } from "~/server/domain/screening/entities/filter-group";
@@ -89,6 +89,28 @@ export class PrismaScreeningStrategyRepository
    */
   async findAll(limit?: number, offset?: number): Promise<ScreeningStrategy[]> {
     const records = await this.prisma.screeningStrategy.findMany({
+      take: limit,
+      skip: offset,
+      orderBy: { createdAt: "desc" },
+    });
+
+    return records.map((record) => this.toDomain(record));
+  }
+
+  /**
+   * 根据用户 ID 查找策略（支持分页）
+   * @param userId 用户 ID
+   * @param limit 限制数量（可选）
+   * @param offset 偏移量（可选）
+   * @returns 策略列表
+   */
+  async findByUserId(
+    userId: string,
+    limit?: number,
+    offset?: number
+  ): Promise<ScreeningStrategy[]> {
+    const records = await this.prisma.screeningStrategy.findMany({
+      where: { userId },
       take: limit,
       skip: offset,
       orderBy: { createdAt: "desc" },

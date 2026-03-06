@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { PrismaClient } from "../../../../../generated/prisma/index";
+import type { PrismaClient } from "~/generated/prisma/index";
 import { PrismaWatchListRepository } from "../prisma-watch-list-repository";
 import { WatchList } from "../../../domain/screening/aggregates/watch-list";
 import { StockCode } from "../../../domain/screening/value-objects/stock-code";
@@ -257,6 +257,70 @@ describe("PrismaWatchListRepository", () => {
       const found = await repository.findByName("不存在的列表");
 
       expect(found).toBeNull();
+    });
+  });
+
+  describe("findByUserId", () => {
+    it("应该按 userId 查询并支持 createdAt 排序分页", async () => {
+      mockPrisma.watchList.findMany.mockResolvedValue([]);
+
+      await repository.findByUserId(testUserId, {
+        limit: 10,
+        offset: 5,
+        sortBy: "createdAt",
+        sortDirection: "asc",
+      });
+
+      expect(mockPrisma.watchList.findMany).toHaveBeenCalledWith({
+        where: { userId: testUserId },
+        take: 10,
+        skip: 5,
+        orderBy: { createdAt: "asc" },
+      });
+    });
+
+    it("应该支持 stockCount 排序", async () => {
+      const list1 = createTestWatchList("列表1");
+      const list2 = WatchList.create({
+        name: "列表2",
+        userId: testUserId,
+      });
+
+      list2.addStock(StockCode.create("600519"), "贵州茅台", undefined, []);
+
+      mockPrisma.watchList.findMany.mockResolvedValue([
+        {
+          id: list1.id,
+          name: list1.name,
+          description: list1.description,
+          stocks: list1.stocks.map((stock) => stock.toDict()),
+          userId: list1.userId,
+          createdAt: list1.createdAt,
+          updatedAt: list1.updatedAt,
+        },
+        {
+          id: list2.id,
+          name: list2.name,
+          description: list2.description,
+          stocks: list2.stocks.map((stock) => stock.toDict()),
+          userId: list2.userId,
+          createdAt: list2.createdAt,
+          updatedAt: list2.updatedAt,
+        },
+      ]);
+
+      const result = await repository.findByUserId(testUserId, {
+        sortBy: "stockCount",
+        sortDirection: "desc",
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result[0]?.stocks.length).toBeGreaterThanOrEqual(
+        result[1]?.stocks.length ?? 0
+      );
+      expect(mockPrisma.watchList.findMany).toHaveBeenCalledWith({
+        where: { userId: testUserId },
+      });
     });
   });
 

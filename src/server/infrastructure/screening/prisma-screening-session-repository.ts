@@ -13,7 +13,7 @@
  * Requirements: 4.1, 4.2, 4.3, 4.4
  */
 
-import type { PrismaClient } from "../../../../generated/prisma";
+import type { PrismaClient } from "~/generated/prisma";
 import type { IScreeningSessionRepository } from "~/server/domain/screening/repositories/screening-session-repository";
 import { ScreeningSession } from "~/server/domain/screening/aggregates/screening-session";
 import { ScoredStock } from "~/server/domain/screening/value-objects/scored-stock";
@@ -107,6 +107,30 @@ export class PrismaScreeningSessionRepository
   }
 
   /**
+   * 根据策略 ID 和用户 ID 查找会话列表
+   * @param strategyId 策略 ID
+   * @param userId 用户 ID
+   * @param limit 限制数量（可选）
+   * @param offset 偏移量（可选）
+   * @returns 会话列表
+   */
+  async findByStrategyForUser(
+    strategyId: string,
+    userId: string,
+    limit?: number,
+    offset?: number
+  ): Promise<ScreeningSession[]> {
+    const records = await this.prisma.screeningSession.findMany({
+      where: { strategyId, userId },
+      take: limit,
+      skip: offset,
+      orderBy: { executedAt: "desc" },
+    });
+
+    return records.map((record) => this.toDomain(record));
+  }
+
+  /**
    * 查找最近的会话列表（按执行时间降序）
    * @param limit 限制数量（可选）
    * @param offset 偏移量（可选）
@@ -114,6 +138,28 @@ export class PrismaScreeningSessionRepository
    */
   async findRecentSessions(limit?: number, offset?: number): Promise<ScreeningSession[]> {
     const records = await this.prisma.screeningSession.findMany({
+      take: limit,
+      skip: offset,
+      orderBy: { executedAt: "desc" },
+    });
+
+    return records.map((record) => this.toDomain(record));
+  }
+
+  /**
+   * 查找指定用户最近会话（按执行时间降序）
+   * @param userId 用户 ID
+   * @param limit 限制数量（可选）
+   * @param offset 偏移量（可选）
+   * @returns 会话列表
+   */
+  async findRecentSessionsByUser(
+    userId: string,
+    limit?: number,
+    offset?: number
+  ): Promise<ScreeningSession[]> {
+    const records = await this.prisma.screeningSession.findMany({
+      where: { userId },
       take: limit,
       skip: offset,
       orderBy: { executedAt: "desc" },

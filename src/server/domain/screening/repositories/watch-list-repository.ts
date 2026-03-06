@@ -9,6 +9,16 @@
 
 import type { WatchList } from "../aggregates/watch-list";
 
+export type WatchListSortBy = "createdAt" | "updatedAt" | "stockCount";
+export type SortDirection = "asc" | "desc";
+
+export interface WatchListQueryOptions {
+  limit?: number;
+  offset?: number;
+  sortBy?: WatchListSortBy;
+  sortDirection?: SortDirection;
+}
+
 /**
  * 自选股列表仓储接口
  */
@@ -37,6 +47,17 @@ export interface IWatchListRepository {
    * @returns 列表数组
    */
   findAll(): Promise<WatchList[]>;
+
+  /**
+   * 根据用户查询自选股列表（支持分页与排序）
+   * @param userId 用户 ID
+   * @param options 查询参数
+   * @returns 列表数组
+   */
+  findByUserId(
+    userId: string,
+    options?: WatchListQueryOptions
+  ): Promise<WatchList[]>;
 
   /**
    * 根据名称查找自选股列表

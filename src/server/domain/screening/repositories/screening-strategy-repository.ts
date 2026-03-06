@@ -41,6 +41,19 @@ export interface IScreeningStrategyRepository {
   findAll(limit?: number, offset?: number): Promise<ScreeningStrategy[]>;
 
   /**
+   * 根据用户 ID 查找策略（支持分页）
+   * @param userId 用户 ID
+   * @param limit 限制数量（可选）
+   * @param offset 偏移量（可选）
+   * @returns 策略列表
+   */
+  findByUserId(
+    userId: string,
+    limit?: number,
+    offset?: number
+  ): Promise<ScreeningStrategy[]>;
+
+  /**
    * 查找所有模板策略
    * @returns 模板策略列表
    */

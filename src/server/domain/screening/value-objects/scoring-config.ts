@@ -19,7 +19,7 @@
  * );
  */
 
-import { IndicatorField } from "../enums/indicator-field";
+import { IndicatorField, isNumericIndicator } from "../enums/indicator-field";
 
 /**
  * 归一化方法枚举
@@ -27,6 +27,18 @@ import { IndicatorField } from "../enums/indicator-field";
 export enum NormalizationMethod {
   /** MIN-MAX 归一化：(value - min) / (max - min) */
   MIN_MAX = "MIN_MAX",
+  /** Z-Score 标准化后使用 Sigmoid 压缩到 (0, 1) */
+  Z_SCORE = "Z_SCORE",
+}
+
+/**
+ * 评分方向
+ */
+export enum ScoringDirection {
+  /** 值越大得分越高 */
+  ASC = "ASC",
+  /** 值越小得分越高 */
+  DESC = "DESC",
 }
 
 /**
@@ -42,6 +54,7 @@ export interface ScoringConfigValidationResult {
  */
 export class ScoringConfig {
   private readonly _weights: ReadonlyMap<IndicatorField, number>;
+  private readonly _directions: ReadonlyMap<IndicatorField, ScoringDirection>;
   private readonly _normalizationMethod: NormalizationMethod;
 
   /**
@@ -54,9 +67,11 @@ export class ScoringConfig {
    */
   private constructor(
     weights: Map<IndicatorField, number>,
-    normalizationMethod: NormalizationMethod
+    normalizationMethod: NormalizationMethod,
+    directions?: Map<IndicatorField, ScoringDirection>
   ) {
     this._weights = new Map(weights);
+    this._directions = ScoringConfig.resolveDirections(weights, directions);
     this._normalizationMethod = normalizationMethod;
   }
 
@@ -75,6 +90,13 @@ export class ScoringConfig {
   }
 
   /**
+   * 获取评分方向映射
+   */
+  get directions(): ReadonlyMap<IndicatorField, ScoringDirection> {
+    return this._directions;
+  }
+
+  /**
    * 创建 ScoringConfig 实例
    * @param weights 指标权重映射
    * @param normalizationMethod 归一化方法
@@ -83,13 +105,14 @@ export class ScoringConfig {
    */
   static create(
     weights: Map<IndicatorField, number>,
-    normalizationMethod: NormalizationMethod = NormalizationMethod.MIN_MAX
+    normalizationMethod: NormalizationMethod = NormalizationMethod.MIN_MAX,
+    directions?: Map<IndicatorField, ScoringDirection>
   ): ScoringConfig {
-    const validation = ScoringConfig.validate(weights);
+    const validation = ScoringConfig.validate(weights, directions);
     if (!validation.isValid) {
       throw new InvalidScoringConfigError(validation.error!);
     }
-    return new ScoringConfig(weights, normalizationMethod);
+    return new ScoringConfig(weights, normalizationMethod, directions);
   }
 
   /**
@@ -100,13 +123,14 @@ export class ScoringConfig {
    */
   static tryCreate(
     weights: Map<IndicatorField, number>,
-    normalizationMethod: NormalizationMethod = NormalizationMethod.MIN_MAX
+    normalizationMethod: NormalizationMethod = NormalizationMethod.MIN_MAX,
+    directions?: Map<IndicatorField, ScoringDirection>
   ): ScoringConfig | null {
-    const validation = ScoringConfig.validate(weights);
+    const validation = ScoringConfig.validate(weights, directions);
     if (!validation.isValid) {
       return null;
     }
-    return new ScoringConfig(weights, normalizationMethod);
+    return new ScoringConfig(weights, normalizationMethod, directions);
   }
 
   /**
@@ -115,7 +139,8 @@ export class ScoringConfig {
    * @returns 验证结果
    */
   static validate(
-    weights: Map<IndicatorField, number>
+    weights: Map<IndicatorField, number>,
+    directions?: Map<IndicatorField, ScoringDirection>
   ): ScoringConfigValidationResult {
     // 检查是否为空
     if (weights.size === 0) {
@@ -127,6 +152,12 @@ export class ScoringConfig {
 
     // 检查所有权重是否为正数
     for (const [field, weight] of weights.entries()) {
+      if (!isNumericIndicator(field)) {
+        return {
+          isValid: false,
+          error: `指标 ${field} 为文本型指标，不能用于数值评分`,
+        };
+      }
       if (weight <= 0) {
         return {
           isValid: false,
@@ -138,6 +169,25 @@ export class ScoringConfig {
           isValid: false,
           error: `指标 ${field} 的权重必须为有限数值，当前值为 ${weight}`,
         };
+      }
+    }
+
+    // 检查方向配置
+    if (directions) {
+      for (const [field, direction] of directions.entries()) {
+        if (!weights.has(field)) {
+          return {
+            isValid: false,
+            error: `指标 ${field} 未配置权重，不能单独配置评分方向`,
+          };
+        }
+
+        if (!Object.values(ScoringDirection).includes(direction)) {
+          return {
+            isValid: false,
+            error: `指标 ${field} 的评分方向无效: ${String(direction)}`,
+          };
+        }
       }
     }
 
@@ -161,6 +211,15 @@ export class ScoringConfig {
    */
   getWeight(field: IndicatorField): number {
     return this._weights.get(field) ?? 0;
+  }
+
+  /**
+   * 获取指定指标的评分方向
+   * @param field 指标字段
+   * @returns 评分方向，未显式配置时默认 ASC
+   */
+  getDirection(field: IndicatorField): ScoringDirection {
+    return this._directions.get(field) ?? ScoringDirection.ASC;
   }
 
   /**
@@ -198,8 +257,14 @@ export class ScoringConfig {
       weightsObj[field] = weight;
     }
 
+    const directionsObj: Record<string, ScoringDirection> = {};
+    for (const [field, direction] of this._directions.entries()) {
+      directionsObj[field] = direction;
+    }
+
     return {
       weights: weightsObj,
+      directions: directionsObj,
       normalizationMethod: this._normalizationMethod,
     };
   }
@@ -229,6 +294,25 @@ export class ScoringConfig {
       weights.set(field as IndicatorField, weight);
     }
 
+    let directions: Map<IndicatorField, ScoringDirection> | undefined = undefined;
+    if (data.directions !== undefined) {
+      if (typeof data.directions !== "object" || data.directions === null) {
+        throw new Error("ScoringConfig 的 directions 必须为对象");
+      }
+
+      const directionsObj = data.directions as Record<string, string>;
+      directions = new Map<IndicatorField, ScoringDirection>();
+      for (const [field, direction] of Object.entries(directionsObj)) {
+        if (!Object.values(IndicatorField).includes(field as IndicatorField)) {
+          throw new Error(`未知的指标字段: ${field}`);
+        }
+        if (!Object.values(ScoringDirection).includes(direction as ScoringDirection)) {
+          throw new Error(`指标 ${field} 的评分方向无效: ${direction}`);
+        }
+        directions.set(field as IndicatorField, direction as ScoringDirection);
+      }
+    }
+
     const normalizationMethod =
       (data.normalizationMethod as NormalizationMethod) ??
       NormalizationMethod.MIN_MAX;
@@ -238,7 +322,7 @@ export class ScoringConfig {
       throw new Error(`未知的归一化方法: ${normalizationMethod}`);
     }
 
-    return ScoringConfig.create(weights, normalizationMethod);
+    return ScoringConfig.create(weights, normalizationMethod, directions);
   }
 
   /**
@@ -266,7 +350,24 @@ export class ScoringConfig {
       }
     }
 
+    for (const field of this._weights.keys()) {
+      if (this.getDirection(field) !== other.getDirection(field)) {
+        return false;
+      }
+    }
+
     return true;
+  }
+
+  private static resolveDirections(
+    weights: Map<IndicatorField, number>,
+    directions?: Map<IndicatorField, ScoringDirection>
+  ): ReadonlyMap<IndicatorField, ScoringDirection> {
+    const resolved = new Map<IndicatorField, ScoringDirection>();
+    for (const field of weights.keys()) {
+      resolved.set(field, directions?.get(field) ?? ScoringDirection.ASC);
+    }
+    return resolved;
   }
 }
 

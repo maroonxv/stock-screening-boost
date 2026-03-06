@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { PrismaClient } from "../../../../../generated/prisma/index";
+import type { PrismaClient } from "~/generated/prisma/index";
 import { PrismaScreeningStrategyRepository } from "../prisma-screening-strategy-repository";
 import { ScreeningStrategy } from "../../../domain/screening/aggregates/screening-strategy";
 import { FilterGroup } from "../../../domain/screening/entities/filter-group";
@@ -205,6 +205,21 @@ describe("PrismaScreeningStrategyRepository", () => {
       await repository.findAll(10, 5);
 
       expect(mockPrisma.screeningStrategy.findMany).toHaveBeenCalledWith({
+        take: 10,
+        skip: 5,
+        orderBy: { createdAt: "desc" },
+      });
+    });
+  });
+
+  describe("findByUserId", () => {
+    it("应该按 userId 查询并支持分页", async () => {
+      mockPrisma.screeningStrategy.findMany.mockResolvedValue([]);
+
+      await repository.findByUserId("user-123", 10, 5);
+
+      expect(mockPrisma.screeningStrategy.findMany).toHaveBeenCalledWith({
+        where: { userId: "user-123" },
         take: 10,
         skip: 5,
         orderBy: { createdAt: "desc" },

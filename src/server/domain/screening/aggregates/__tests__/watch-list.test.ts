@@ -84,7 +84,7 @@ describe("WatchList", () => {
       const stocks = watchList.stocks;
       expect(stocks).toHaveLength(1);
       expect(stocks[0]!.note).toBe("长期看好");
-      expect(stocks[0]!.tags).toEqual(["白酒", "高ROE"]);
+      expect(stocks[0]!.tags).toEqual(["白酒", "高roe"]);
     });
 
     it("应该在添加重复股票时抛出 DuplicateStockError", () => {
@@ -175,7 +175,7 @@ describe("WatchList", () => {
       watchList.updateStockTags(code, ["白酒", "高ROE", "消费"]);
 
       const stocks = watchList.stocks;
-      expect(stocks[0]!.tags).toEqual(["白酒", "高ROE", "消费"]);
+      expect(stocks[0]!.tags).toEqual(["白酒", "高roe", "消费"]);
     });
 
     it("应该在更新不存在的股票标签时抛出 StockNotFoundError", () => {
@@ -321,6 +321,56 @@ describe("WatchList", () => {
       expect(restored.stocks).toHaveLength(2);
       expect(restored.contains(StockCode.create("600519"))).toBe(true);
       expect(restored.contains(StockCode.create("000001"))).toBe(true);
+    });
+  });
+
+  describe("rename / updateDescription", () => {
+    it("应该支持重命名列表", () => {
+      const watchList = WatchList.create({
+        name: "原名称",
+        userId: "user-1",
+      });
+
+      watchList.rename("  新名称  ");
+      expect(watchList.name).toBe("新名称");
+    });
+
+    it("应该支持更新描述并去除首尾空白", () => {
+      const watchList = WatchList.create({
+        name: "列表",
+        userId: "user-1",
+      });
+
+      watchList.updateDescription("  关注消费龙头  ");
+      expect(watchList.description).toBe("关注消费龙头");
+    });
+
+    it("重命名为空白应抛错", () => {
+      const watchList = WatchList.create({
+        name: "列表",
+        userId: "user-1",
+      });
+
+      expect(() => watchList.rename("   ")).toThrow("自选股列表名称不能为空");
+    });
+  });
+
+  describe("标签规范化", () => {
+    it("应去空白、大小写归一并去重", () => {
+      const watchList = WatchList.create({
+        name: "我的自选股",
+        userId: "user-1",
+      });
+
+      watchList.addStock(StockCode.create("600519"), "贵州茅台", undefined, [
+        "  白酒 ",
+        "白酒",
+        "Value",
+        "value",
+      ]);
+
+      const stocks = watchList.stocks;
+      expect(stocks[0]!.tags).toEqual(["白酒", "value"]);
     });
   });
 

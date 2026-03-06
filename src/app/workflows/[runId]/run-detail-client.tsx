@@ -35,11 +35,11 @@ function formatDate(value?: Date | string | null) {
 }
 
 const statusStyles: Record<string, string> = {
-  PENDING: "text-amber-300",
-  RUNNING: "text-cyan-300",
-  SUCCEEDED: "text-emerald-300",
-  FAILED: "text-rose-300",
-  CANCELLED: "text-slate-300",
+  PENDING: "text-[#ffd180]",
+  RUNNING: "text-[#71dcff]",
+  SUCCEEDED: "text-[#63f2c1]",
+  FAILED: "text-[#ff93a2]",
+  CANCELLED: "text-[#b3c5d7]",
 };
 
 export function RunDetailClient({ runId }: RunDetailClientProps) {
@@ -52,7 +52,11 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
     {
       refetchInterval: (query) => {
         const status = query.state.data?.status;
-        if (status === "SUCCEEDED" || status === "FAILED" || status === "CANCELLED") {
+        if (
+          status === "SUCCEEDED" ||
+          status === "FAILED" ||
+          status === "CANCELLED"
+        ) {
           return false;
         }
 
@@ -78,7 +82,9 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
             return previous;
           }
 
-          return [...previous, parsed].sort((left, right) => left.sequence - right.sequence);
+          return [...previous, parsed].sort(
+            (left, right) => left.sequence - right.sequence,
+          );
         });
 
         void utils.workflow.getRun.invalidate({ runId });
@@ -112,7 +118,8 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
         sequence: event.sequence,
         type: event.eventType,
         nodeKey:
-          typeof (event.payload as Record<string, unknown> | null)?.nodeKey === "string"
+          typeof (event.payload as Record<string, unknown> | null)?.nodeKey ===
+          "string"
             ? ((event.payload as Record<string, unknown>).nodeKey as string)
             : undefined,
         progressPercent: runQuery.data?.progressPercent ?? 0,
@@ -127,26 +134,38 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
       uniqueBySequence.set(event.sequence, event);
     }
 
-    return [...uniqueBySequence.values()].sort((left, right) => right.sequence - left.sequence);
-  }, [runId, runQuery.data?.events, runQuery.data?.progressPercent, streamEvents]);
+    return [...uniqueBySequence.values()].sort(
+      (left, right) => right.sequence - left.sequence,
+    );
+  }, [
+    runId,
+    runQuery.data?.events,
+    runQuery.data?.progressPercent,
+    streamEvents,
+  ]);
 
   const run = runQuery.data;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#071018] text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_14%_16%,rgba(34,211,238,0.2),transparent_38%),radial-gradient(circle_at_86%_14%,rgba(245,158,11,0.2),transparent_35%),radial-gradient(circle_at_70%_84%,rgba(52,211,153,0.15),transparent_36%)]" />
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
-        <header className="rounded-3xl border border-slate-700/70 bg-slate-900/55 p-6 backdrop-blur md:p-8">
+    <main className="market-shell px-6 py-10 text-[var(--market-text)]">
+      <div className="market-frame flex w-full max-w-6xl flex-col gap-6">
+        <header className="market-panel rounded-3xl p-6 md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs tracking-[0.35em] text-cyan-300">RUN DETAIL</p>
-              <h1 className="mt-3 text-2xl font-semibold text-white md:text-3xl">工作流运行详情</h1>
-              <p className="mt-2 text-xs text-slate-400">runId: {runId}</p>
+              <p className="font-[family-name:var(--font-display)] text-xs tracking-[0.35em] text-[#8cdfff]">
+                RUN DETAIL
+              </p>
+              <h1 className="mt-3 font-[family-name:var(--font-display)] text-2xl font-semibold text-[#eef7ff] md:text-3xl">
+                工作流运行详情
+              </h1>
+              <p className="market-data mt-2 text-xs text-[#88a3bf]">
+                runId: {runId}
+              </p>
             </div>
             <div className="flex gap-2">
               <Link
                 href="/workflows"
-                className="rounded-full border border-slate-500 px-4 py-2 text-sm text-slate-200 transition hover:border-cyan-400 hover:text-cyan-200"
+                className="rounded-full border border-[#4d6882] px-4 py-2 text-sm text-[#c8dced] transition hover:border-[#73d0ff] hover:text-[#e4f5ff]"
               >
                 返回列表
               </Link>
@@ -154,7 +173,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                 <button
                   type="button"
                   onClick={() => cancelMutation.mutate({ runId })}
-                  className="rounded-full border border-amber-400/70 px-4 py-2 text-sm text-amber-200 transition hover:bg-amber-500/10"
+                  className="rounded-full border border-[#f8bf64]/72 px-4 py-2 text-sm text-[#ffd697] transition hover:bg-[#5f4520]/35"
                 >
                   取消任务
                 </button>
@@ -164,72 +183,93 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
         </header>
 
         {!run ? (
-          <section className="rounded-2xl border border-slate-700/60 bg-slate-900/55 p-5 text-sm text-slate-300">
-            {runQuery.isLoading ? "加载运行信息..." : runQuery.error?.message ?? "未找到该运行"}
+          <section className="market-soft-panel rounded-2xl p-5 text-sm text-[#9eb8cf]">
+            {runQuery.isLoading
+              ? "加载运行信息..."
+              : (runQuery.error?.message ?? "未找到该运行")}
           </section>
         ) : (
           <>
             <section className="grid gap-4 md:grid-cols-4">
-              <article className="rounded-2xl border border-slate-700/60 bg-slate-900/55 p-4">
-                <p className="text-xs text-slate-500">状态</p>
-                <p className={`mt-2 text-lg font-semibold ${statusStyles[run.status] ?? "text-slate-100"}`}>
+              <article className="market-soft-panel rounded-2xl p-4">
+                <p className="text-xs text-[#7f9ab5]">状态</p>
+                <p
+                  className={`mt-2 text-lg font-semibold ${statusStyles[run.status] ?? "text-[#d8e8f8]"}`}
+                >
                   {run.status}
                 </p>
               </article>
-              <article className="rounded-2xl border border-slate-700/60 bg-slate-900/55 p-4">
-                <p className="text-xs text-slate-500">当前节点</p>
-                <p className="mt-2 text-sm text-slate-200">{run.currentNodeKey ?? "-"}</p>
+              <article className="market-soft-panel rounded-2xl p-4">
+                <p className="text-xs text-[#7f9ab5]">当前节点</p>
+                <p className="mt-2 text-sm text-[#cddff0]">
+                  {run.currentNodeKey ?? "-"}
+                </p>
               </article>
-              <article className="rounded-2xl border border-slate-700/60 bg-slate-900/55 p-4">
-                <p className="text-xs text-slate-500">创建时间</p>
-                <p className="mt-2 text-sm text-slate-200">{formatDate(run.createdAt)}</p>
+              <article className="market-soft-panel rounded-2xl p-4">
+                <p className="text-xs text-[#7f9ab5]">创建时间</p>
+                <p className="market-data mt-2 text-sm text-[#cddff0]">
+                  {formatDate(run.createdAt)}
+                </p>
               </article>
-              <article className="rounded-2xl border border-slate-700/60 bg-slate-900/55 p-4">
-                <p className="text-xs text-slate-500">完成时间</p>
-                <p className="mt-2 text-sm text-slate-200">{formatDate(run.completedAt)}</p>
+              <article className="market-soft-panel rounded-2xl p-4">
+                <p className="text-xs text-[#7f9ab5]">完成时间</p>
+                <p className="market-data mt-2 text-sm text-[#cddff0]">
+                  {formatDate(run.completedAt)}
+                </p>
               </article>
             </section>
 
-            <section className="rounded-2xl border border-slate-700/60 bg-slate-900/55 p-5">
-              <p className="text-sm text-slate-200">任务主题: {run.query}</p>
-              <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-slate-800">
+            <section className="market-panel rounded-2xl p-5">
+              <p className="text-sm text-[#cbddef]">任务主题: {run.query}</p>
+              <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-[#0c1b2f]">
                 <div
-                  className="h-full rounded-full bg-cyan-400 transition-all"
+                  className="h-full rounded-full bg-[#4fd8ff] transition-all"
                   style={{ width: `${run.progressPercent}%` }}
                 />
               </div>
-              <p className="mt-2 text-xs text-cyan-200">总体进度 {run.progressPercent}%</p>
+              <p className="market-data mt-2 text-xs text-[#77deff]">
+                总体进度 {run.progressPercent}%
+              </p>
               {run.errorMessage ? (
-                <p className="mt-3 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                <p className="mt-3 rounded-lg border border-[#ff7f92]/45 bg-[#5a2432]/45 px-3 py-2 text-xs text-[#ffbdc8]">
                   {run.errorCode ? `${run.errorCode}: ` : ""}
                   {run.errorMessage}
                 </p>
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-slate-700/60 bg-slate-900/55 p-5">
-              <h2 className="text-lg font-semibold text-white">节点状态</h2>
+            <section className="market-panel rounded-2xl p-5">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-[#eef7ff]">
+                节点状态
+              </h2>
               <div className="mt-4 grid gap-3">
                 {run.nodes.map((node) => (
                   <article
                     key={node.id}
-                    className="rounded-xl border border-slate-700/70 bg-slate-950/35 p-4"
+                    className="market-soft-panel rounded-xl p-4"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-sm font-medium text-slate-200">{node.nodeKey}</p>
-                        <p className="text-xs text-slate-500">agent: {node.agentName}</p>
+                        <p className="text-sm font-medium text-[#d8e8f8]">
+                          {node.nodeKey}
+                        </p>
+                        <p className="text-xs text-[#839db8]">
+                          agent: {node.agentName}
+                        </p>
                       </div>
-                      <p className={`text-sm ${statusStyles[node.status] ?? "text-slate-200"}`}>
+                      <p
+                        className={`text-sm ${statusStyles[node.status] ?? "text-[#d8e8f8]"}`}
+                      >
                         {node.status}
                       </p>
                     </div>
-                    <p className="mt-2 text-xs text-slate-400">
-                      开始 {formatDate(node.startedAt)} | 结束 {formatDate(node.completedAt)} | 耗时 {" "}
+                    <p className="market-data mt-2 text-xs text-[#8ca6c0]">
+                      开始 {formatDate(node.startedAt)} | 结束{" "}
+                      {formatDate(node.completedAt)} | 耗时{" "}
                       {node.durationMs ?? "-"} ms
                     </p>
                     {node.errorMessage ? (
-                      <p className="mt-2 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+                      <p className="mt-2 rounded-lg border border-[#ff7f92]/45 bg-[#5a2432]/45 px-3 py-2 text-xs text-[#ffbdc8]">
                         {node.errorCode ? `${node.errorCode}: ` : ""}
                         {node.errorMessage}
                       </p>
@@ -240,35 +280,39 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
             </section>
 
             {run.result ? (
-              <section className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-5">
-                <h2 className="text-lg font-semibold text-emerald-200">最终报告</h2>
-                <pre className="mt-3 overflow-auto rounded-xl border border-emerald-500/20 bg-slate-950/35 p-4 text-xs leading-6 text-slate-200">
+              <section className="rounded-2xl border border-[#4ce0af]/45 bg-[#12352f]/55 p-5">
+                <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-[#7cf7cd]">
+                  最终报告
+                </h2>
+                <pre className="market-data mt-3 overflow-auto rounded-xl border border-[#4ce0af]/25 bg-[#071626]/90 p-4 text-xs leading-6 text-[#d4e8fa]">
                   {JSON.stringify(run.result, null, 2)}
                 </pre>
               </section>
             ) : null}
 
-            <section className="rounded-2xl border border-slate-700/60 bg-slate-900/55 p-5">
-              <h2 className="text-lg font-semibold text-white">事件时间线</h2>
+            <section className="market-panel rounded-2xl p-5">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-[#eef7ff]">
+                事件时间线
+              </h2>
               {timeline.length === 0 ? (
-                <p className="mt-3 text-sm text-slate-400">暂无事件。</p>
+                <p className="mt-3 text-sm text-[#8ca5be]">暂无事件。</p>
               ) : (
                 <div className="mt-3 grid gap-2">
                   {timeline.map((event) => (
                     <article
                       key={`${event.sequence}-${event.type}`}
-                      className="rounded-lg border border-slate-700/60 bg-slate-950/35 px-3 py-2"
+                      className="market-soft-panel rounded-lg px-3 py-2"
                     >
-                      <p className="text-xs text-slate-400">
-                        #{event.sequence} · {event.type} · {event.nodeKey ?? "run"} · {" "}
-                        {formatDate(event.timestamp)}
+                      <p className="market-data text-xs text-[#8da7c1]">
+                        #{event.sequence} · {event.type} ·{" "}
+                        {event.nodeKey ?? "run"} · {formatDate(event.timestamp)}
                       </p>
                     </article>
                   ))}
                 </div>
               )}
               {streamError ? (
-                <p className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <p className="mt-3 rounded-lg border border-[#f6bf64]/45 bg-[#5d4621]/35 px-3 py-2 text-xs text-[#ffd697]">
                   {streamError}
                 </p>
               ) : null}

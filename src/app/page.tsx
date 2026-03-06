@@ -67,43 +67,42 @@ export default async function Home() {
 
   return (
     <HydrateClient>
-      <main className="relative min-h-screen overflow-hidden bg-[#071019] text-slate-100">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_12%,rgba(45,212,191,0.2),transparent_36%),radial-gradient(circle_at_82%_10%,rgba(251,146,60,0.2),transparent_32%),radial-gradient(circle_at_55%_88%,rgba(56,189,248,0.16),transparent_36%)]" />
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-8 px-6 py-10 sm:py-14">
-          <header className="rounded-3xl border border-slate-700/60 bg-slate-900/60 p-6 backdrop-blur md:p-8">
-            <p className="text-sm tracking-[0.3em] text-cyan-300">
+      <main className="market-shell px-6 py-10 text-[var(--market-text)] sm:py-14">
+        <div className="market-frame flex w-full max-w-6xl flex-col gap-8">
+          <header className="market-panel rounded-3xl p-6 md:p-8">
+            <p className="font-[family-name:var(--font-display)] text-sm tracking-[0.32em] text-[#8adfff]">
               STOCK SCREENING BOOST
             </p>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
+            <h1 className="mt-4 font-[family-name:var(--font-display)] text-3xl font-semibold tracking-tight text-[#f0f7ff] sm:text-5xl">
               股票筛选平台
             </h1>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-base">
+            <p className="mt-4 max-w-3xl text-sm leading-7 text-[#9bb4cc] sm:text-base">
               基于 Next.js + tRPC + Prisma + FastAPI 的混合架构投研平台，
               用策略筛选、会话回溯和自选股管理，把注意力聚焦在高价值标的上。
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/screening"
-                className="rounded-full border border-amber-300/70 bg-amber-300/10 px-5 py-2 text-sm font-semibold text-amber-100 transition hover:border-amber-200 hover:bg-amber-300/20"
+                className="market-button-positive rounded-full px-5 py-2 text-sm font-semibold transition"
               >
                 打开筛选研究台
               </Link>
               <Link
                 href="/workflows"
-                className="rounded-full border border-cyan-500/70 bg-cyan-500/10 px-5 py-2 text-sm font-semibold text-cyan-200 transition hover:border-cyan-300 hover:bg-cyan-400/20"
+                className="market-button-primary rounded-full px-5 py-2 text-sm font-semibold transition"
               >
                 打开工作流中心
               </Link>
               <Link
                 href={signedIn ? "/api/auth/signout" : "/api/auth/signin"}
-                className="rounded-full bg-cyan-400 px-5 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+                className="rounded-full border border-[#71cfff]/70 bg-[#103e5d] px-5 py-2 text-sm font-semibold text-[#dbf3ff] transition hover:border-[#95deff] hover:bg-[#15577f]"
               >
                 {signedIn ? "退出登录" : "登录平台"}
               </Link>
               <Link
                 href="http://localhost:8000/docs"
                 target="_blank"
-                className="rounded-full border border-slate-500 bg-slate-950/20 px-5 py-2 text-sm font-semibold text-slate-100 transition hover:border-cyan-400 hover:text-cyan-200"
+                className="rounded-full border border-[#4f6880] bg-[#0a1626]/70 px-5 py-2 text-sm font-semibold text-[#c9deef] transition hover:border-[#74cfff] hover:text-[#e4f4ff]"
               >
                 打开数据服务文档
               </Link>
@@ -114,60 +113,66 @@ export default async function Home() {
             {metricCards.map((card) => (
               <article
                 key={card.label}
-                className="rounded-2xl border border-slate-700/50 bg-slate-900/55 p-5 backdrop-blur"
+                className="market-soft-panel rounded-2xl p-5"
               >
-                <p className="text-sm text-slate-300">{card.label}</p>
-                <p className="mt-2 text-4xl font-semibold text-cyan-200">
+                <p className="text-sm text-[#9db6cc]">{card.label}</p>
+                <p className="market-data mt-2 text-4xl font-semibold text-[#6fe3ff]">
                   {signedIn ? (card.value ?? "-") : "--"}
-                  <span className="ml-1 text-base text-slate-400">
+                  <span className="ml-1 text-base text-[#7f99b3]">
                     {card.unit}
                   </span>
                 </p>
-                <p className="mt-2 text-xs text-slate-400">{card.hint}</p>
+                <p className="mt-2 text-xs text-[#829cb5]">{card.hint}</p>
               </article>
             ))}
           </section>
 
           <section className="grid gap-4 md:grid-cols-[2fr,1fr]">
-            <article className="rounded-2xl border border-slate-700/50 bg-slate-900/55 p-5 backdrop-blur">
-              <h2 className="text-lg font-semibold text-white">运行状态</h2>
-              <div className="mt-4 grid gap-3 text-sm text-slate-200 sm:grid-cols-2">
-                <p className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-4 py-3">
+            <article className="market-panel rounded-2xl p-5">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-[#eef6ff]">
+                运行状态
+              </h2>
+              <div className="mt-4 grid gap-3 text-sm text-[#c6dbee] sm:grid-cols-2">
+                <p className="market-soft-panel rounded-xl px-4 py-3">
                   前端服务:{" "}
-                  <span className="text-emerald-300">
+                  <span className="market-data text-[#64f4c2]">
                     http://localhost:3000
                   </span>
                 </p>
-                <p className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-4 py-3">
+                <p className="market-soft-panel rounded-xl px-4 py-3">
                   数据服务:{" "}
-                  <span className="text-emerald-300">
+                  <span className="market-data text-[#64f4c2]">
                     http://localhost:8000
                   </span>
                 </p>
-                <p className="rounded-xl border border-slate-700/60 bg-slate-950/30 px-4 py-3 sm:col-span-2">
+                <p className="market-soft-panel rounded-xl px-4 py-3 sm:col-span-2">
                   数据库:{" "}
-                  <span className="text-emerald-300">localhost:5432</span>
+                  <span className="market-data text-[#64f4c2]">
+                    localhost:5432
+                  </span>
                 </p>
               </div>
             </article>
 
-            <article className="rounded-2xl border border-slate-700/50 bg-slate-900/55 p-5 backdrop-blur">
-              <h2 className="text-lg font-semibold text-white">当前账号</h2>
-              <p className="mt-3 text-sm text-slate-300">
+            <article className="market-panel rounded-2xl p-5">
+              <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-[#eef6ff]">
+                当前账号
+              </h2>
+              <p className="mt-3 text-sm text-[#a0b9d0]">
                 {signedIn
                   ? `已登录: ${session?.user?.name ?? session?.user?.email ?? "未命名用户"}`
                   : "未登录，登录后可查看策略与会话数据。"}
               </p>
-              <p className="mt-3 text-sm text-slate-300">
+              <p className="mt-3 text-sm text-[#a0b9d0]">
                 最近执行:{" "}
-                <span className="text-cyan-200">
+                <span className="market-data text-[#66d7ff]">
                   {signedIn
                     ? formatExecutedAt(latestExecutedAt)
                     : "登录后可查看"}
                 </span>
               </p>
               {loadError ? (
-                <p className="mt-3 rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                <p className="mt-3 rounded-lg border border-[#f5c46f]/45 bg-[#5a4222]/45 px-3 py-2 text-xs text-[#ffd798]">
                   {loadError}
                 </p>
               ) : null}

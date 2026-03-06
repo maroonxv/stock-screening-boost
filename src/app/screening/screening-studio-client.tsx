@@ -277,34 +277,34 @@ function parseWatchedStocks(rawStocks: unknown): ParsedWatchedStock[] {
 
 function statusClassName(status: string): string {
   if (status === "SUCCEEDED") {
-    return "text-emerald-700";
+    return "text-[#63f2c1]";
   }
 
   if (status === "FAILED") {
-    return "text-rose-700";
+    return "text-[#ff93a2]";
   }
 
   if (status === "RUNNING") {
-    return "text-sky-700";
+    return "text-[#71dcff]";
   }
 
   if (status === "PENDING") {
-    return "text-amber-700";
+    return "text-[#ffd180]";
   }
 
-  return "text-zinc-700";
+  return "text-[#d0e3f7]";
 }
 
 function noticeClassName(tone: NoticeState["tone"]): string {
   if (tone === "success") {
-    return "border-emerald-300/60 bg-emerald-100 text-emerald-800";
+    return "border-[#4ce0af]/45 bg-[#133730]/65 text-[#9bfad6]";
   }
 
   if (tone === "error") {
-    return "border-rose-300/60 bg-rose-100 text-rose-700";
+    return "border-[#ff7f92]/45 bg-[#5b2432]/52 text-[#ffbec9]";
   }
 
-  return "border-amber-300/60 bg-amber-100 text-amber-800";
+  return "border-[#f6bf64]/45 bg-[#5d4621]/42 text-[#ffd697]";
 }
 
 export function ScreeningStudioClient() {
@@ -919,30 +919,30 @@ export function ScreeningStudioClient() {
   );
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#f1ecdf] px-4 py-6 font-[family-name:var(--font-body)] text-[#161615] sm:px-6 lg:px-8 lg:py-8">
+    <main className="market-shell px-4 py-6 font-[family-name:var(--font-body)] text-[#e8f3ff] sm:px-6 lg:px-8 lg:py-8">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-28 left-[-8%] h-72 w-72 rounded-full bg-[#d8b86a]/30 blur-3xl studio-float" />
+        <div className="absolute -top-28 left-[-8%] h-72 w-72 rounded-full bg-[#32c09b]/30 blur-3xl studio-float" />
         <div
-          className="absolute right-[-10%] top-[10%] h-80 w-80 rounded-full bg-[#8ab6b3]/35 blur-3xl studio-float"
+          className="absolute right-[-10%] top-[10%] h-80 w-80 rounded-full bg-[#2ea9d9]/35 blur-3xl studio-float"
           style={{ animationDelay: "-2s" }}
         />
         <div
-          className="absolute bottom-[-15%] left-[20%] h-80 w-80 rounded-full bg-[#b8cedf]/32 blur-3xl studio-float"
+          className="absolute bottom-[-15%] left-[20%] h-80 w-80 rounded-full bg-[#4f6dff]/32 blur-3xl studio-float"
           style={{ animationDelay: "-4s" }}
         />
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-[1400px] flex-col gap-6">
-        <header className="studio-rise rounded-[30px] border border-[#171716]/10 bg-[#fff9ee]/95 p-6 shadow-[0_24px_80px_-40px_rgba(30,25,10,0.45)] backdrop-blur sm:p-8">
+      <div className="market-frame relative flex w-full max-w-[1400px] flex-col gap-6">
+        <header className="studio-rise rounded-[30px] border border-[#35526f]/35 bg-[#0d1c30]/95 p-6 shadow-[0_28px_88px_-48px_rgba(2,10,22,0.92)] backdrop-blur sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="font-[family-name:var(--font-display)] text-xs tracking-[0.45em] text-[#6a5e45]">
+              <p className="font-[family-name:var(--font-display)] text-xs tracking-[0.45em] text-[#8aa5bf]">
                 SIGNAL WORKBENCH
               </p>
-              <h1 className="mt-3 font-[family-name:var(--font-display)] text-3xl font-semibold leading-tight text-[#18130b] sm:text-4xl">
+              <h1 className="mt-3 font-[family-name:var(--font-display)] text-3xl font-semibold leading-tight text-[#f0f8ff] sm:text-4xl">
                 策略筛选与自选股研究台
               </h1>
-              <p className="mt-3 max-w-3xl font-[family-name:var(--font-body)] text-sm leading-7 text-[#524831] sm:text-base">
+              <p className="mt-3 max-w-3xl font-[family-name:var(--font-body)] text-sm leading-7 text-[#a6bdd3] sm:text-base">
                 前端直接映射现有 tRPC 后端：策略
                 CRUD、策略执行、会话回溯、自选股维护。你可以把它当作实时可操作的研究工作台，而不是静态演示页。
               </p>
@@ -950,13 +950,13 @@ export function ScreeningStudioClient() {
             <div className="flex flex-wrap gap-2">
               <Link
                 href="/"
-                className="rounded-full border border-[#2f2a1e]/20 bg-white/70 px-4 py-2 text-sm font-medium text-[#2f2a1e] transition hover:border-[#2f2a1e]/45"
+                className="rounded-full border border-[#d9e8f9]/20 bg-[#0d1e31]/86 px-4 py-2 text-sm font-medium text-[#d9e8f9] transition hover:border-[#d9e8f9]/45"
               >
                 返回首页
               </Link>
               <Link
                 href="/workflows"
-                className="rounded-full border border-[#1f3f52]/25 bg-[#cbe6f3]/45 px-4 py-2 text-sm font-medium text-[#103346] transition hover:border-[#1f3f52]/50"
+                className="rounded-full border border-[#2f8dc8]/25 bg-[#12364f]/45 px-4 py-2 text-sm font-medium text-[#89deff] transition hover:border-[#2f8dc8]/50"
               >
                 打开工作流中心
               </Link>
@@ -974,50 +974,50 @@ export function ScreeningStudioClient() {
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <article
-            className="studio-rise rounded-2xl border border-[#171716]/10 bg-white/80 p-4"
+            className="studio-rise rounded-2xl border border-[#35526f]/35 bg-[#10243a]/88 p-4"
             style={{ animationDelay: "0.08s" }}
           >
-            <p className="text-xs tracking-[0.2em] text-[#786f5d]">
+            <p className="text-xs tracking-[0.2em] text-[#8ca7c1]">
               STRATEGIES
             </p>
-            <p className="mt-2 text-3xl font-semibold text-[#21190b]">
+            <p className="mt-2 text-3xl font-semibold text-[#f2f8ff]">
               {strategies.length}
             </p>
-            <p className="mt-1 text-xs text-[#6d6351]">可复用选股策略</p>
+            <p className="mt-1 text-xs text-[#96afc7]">可复用选股策略</p>
           </article>
           <article
-            className="studio-rise rounded-2xl border border-[#171716]/10 bg-white/80 p-4"
+            className="studio-rise rounded-2xl border border-[#35526f]/35 bg-[#10243a]/88 p-4"
             style={{ animationDelay: "0.12s" }}
           >
-            <p className="text-xs tracking-[0.2em] text-[#786f5d]">SESSIONS</p>
-            <p className="mt-2 text-3xl font-semibold text-[#21190b]">
+            <p className="text-xs tracking-[0.2em] text-[#8ca7c1]">SESSIONS</p>
+            <p className="mt-2 text-3xl font-semibold text-[#f2f8ff]">
               {sessions.length}
             </p>
-            <p className="mt-1 text-xs text-[#6d6351]">最近执行会话</p>
+            <p className="mt-1 text-xs text-[#96afc7]">最近执行会话</p>
           </article>
           <article
-            className="studio-rise rounded-2xl border border-[#171716]/10 bg-white/80 p-4"
+            className="studio-rise rounded-2xl border border-[#35526f]/35 bg-[#10243a]/88 p-4"
             style={{ animationDelay: "0.16s" }}
           >
-            <p className="text-xs tracking-[0.2em] text-[#786f5d]">
+            <p className="text-xs tracking-[0.2em] text-[#8ca7c1]">
               WATCHLISTS
             </p>
-            <p className="mt-2 text-3xl font-semibold text-[#21190b]">
+            <p className="mt-2 text-3xl font-semibold text-[#f2f8ff]">
               {watchLists.length}
             </p>
-            <p className="mt-1 text-xs text-[#6d6351]">跟踪组合数量</p>
+            <p className="mt-1 text-xs text-[#96afc7]">跟踪组合数量</p>
           </article>
           <article
-            className="studio-rise rounded-2xl border border-[#171716]/10 bg-[#15120d] p-4 text-[#f4ead7]"
+            className="studio-rise rounded-2xl border border-[#35526f]/35 bg-[#081426] p-4 text-[#e9f5ff]"
             style={{ animationDelay: "0.2s" }}
           >
-            <p className="text-xs tracking-[0.2em] text-[#c8b98f]">
+            <p className="text-xs tracking-[0.2em] text-[#9cb7cc]">
               DATA ENDPOINT
             </p>
-            <p className="mt-2 text-sm leading-6 text-[#fff9ed]">
+            <p className="mt-2 text-sm leading-6 text-[#edf7ff]">
               http://localhost:8000
             </p>
-            <p className="mt-1 text-xs text-[#d2c7aa]">
+            <p className="mt-1 text-xs text-[#9cb6cc]">
               Python FastAPI 财务数据服务
             </p>
           </article>
@@ -1025,11 +1025,11 @@ export function ScreeningStudioClient() {
 
         <div className="grid gap-6 xl:grid-cols-[1.25fr_1fr]">
           <section
-            className="studio-rise rounded-[26px] border border-[#171716]/10 bg-[#fffaf1]/95 p-5 shadow-[0_20px_70px_-40px_rgba(38,27,12,0.5)] sm:p-6"
+            className="studio-rise rounded-[26px] border border-[#35526f]/35 bg-[#0d1e33]/95 p-5 shadow-[0_24px_78px_-44px_rgba(2,10,22,0.9)] sm:p-6"
             style={{ animationDelay: "0.2s" }}
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#1a140b]">
+              <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
                 策略仓库与执行会话
               </h2>
               <button
@@ -1038,7 +1038,7 @@ export function ScreeningStudioClient() {
                   setStrategyMode("create");
                   setStrategyForm(createDefaultStrategyForm());
                 }}
-                className="rounded-full border border-[#2e2a1d]/20 bg-white/75 px-3 py-1.5 text-xs font-medium text-[#2e2a1d] transition hover:border-[#2e2a1d]/45"
+                className="rounded-full border border-[#d2e5f9]/20 bg-[#0f2137]/88 px-3 py-1.5 text-xs font-medium text-[#d2e5f9] transition hover:border-[#d2e5f9]/45"
               >
                 新建策略草稿
               </button>
@@ -1046,9 +1046,9 @@ export function ScreeningStudioClient() {
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {strategiesQuery.isLoading ? (
-                <p className="text-sm text-[#655c4a]">策略加载中...</p>
+                <p className="text-sm text-[#8ea8c1]">策略加载中...</p>
               ) : strategies.length === 0 ? (
-                <p className="text-sm text-[#655c4a]">暂无策略，请先创建。</p>
+                <p className="text-sm text-[#8ea8c1]">暂无策略，请先创建。</p>
               ) : (
                 strategies.map((strategy) => {
                   const active = strategy.id === selectedStrategyId;
@@ -1057,8 +1057,8 @@ export function ScreeningStudioClient() {
                       key={strategy.id}
                       className={`rounded-2xl border p-4 transition ${
                         active
-                          ? "border-[#3c7d6f] bg-[#dff3ec]"
-                          : "border-[#171716]/10 bg-white/85 hover:border-[#171716]/30"
+                          ? "border-[#49ddb8] bg-[#123f35]"
+                          : "border-[#35526f]/35 bg-[#10253c]/90 hover:border-[#35526f]/30"
                       }`}
                     >
                       <button
@@ -1066,31 +1066,31 @@ export function ScreeningStudioClient() {
                         onClick={() => setSelectedStrategyId(strategy.id)}
                         className="w-full text-left"
                       >
-                        <p className="truncate text-sm font-semibold text-[#1d180f]">
+                        <p className="truncate text-sm font-semibold text-[#eff8ff]">
                           {strategy.name}
                         </p>
-                        <p className="mt-1 line-clamp-2 min-h-9 text-xs text-[#5d5545]">
+                        <p className="mt-1 line-clamp-2 min-h-9 text-xs text-[#97afc7]">
                           {strategy.description ?? "无描述"}
                         </p>
                       </button>
 
                       <div className="mt-3 flex flex-wrap gap-1">
                         {strategy.tags.length === 0 ? (
-                          <span className="rounded-full border border-[#1f1a11]/15 px-2 py-0.5 text-[11px] text-[#6c614d]">
+                          <span className="rounded-full border border-[#e1eeff]/28 px-2 py-0.5 text-[11px] text-[#91aac2]">
                             无标签
                           </span>
                         ) : (
                           strategy.tags.map((tag) => (
                             <span
                               key={`${strategy.id}-${tag}`}
-                              className="rounded-full border border-[#1f1a11]/15 px-2 py-0.5 text-[11px] text-[#6c614d]"
+                              className="rounded-full border border-[#e1eeff]/28 px-2 py-0.5 text-[11px] text-[#91aac2]"
                             >
                               {tag}
                             </span>
                           ))
                         )}
                         {strategy.isTemplate ? (
-                          <span className="rounded-full border border-[#326a86]/30 bg-[#e0f1fb] px-2 py-0.5 text-[11px] text-[#1f5873]">
+                          <span className="rounded-full border border-[#37a8df]/30 bg-[#133a53] px-2 py-0.5 text-[11px] text-[#67d3ff]">
                             模板
                           </span>
                         ) : null}
@@ -1103,7 +1103,7 @@ export function ScreeningStudioClient() {
                             setSelectedStrategyId(strategy.id);
                             setStrategyMode("update");
                           }}
-                          className="rounded-full border border-[#1f1a11]/20 px-3 py-1 transition hover:border-[#1f1a11]/45"
+                          className="rounded-full border border-[#e1eeff]/34 px-3 py-1 transition hover:border-[#e1eeff]/45"
                         >
                           编辑
                         </button>
@@ -1114,7 +1114,7 @@ export function ScreeningStudioClient() {
                             executeStrategyMutation.isPending ||
                             runningStrategyId === strategy.id
                           }
-                          className="rounded-full border border-[#215348]/25 bg-[#d7efe7] px-3 py-1 text-[#154337] transition hover:border-[#215348]/45 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-full border border-[#2fa889]/25 bg-[#103830] px-3 py-1 text-[#5cefc4] transition hover:border-[#2fa889]/45 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {runningStrategyId === strategy.id
                             ? "执行中"
@@ -1124,7 +1124,7 @@ export function ScreeningStudioClient() {
                           type="button"
                           onClick={() => handleDeleteStrategy(strategy)}
                           disabled={deleteStrategyMutation.isPending}
-                          className="rounded-full border border-[#7f3125]/25 bg-[#fde5e0] px-3 py-1 text-[#7f3125] transition hover:border-[#7f3125]/45 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-full border border-[#ff8d9b]/25 bg-[#4b2331] px-3 py-1 text-[#ff8d9b] transition hover:border-[#ff8d9b]/45 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           删除
                         </button>
@@ -1135,9 +1135,9 @@ export function ScreeningStudioClient() {
               )}
             </div>
 
-            <section className="mt-6 rounded-2xl border border-[#171716]/10 bg-white/85 p-4 sm:p-5">
+            <section className="mt-6 rounded-2xl border border-[#35526f]/35 bg-[#10253c]/90 p-4 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-lg font-semibold text-[#1a140b]">
+                <h3 className="text-lg font-semibold text-[#e9f4ff]">
                   {strategyMode === "create" ? "创建策略" : "更新策略"}
                 </h3>
                 {strategyMode === "update" ? (
@@ -1147,7 +1147,7 @@ export function ScreeningStudioClient() {
                       setStrategyMode("create");
                       setStrategyForm(createDefaultStrategyForm());
                     }}
-                    className="rounded-full border border-[#1f1a11]/20 px-3 py-1 text-xs text-[#5d5545] transition hover:border-[#1f1a11]/45"
+                    className="rounded-full border border-[#e1eeff]/34 px-3 py-1 text-xs text-[#97afc7] transition hover:border-[#e1eeff]/45"
                   >
                     切换为创建
                   </button>
@@ -1155,7 +1155,7 @@ export function ScreeningStudioClient() {
               </div>
 
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                <label className="text-xs text-[#504736]">
+                <label className="text-xs text-[#97b0c9]">
                   策略名称
                   <input
                     value={strategyForm.name}
@@ -1165,10 +1165,10 @@ export function ScreeningStudioClient() {
                         name: event.target.value,
                       }))
                     }
-                    className="mt-1 w-full rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm text-[#1f1a11] outline-none transition focus:border-[#255f73]"
+                    className="mt-1 w-full rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm text-[#e1eeff] outline-none transition focus:border-[#43bee9]"
                   />
                 </label>
-                <label className="text-xs text-[#504736]">
+                <label className="text-xs text-[#97b0c9]">
                   标签（逗号分隔）
                   <input
                     value={strategyForm.tagsText}
@@ -1178,10 +1178,10 @@ export function ScreeningStudioClient() {
                         tagsText: event.target.value,
                       }))
                     }
-                    className="mt-1 w-full rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm text-[#1f1a11] outline-none transition focus:border-[#255f73]"
+                    className="mt-1 w-full rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm text-[#e1eeff] outline-none transition focus:border-[#43bee9]"
                   />
                 </label>
-                <label className="text-xs text-[#504736] lg:col-span-2">
+                <label className="text-xs text-[#97b0c9] lg:col-span-2">
                   描述
                   <textarea
                     value={strategyForm.description}
@@ -1192,12 +1192,12 @@ export function ScreeningStudioClient() {
                       }))
                     }
                     rows={3}
-                    className="mt-1 w-full rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm text-[#1f1a11] outline-none transition focus:border-[#255f73]"
+                    className="mt-1 w-full rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm text-[#e1eeff] outline-none transition focus:border-[#43bee9]"
                   />
                 </label>
               </div>
 
-              <label className="mt-3 flex items-center gap-2 text-xs text-[#504736]">
+              <label className="mt-3 flex items-center gap-2 text-xs text-[#97b0c9]">
                 <input
                   type="checkbox"
                   checked={strategyForm.isTemplate}
@@ -1207,13 +1207,13 @@ export function ScreeningStudioClient() {
                       isTemplate: event.target.checked,
                     }))
                   }
-                  className="h-4 w-4 rounded border-[#1f1a11]/25"
+                  className="h-4 w-4 rounded border-[#e1eeff]/38"
                 />
                 设为模板策略
               </label>
 
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                <label className="text-xs text-[#504736]">
+                <label className="text-xs text-[#97b0c9]">
                   过滤条件 JSON
                   <textarea
                     value={strategyForm.filtersJson}
@@ -1224,11 +1224,11 @@ export function ScreeningStudioClient() {
                       }))
                     }
                     rows={14}
-                    className="mt-1 w-full rounded-xl border border-[#1f1a11]/20 bg-[#19160f] px-3 py-2 font-mono text-xs leading-6 text-[#f8eed8] outline-none transition focus:border-[#6fc6da]"
+                    className="mt-1 w-full rounded-xl border border-[#e1eeff]/34 bg-[#09192e] px-3 py-2 font-mono text-xs leading-6 text-[#d8ecff] outline-none transition focus:border-[#5addff]"
                   />
                 </label>
 
-                <label className="text-xs text-[#504736]">
+                <label className="text-xs text-[#97b0c9]">
                   评分配置 JSON
                   <textarea
                     value={strategyForm.scoringConfigJson}
@@ -1239,7 +1239,7 @@ export function ScreeningStudioClient() {
                       }))
                     }
                     rows={14}
-                    className="mt-1 w-full rounded-xl border border-[#1f1a11]/20 bg-[#19160f] px-3 py-2 font-mono text-xs leading-6 text-[#f8eed8] outline-none transition focus:border-[#6fc6da]"
+                    className="mt-1 w-full rounded-xl border border-[#e1eeff]/34 bg-[#09192e] px-3 py-2 font-mono text-xs leading-6 text-[#d8ecff] outline-none transition focus:border-[#5addff]"
                   />
                 </label>
               </div>
@@ -1248,7 +1248,7 @@ export function ScreeningStudioClient() {
                 type="button"
                 onClick={handleSubmitStrategy}
                 disabled={strategyPending}
-                className="mt-4 rounded-xl border border-[#1f1a11]/20 bg-[#1c483f] px-4 py-2 text-sm font-semibold text-[#f0f8f5] transition hover:bg-[#15352f] disabled:cursor-not-allowed disabled:opacity-65"
+                className="mt-4 rounded-xl border border-[#e1eeff]/34 bg-[#0f8468] px-4 py-2 text-sm font-semibold text-[#eefef8] transition hover:bg-[#0d5b49] disabled:cursor-not-allowed disabled:opacity-65"
               >
                 {strategyPending
                   ? "提交中..."
@@ -1257,21 +1257,21 @@ export function ScreeningStudioClient() {
                     : "更新策略"}
               </button>
               {strategyDetailQuery.error ? (
-                <p className="mt-3 rounded-xl border border-rose-300/60 bg-rose-100 px-3 py-2 text-xs text-rose-700">
+                <p className="mt-3 rounded-xl border border-[#ff7f92]/45 bg-[#5b2432]/50 px-3 py-2 text-xs text-[#ffbec9]">
                   {strategyDetailQuery.error.message}
                 </p>
               ) : null}
             </section>
 
-            <section className="mt-6 rounded-2xl border border-[#171716]/10 bg-[#fcf7eb] p-4 sm:p-5">
+            <section className="mt-6 rounded-2xl border border-[#35526f]/35 bg-[#0f2238] p-4 sm:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="text-lg font-semibold text-[#1a140b]">
+                <h3 className="text-lg font-semibold text-[#e9f4ff]">
                   执行会话
                 </h3>
                 <button
                   type="button"
                   onClick={() => sessionsQuery.refetch()}
-                  className="rounded-full border border-[#1f1a11]/20 px-3 py-1 text-xs text-[#5d5545] transition hover:border-[#1f1a11]/45"
+                  className="rounded-full border border-[#e1eeff]/34 px-3 py-1 text-xs text-[#97afc7] transition hover:border-[#e1eeff]/45"
                 >
                   刷新会话
                 </button>
@@ -1280,9 +1280,9 @@ export function ScreeningStudioClient() {
               <div className="mt-4 grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
                 <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
                   {sessionsQuery.isLoading ? (
-                    <p className="text-sm text-[#655c4a]">会话加载中...</p>
+                    <p className="text-sm text-[#8ea8c1]">会话加载中...</p>
                   ) : sessions.length === 0 ? (
-                    <p className="text-sm text-[#655c4a]">
+                    <p className="text-sm text-[#8ea8c1]">
                       暂无会话，先执行一个策略。
                     </p>
                   ) : (
@@ -1293,8 +1293,8 @@ export function ScreeningStudioClient() {
                           key={session.id}
                           className={`rounded-xl border px-3 py-3 ${
                             active
-                              ? "border-[#2b6b67] bg-[#e1f3f0]"
-                              : "border-[#171716]/10 bg-white/85"
+                              ? "border-[#3dd3b5] bg-[#113d37]"
+                              : "border-[#35526f]/35 bg-[#10253c]/90"
                           }`}
                         >
                           <button
@@ -1302,10 +1302,10 @@ export function ScreeningStudioClient() {
                             className="w-full text-left"
                             onClick={() => setSelectedSessionId(session.id)}
                           >
-                            <p className="truncate text-sm font-medium text-[#1f1a11]">
+                            <p className="truncate text-sm font-medium text-[#e1eeff]">
                               {session.strategyName}
                             </p>
-                            <p className="mt-1 text-xs text-[#5f5747]">
+                            <p className="mt-1 text-xs text-[#92abc3]">
                               扫描 {session.totalScanned} · 命中{" "}
                               {session.matchedCount} ·{" "}
                               {formatDate(session.executedAt)}
@@ -1316,7 +1316,7 @@ export function ScreeningStudioClient() {
                               type="button"
                               onClick={() => handleDeleteSession(session)}
                               disabled={deleteSessionMutation.isPending}
-                              className="rounded-full border border-[#7f3125]/25 bg-[#fde5e0] px-2.5 py-1 text-[11px] text-[#7f3125] transition hover:border-[#7f3125]/45 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="rounded-full border border-[#ff8d9b]/25 bg-[#4b2331] px-2.5 py-1 text-[11px] text-[#ff8d9b] transition hover:border-[#ff8d9b]/45 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               删除
                             </button>
@@ -1327,45 +1327,45 @@ export function ScreeningStudioClient() {
                   )}
                 </div>
 
-                <div className="rounded-xl border border-[#171716]/10 bg-white/90 p-3">
+                <div className="rounded-xl border border-[#35526f]/35 bg-[#10263d]/94 p-3">
                   {!selectedSession ? (
-                    <p className="text-sm text-[#655c4a]">
+                    <p className="text-sm text-[#8ea8c1]">
                       请选择会话查看详情。
                     </p>
                   ) : sessionDetailQuery.isLoading ? (
-                    <p className="text-sm text-[#655c4a]">会话详情加载中...</p>
+                    <p className="text-sm text-[#8ea8c1]">会话详情加载中...</p>
                   ) : sessionDetailQuery.error ? (
-                    <p className="rounded-lg border border-rose-300/60 bg-rose-100 px-3 py-2 text-xs text-rose-700">
+                    <p className="rounded-lg border border-[#ff7f92]/45 bg-[#5b2432]/50 px-3 py-2 text-xs text-[#ffbec9]">
                       {sessionDetailQuery.error.message}
                     </p>
                   ) : (
                     <>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-[#574f3f]">
-                        <p className="rounded-lg border border-[#1f1a11]/10 bg-[#faf5ea] px-3 py-2">
+                      <div className="grid grid-cols-2 gap-2 text-xs text-[#a1b8ce]">
+                        <p className="rounded-lg border border-[#e1eeff]/38 bg-[#11253b] px-3 py-2">
                           策略: {selectedSession.strategyName}
                         </p>
-                        <p className="rounded-lg border border-[#1f1a11]/10 bg-[#faf5ea] px-3 py-2">
+                        <p className="rounded-lg border border-[#e1eeff]/38 bg-[#11253b] px-3 py-2">
                           执行耗时: {selectedSession.executionTime.toFixed(2)} s
                         </p>
-                        <p className="rounded-lg border border-[#1f1a11]/10 bg-[#faf5ea] px-3 py-2">
+                        <p className="rounded-lg border border-[#e1eeff]/38 bg-[#11253b] px-3 py-2">
                           总扫描: {selectedSession.totalScanned}
                         </p>
-                        <p className="rounded-lg border border-[#1f1a11]/10 bg-[#faf5ea] px-3 py-2">
+                        <p className="rounded-lg border border-[#e1eeff]/38 bg-[#11253b] px-3 py-2">
                           命中: {selectedSession.matchedCount}
                         </p>
                       </div>
 
-                      <h4 className="mt-4 text-sm font-semibold text-[#1b140b]">
+                      <h4 className="mt-4 text-sm font-semibold text-[#e4f1ff]">
                         Top Stocks
                       </h4>
                       {parsedTopStocks.length === 0 ? (
-                        <p className="mt-2 text-xs text-[#5f5747]">
+                        <p className="mt-2 text-xs text-[#92abc3]">
                           暂无评分明细。
                         </p>
                       ) : (
-                        <div className="mt-2 max-h-[280px] overflow-auto rounded-lg border border-[#171716]/10">
+                        <div className="mt-2 max-h-[280px] overflow-auto rounded-lg border border-[#35526f]/35">
                           <table className="min-w-full border-collapse text-left text-xs">
-                            <thead className="sticky top-0 bg-[#f3ecdc] text-[#4d4434]">
+                            <thead className="sticky top-0 bg-[#122b42] text-[#b7cee5]">
                               <tr>
                                 <th className="px-3 py-2 font-medium">代码</th>
                                 <th className="px-3 py-2 font-medium">名称</th>
@@ -1379,23 +1379,23 @@ export function ScreeningStudioClient() {
                               {parsedTopStocks.map((stock) => (
                                 <tr
                                   key={`${stock.stockCode}-${stock.stockName}`}
-                                  className="border-t border-[#171716]/10"
+                                  className="border-t border-[#35526f]/35"
                                 >
-                                  <td className="px-3 py-2 text-[#1f1a11]">
+                                  <td className="px-3 py-2 text-[#e1eeff]">
                                     {stock.stockCode}
                                   </td>
-                                  <td className="px-3 py-2 text-[#1f1a11]">
+                                  <td className="px-3 py-2 text-[#e1eeff]">
                                     {stock.stockName}
                                   </td>
-                                  <td className="px-3 py-2 text-[#205d4f]">
+                                  <td className="px-3 py-2 text-[#58e8bf]">
                                     {stock.score.toFixed(4)}
                                   </td>
-                                  <td className="px-3 py-2 text-[#5f5747]">
+                                  <td className="px-3 py-2 text-[#92abc3]">
                                     <p className="line-clamp-2">
                                       {stock.indicatorPreview}
                                     </p>
                                     {stock.explanations.length > 0 ? (
-                                      <p className="mt-1 line-clamp-2 text-[11px] text-[#4e6d7f]">
+                                      <p className="mt-1 line-clamp-2 text-[11px] text-[#80b4d8]">
                                         {stock.explanations.join(" | ")}
                                       </p>
                                     ) : null}
@@ -1414,15 +1414,15 @@ export function ScreeningStudioClient() {
           </section>
 
           <section
-            className="studio-rise rounded-[26px] border border-[#171716]/10 bg-[#fffaf1]/95 p-5 shadow-[0_20px_70px_-40px_rgba(38,27,12,0.5)] sm:p-6"
+            className="studio-rise rounded-[26px] border border-[#35526f]/35 bg-[#0d1e33]/95 p-5 shadow-[0_24px_78px_-44px_rgba(2,10,22,0.9)] sm:p-6"
             style={{ animationDelay: "0.3s" }}
           >
-            <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#1a140b]">
+            <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
               自选股管理
             </h2>
 
-            <section className="mt-4 rounded-2xl border border-[#171716]/10 bg-white/85 p-4">
-              <h3 className="text-base font-semibold text-[#1f1a11]">
+            <section className="mt-4 rounded-2xl border border-[#35526f]/35 bg-[#10253c]/90 p-4">
+              <h3 className="text-base font-semibold text-[#e1eeff]">
                 创建新列表
               </h3>
               <div className="mt-3 grid gap-2">
@@ -1430,7 +1430,7 @@ export function ScreeningStudioClient() {
                   value={newWatchListName}
                   onChange={(event) => setNewWatchListName(event.target.value)}
                   placeholder="例如：高确定性组合"
-                  className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                  className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                 />
                 <input
                   value={newWatchListDescription}
@@ -1438,28 +1438,28 @@ export function ScreeningStudioClient() {
                     setNewWatchListDescription(event.target.value)
                   }
                   placeholder="组合说明"
-                  className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                  className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                 />
                 <button
                   type="button"
                   onClick={handleCreateWatchList}
                   disabled={watchListPending}
-                  className="rounded-xl border border-[#1f1a11]/20 bg-[#2f5670] px-4 py-2 text-sm font-medium text-[#eff8ff] transition hover:bg-[#254659] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl border border-[#e1eeff]/34 bg-[#2582b5] px-4 py-2 text-sm font-medium text-[#e8f6ff] transition hover:bg-[#1d6f9f] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {createWatchListMutation.isPending ? "创建中..." : "创建列表"}
                 </button>
               </div>
             </section>
 
-            <section className="mt-4 rounded-2xl border border-[#171716]/10 bg-white/85 p-4">
-              <h3 className="text-base font-semibold text-[#1f1a11]">
+            <section className="mt-4 rounded-2xl border border-[#35526f]/35 bg-[#10253c]/90 p-4">
+              <h3 className="text-base font-semibold text-[#e1eeff]">
                 列表面板
               </h3>
               <div className="mt-3 grid max-h-52 gap-2 overflow-auto pr-1">
                 {watchListsQuery.isLoading ? (
-                  <p className="text-sm text-[#655c4a]">列表加载中...</p>
+                  <p className="text-sm text-[#8ea8c1]">列表加载中...</p>
                 ) : watchLists.length === 0 ? (
-                  <p className="text-sm text-[#655c4a]">暂无自选股列表。</p>
+                  <p className="text-sm text-[#8ea8c1]">暂无自选股列表。</p>
                 ) : (
                   watchLists.map((item) => {
                     const active = item.id === selectedWatchListId;
@@ -1468,8 +1468,8 @@ export function ScreeningStudioClient() {
                         key={item.id}
                         className={`rounded-xl border p-3 ${
                           active
-                            ? "border-[#326a86] bg-[#e6f2f9]"
-                            : "border-[#171716]/10 bg-white"
+                            ? "border-[#37a8df] bg-[#123346]"
+                            : "border-[#35526f]/35 bg-[#0a1a2d]"
                         }`}
                       >
                         <button
@@ -1477,10 +1477,10 @@ export function ScreeningStudioClient() {
                           onClick={() => setSelectedWatchListId(item.id)}
                           className="w-full text-left"
                         >
-                          <p className="truncate text-sm font-medium text-[#1f1a11]">
+                          <p className="truncate text-sm font-medium text-[#e1eeff]">
                             {item.name}
                           </p>
-                          <p className="mt-1 text-xs text-[#5f5747]">
+                          <p className="mt-1 text-xs text-[#92abc3]">
                             {item.stockCount} 支 · {formatDate(item.updatedAt)}
                           </p>
                         </button>
@@ -1489,7 +1489,7 @@ export function ScreeningStudioClient() {
                             type="button"
                             onClick={() => handleDeleteWatchList(item)}
                             disabled={deleteWatchListMutation.isPending}
-                            className="rounded-full border border-[#7f3125]/25 bg-[#fde5e0] px-2.5 py-1 text-[11px] text-[#7f3125] transition hover:border-[#7f3125]/45 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="rounded-full border border-[#ff8d9b]/25 bg-[#4b2331] px-2.5 py-1 text-[11px] text-[#ff8d9b] transition hover:border-[#ff8d9b]/45 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             删除
                           </button>
@@ -1501,8 +1501,8 @@ export function ScreeningStudioClient() {
               </div>
             </section>
 
-            <section className="mt-4 rounded-2xl border border-[#171716]/10 bg-white/85 p-4">
-              <h3 className="text-base font-semibold text-[#1f1a11]">
+            <section className="mt-4 rounded-2xl border border-[#35526f]/35 bg-[#10253c]/90 p-4">
+              <h3 className="text-base font-semibold text-[#e1eeff]">
                 列表信息编辑
               </h3>
               {selectedWatchList ? (
@@ -1511,27 +1511,27 @@ export function ScreeningStudioClient() {
                     <input
                       value={watchMetaName}
                       onChange={(event) => setWatchMetaName(event.target.value)}
-                      className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                      className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                     />
                     <input
                       value={watchMetaDescription}
                       onChange={(event) =>
                         setWatchMetaDescription(event.target.value)
                       }
-                      className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                      className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                     />
                     <button
                       type="button"
                       onClick={handleUpdateWatchMeta}
                       disabled={updateWatchMetaMutation.isPending}
-                      className="rounded-xl border border-[#1f1a11]/20 bg-[#1d624f] px-4 py-2 text-sm font-medium text-[#ecfff7] transition hover:bg-[#144a3b] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="rounded-xl border border-[#e1eeff]/34 bg-[#11916f] px-4 py-2 text-sm font-medium text-[#ecfff8] transition hover:bg-[#0f6f58] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       更新列表信息
                     </button>
                   </div>
 
-                  <div className="mt-4 border-t border-[#171716]/10 pt-4">
-                    <h4 className="text-sm font-semibold text-[#201910]">
+                  <div className="mt-4 border-t border-[#35526f]/35 pt-4">
+                    <h4 className="text-sm font-semibold text-[#e6f2ff]">
                       添加股票
                     </h4>
                     <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -1541,7 +1541,7 @@ export function ScreeningStudioClient() {
                           setNewStockCode(event.target.value)
                         }
                         placeholder="股票代码（6位）"
-                        className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                        className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                       />
                       <input
                         value={newStockName}
@@ -1549,7 +1549,7 @@ export function ScreeningStudioClient() {
                           setNewStockName(event.target.value)
                         }
                         placeholder="股票名称"
-                        className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                        className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                       />
                       <input
                         value={newStockTags}
@@ -1557,7 +1557,7 @@ export function ScreeningStudioClient() {
                           setNewStockTags(event.target.value)
                         }
                         placeholder="标签：成长, 跟踪"
-                        className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                        className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                       />
                       <input
                         value={newStockNote}
@@ -1565,25 +1565,25 @@ export function ScreeningStudioClient() {
                           setNewStockNote(event.target.value)
                         }
                         placeholder="备注"
-                        className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                        className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={handleAddStock}
                       disabled={addStockMutation.isPending}
-                      className="mt-2 rounded-xl border border-[#1f1a11]/20 bg-[#254d68] px-4 py-2 text-sm font-medium text-[#eff8ff] transition hover:bg-[#1e3f54] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="mt-2 rounded-xl border border-[#e1eeff]/34 bg-[#227cae] px-4 py-2 text-sm font-medium text-[#e8f6ff] transition hover:bg-[#1b6f9f] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       添加到列表
                     </button>
                   </div>
 
-                  <div className="mt-4 border-t border-[#171716]/10 pt-4">
-                    <h4 className="text-sm font-semibold text-[#201910]">
+                  <div className="mt-4 border-t border-[#35526f]/35 pt-4">
+                    <h4 className="text-sm font-semibold text-[#e6f2ff]">
                       更新选中股票
                     </h4>
                     {parsedWatchStocks.length === 0 ? (
-                      <p className="mt-2 text-xs text-[#5f5747]">
+                      <p className="mt-2 text-xs text-[#92abc3]">
                         列表为空，先添加股票。
                       </p>
                     ) : (
@@ -1593,7 +1593,7 @@ export function ScreeningStudioClient() {
                           onChange={(event) =>
                             setSelectedStockCode(event.target.value)
                           }
-                          className="mt-2 w-full rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                          className="mt-2 w-full rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                         >
                           {parsedWatchStocks.map((stock) => (
                             <option
@@ -1611,7 +1611,7 @@ export function ScreeningStudioClient() {
                               setEditedStockTags(event.target.value)
                             }
                             placeholder="标签（逗号分隔）"
-                            className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                            className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                           />
                           <input
                             value={editedStockNote}
@@ -1619,7 +1619,7 @@ export function ScreeningStudioClient() {
                               setEditedStockNote(event.target.value)
                             }
                             placeholder="备注"
-                            className="rounded-xl border border-[#1f1a11]/20 bg-white px-3 py-2 text-sm outline-none transition focus:border-[#255f73]"
+                            className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm outline-none transition focus:border-[#43bee9]"
                           />
                         </div>
                         <button
@@ -1629,7 +1629,7 @@ export function ScreeningStudioClient() {
                             updateStockNoteMutation.isPending ||
                             updateStockTagsMutation.isPending
                           }
-                          className="mt-2 rounded-xl border border-[#1f1a11]/20 bg-[#1d624f] px-4 py-2 text-sm font-medium text-[#ecfff7] transition hover:bg-[#144a3b] disabled:cursor-not-allowed disabled:opacity-60"
+                          className="mt-2 rounded-xl border border-[#e1eeff]/34 bg-[#11916f] px-4 py-2 text-sm font-medium text-[#ecfff8] transition hover:bg-[#0f6f58] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           更新备注与标签
                         </button>
@@ -1638,30 +1638,30 @@ export function ScreeningStudioClient() {
                   </div>
                 </>
               ) : (
-                <p className="mt-2 text-sm text-[#655c4a]">
+                <p className="mt-2 text-sm text-[#8ea8c1]">
                   请选择一个自选股列表。
                 </p>
               )}
             </section>
 
-            <section className="mt-4 rounded-2xl border border-[#171716]/10 bg-white/85 p-4">
-              <h3 className="text-base font-semibold text-[#1f1a11]">
+            <section className="mt-4 rounded-2xl border border-[#35526f]/35 bg-[#10253c]/90 p-4">
+              <h3 className="text-base font-semibold text-[#e1eeff]">
                 股票明细
               </h3>
               {watchListDetailQuery.isLoading ? (
-                <p className="mt-2 text-sm text-[#655c4a]">列表详情加载中...</p>
+                <p className="mt-2 text-sm text-[#8ea8c1]">列表详情加载中...</p>
               ) : watchListDetailQuery.error ? (
-                <p className="mt-2 rounded-lg border border-rose-300/60 bg-rose-100 px-3 py-2 text-xs text-rose-700">
+                <p className="mt-2 rounded-lg border border-[#ff7f92]/45 bg-[#5b2432]/50 px-3 py-2 text-xs text-[#ffbec9]">
                   {watchListDetailQuery.error.message}
                 </p>
               ) : parsedWatchStocks.length === 0 ? (
-                <p className="mt-2 text-sm text-[#655c4a]">
+                <p className="mt-2 text-sm text-[#8ea8c1]">
                   当前列表暂无股票。
                 </p>
               ) : (
-                <div className="mt-2 max-h-[380px] overflow-auto rounded-lg border border-[#171716]/10">
+                <div className="mt-2 max-h-[380px] overflow-auto rounded-lg border border-[#35526f]/35">
                   <table className="min-w-full border-collapse text-left text-xs">
-                    <thead className="sticky top-0 bg-[#f3ecdc] text-[#4d4434]">
+                    <thead className="sticky top-0 bg-[#122b42] text-[#b7cee5]">
                       <tr>
                         <th className="px-3 py-2 font-medium">代码</th>
                         <th className="px-3 py-2 font-medium">名称</th>
@@ -1675,21 +1675,21 @@ export function ScreeningStudioClient() {
                       {parsedWatchStocks.map((stock) => (
                         <tr
                           key={`watch-${stock.stockCode}`}
-                          className="border-t border-[#171716]/10"
+                          className="border-t border-[#35526f]/35"
                         >
-                          <td className="px-3 py-2 text-[#1f1a11]">
+                          <td className="px-3 py-2 text-[#e1eeff]">
                             {stock.stockCode}
                           </td>
-                          <td className="px-3 py-2 text-[#1f1a11]">
+                          <td className="px-3 py-2 text-[#e1eeff]">
                             {stock.stockName}
                           </td>
-                          <td className="px-3 py-2 text-[#5f5747]">
+                          <td className="px-3 py-2 text-[#92abc3]">
                             {stock.tags.join(" / ") || "-"}
                           </td>
-                          <td className="px-3 py-2 text-[#5f5747]">
+                          <td className="px-3 py-2 text-[#92abc3]">
                             {stock.note || "-"}
                           </td>
-                          <td className="px-3 py-2 text-[#5f5747]">
+                          <td className="px-3 py-2 text-[#92abc3]">
                             {formatDate(stock.addedAt)}
                           </td>
                           <td className="px-3 py-2">
@@ -1697,7 +1697,7 @@ export function ScreeningStudioClient() {
                               type="button"
                               onClick={() => handleRemoveStock(stock.stockCode)}
                               disabled={removeStockMutation.isPending}
-                              className="rounded-full border border-[#7f3125]/25 bg-[#fde5e0] px-2.5 py-1 text-[11px] text-[#7f3125] transition hover:border-[#7f3125]/45 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="rounded-full border border-[#ff8d9b]/25 bg-[#4b2331] px-2.5 py-1 text-[11px] text-[#ff8d9b] transition hover:border-[#ff8d9b]/45 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               移除
                             </button>
@@ -1715,21 +1715,21 @@ export function ScreeningStudioClient() {
         {(strategiesQuery.error ||
           sessionsQuery.error ||
           watchListsQuery.error) && (
-          <section className="rounded-2xl border border-rose-300/60 bg-rose-100 px-4 py-3 text-sm text-rose-700">
+          <section className="rounded-2xl border border-[#ff7f92]/45 bg-[#5b2432]/50 px-4 py-3 text-sm text-[#ffbec9]">
             <p>
               接口异常：
               {strategiesQuery.error?.message ??
                 sessionsQuery.error?.message ??
                 watchListsQuery.error?.message}
             </p>
-            <p className="mt-1 text-xs text-rose-600">
+            <p className="mt-1 text-xs text-[#ff9aac]">
               如果提示未授权，请先在首页登录 NextAuth 账号。
             </p>
           </section>
         )}
 
         {selectedSession ? (
-          <section className="rounded-2xl border border-[#171716]/10 bg-white/75 px-4 py-3 text-xs text-[#5f5747]">
+          <section className="rounded-2xl border border-[#35526f]/35 bg-[#0f2137]/88 px-4 py-3 text-xs text-[#92abc3]">
             当前会话状态:
             <span
               className={`ml-2 font-semibold ${statusClassName(

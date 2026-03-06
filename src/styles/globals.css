@@ -1,9 +1,175 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: var(--font-body, var(--font-geist-sans)), ui-sans-serif, system-ui,
-    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    "Noto Color Emoji";
+  --font-sans: var(--font-body, var(--font-geist-sans)), "Noto Sans SC",
+    "PingFang SC", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: var(--font-data), "IBM Plex Mono", "JetBrains Mono", ui-monospace,
+    "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+}
+
+:root {
+  --market-bg: #060f1c;
+  --market-bg-strong: #050b16;
+  --market-panel: rgba(13, 28, 46, 0.9);
+  --market-panel-soft: rgba(10, 22, 37, 0.85);
+  --market-border: rgba(95, 132, 166, 0.35);
+  --market-border-strong: rgba(121, 165, 204, 0.52);
+  --market-text: #e8f3ff;
+  --market-text-muted: #8fa8c2;
+  --market-accent: #5dd8ff;
+  --market-positive: #35e8b1;
+  --market-warning: #fbb85c;
+  --market-danger: #ff7f92;
+  --market-shadow: 0 24px 78px -42px rgba(2, 9, 19, 0.95);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--market-bg-strong);
+  background-image:
+    radial-gradient(circle at 8% 10%, rgba(79, 182, 255, 0.15), transparent 34%),
+    radial-gradient(circle at 84% 12%, rgba(49, 228, 173, 0.12), transparent 38%),
+    radial-gradient(circle at 76% 90%, rgba(255, 183, 92, 0.08), transparent 42%);
+  color: var(--market-text);
+  font-family: var(--font-body), "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
+    sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: rgba(93, 216, 255, 0.25);
+  color: #f5fbff;
+}
+
+.market-shell {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    linear-gradient(155deg, rgba(7, 16, 29, 0.96), rgba(6, 13, 23, 0.94)),
+    var(--market-bg);
+}
+
+.market-shell::before {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 16% 18%, rgba(93, 216, 255, 0.2), transparent 34%),
+    radial-gradient(circle at 84% 9%, rgba(53, 232, 177, 0.17), transparent 36%),
+    radial-gradient(circle at 56% 92%, rgba(251, 184, 92, 0.11), transparent 36%);
+}
+
+.market-shell::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    repeating-linear-gradient(
+      90deg,
+      rgba(126, 169, 205, 0.04),
+      rgba(126, 169, 205, 0.04) 1px,
+      transparent 1px,
+      transparent 100px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(126, 169, 205, 0.03),
+      rgba(126, 169, 205, 0.03) 1px,
+      transparent 1px,
+      transparent 84px
+    );
+}
+
+.market-frame {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1400px;
+}
+
+.market-panel {
+  border: 1px solid var(--market-border);
+  background: linear-gradient(
+      160deg,
+      rgba(19, 40, 63, 0.94),
+      rgba(12, 26, 42, 0.9) 58%
+    ),
+    rgba(13, 28, 46, 0.9);
+  box-shadow: var(--market-shadow);
+  backdrop-filter: blur(14px);
+}
+
+.market-soft-panel {
+  border: 1px solid rgba(89, 124, 156, 0.28);
+  background: var(--market-panel-soft);
+  box-shadow: inset 0 1px 0 rgba(132, 173, 209, 0.08);
+}
+
+.market-chip {
+  border: 1px solid rgba(98, 139, 175, 0.42);
+  background: rgba(13, 31, 50, 0.82);
+  color: #b9d3ec;
+}
+
+.market-data {
+  font-family: var(--font-data), "IBM Plex Mono", "JetBrains Mono", ui-monospace,
+    SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+}
+
+.market-muted {
+  color: var(--market-text-muted);
+}
+
+.market-divider {
+  border-color: rgba(87, 121, 153, 0.35);
+}
+
+.market-button-primary {
+  border: 1px solid rgba(61, 197, 247, 0.65);
+  background: linear-gradient(135deg, rgba(22, 120, 176, 0.88), rgba(16, 88, 140, 0.9));
+  color: #ecf7ff;
+}
+
+.market-button-primary:hover {
+  border-color: rgba(100, 219, 255, 0.78);
+  background: linear-gradient(135deg, rgba(28, 141, 203, 0.93), rgba(17, 103, 161, 0.95));
+}
+
+.market-button-positive {
+  border: 1px solid rgba(47, 221, 163, 0.62);
+  background: linear-gradient(135deg, rgba(15, 128, 97, 0.9), rgba(11, 101, 78, 0.92));
+  color: #ecfff7;
+}
+
+.market-button-positive:hover {
+  border-color: rgba(95, 255, 201, 0.75);
+  background: linear-gradient(135deg, rgba(19, 150, 113, 0.95), rgba(12, 115, 88, 0.96));
+}
+
+.market-button-danger {
+  border: 1px solid rgba(255, 128, 146, 0.52);
+  background: rgba(91, 31, 45, 0.45);
+  color: #ffb6c3;
+}
+
+.market-button-danger:hover {
+  border-color: rgba(255, 149, 165, 0.7);
+  background: rgba(116, 36, 54, 0.5);
 }
 
 @keyframes studioFloat {

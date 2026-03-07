@@ -1,4 +1,4 @@
-import { createEnv } from "@t3-oss/env-nextjs";
+﻿import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
 export const env = createEnv({
@@ -11,6 +11,10 @@ export const env = createEnv({
       process.env.NODE_ENV === "production"
         ? z.string()
         : z.string().optional(),
+    AUTH_SECRET_1: z.string().optional(),
+    AUTH_SECRET_2: z.string().optional(),
+    AUTH_SECRET_3: z.string().optional(),
+    NEXTAUTH_SECRET: z.string().optional(),
     AUTH_WECHAT_ID: z.string().optional(),
     AUTH_WECHAT_SECRET: z.string().optional(),
     AUTH_QQ_ID: z.string().optional(),
@@ -45,7 +49,11 @@ export const env = createEnv({
    * middlewares) or client-side so we need to destruct manually.
    */
   runtimeEnv: {
-    AUTH_SECRET: process.env.AUTH_SECRET,
+    AUTH_SECRET: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    AUTH_SECRET_1: process.env.AUTH_SECRET_1,
+    AUTH_SECRET_2: process.env.AUTH_SECRET_2,
+    AUTH_SECRET_3: process.env.AUTH_SECRET_3,
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     AUTH_WECHAT_ID: process.env.AUTH_WECHAT_ID,
     AUTH_WECHAT_SECRET: process.env.AUTH_WECHAT_SECRET,
     AUTH_QQ_ID: process.env.AUTH_QQ_ID,
@@ -71,3 +79,4 @@ export const env = createEnv({
    */
   emptyStringAsUndefined: true,
 });
+

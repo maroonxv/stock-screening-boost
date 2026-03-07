@@ -1,4 +1,4 @@
-import type { OAuthConfig } from "@auth/core/providers";
+﻿import type { OAuthConfig } from "@auth/core/providers";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { DefaultSession, NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -36,6 +36,27 @@ declare module "next-auth" {
 const localCredentialsUsername = env.AUTH_CREDENTIALS_USERNAME ?? "admin";
 const localCredentialsPassword = env.AUTH_CREDENTIALS_PASSWORD ?? "admin123456";
 const localCredentialsEmail = "local-user@stock-screening-boost.local";
+
+const authSecrets = (() => {
+  const orderedCandidates = [
+    env.AUTH_SECRET,
+    env.AUTH_SECRET_1,
+    env.AUTH_SECRET_2,
+    env.AUTH_SECRET_3,
+    env.NEXTAUTH_SECRET,
+  ];
+
+  const secrets: string[] = [];
+  for (const candidate of orderedCandidates) {
+    if (!candidate || secrets.includes(candidate)) {
+      continue;
+    }
+
+    secrets.push(candidate);
+  }
+
+  return secrets;
+})();
 
 type WeChatProfile = {
   unionid?: string;
@@ -207,6 +228,7 @@ if (env.AUTH_QQ_ID && env.AUTH_QQ_SECRET) {
 
 export const authConfig = {
   providers,
+  secret: authSecrets.length > 0 ? authSecrets : undefined,
   adapter: PrismaAdapter(db),
   session: {
     strategy: "jwt",
@@ -228,3 +250,4 @@ export const authConfig = {
     }),
   },
 } satisfies NextAuthConfig;
+

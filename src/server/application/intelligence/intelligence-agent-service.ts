@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   CompanyEvidence,
   ThemeNewsItem,
 } from "~/server/domain/intelligence/types";
@@ -7,9 +7,12 @@ import type {
   QuickResearchCredibility,
   QuickResearchResultDto,
 } from "~/server/domain/workflow/types";
-import { DeepSeekClient } from "~/server/infrastructure/intelligence/deepseek-client";
-import { PythonIntelligenceDataClient } from "~/server/infrastructure/intelligence/python-intelligence-data-client";
 import { ScreeningFacade } from "~/server/application/screening/screening-facade";
+import { DeepSeekClient } from "~/server/infrastructure/intelligence/deepseek-client";
+import {
+  PythonIntelligenceDataClient,
+  type IntelligenceCandidateItem,
+} from "~/server/infrastructure/intelligence/python-intelligence-data-client";
 
 export type MarketHeatAnalysis = {
   heatScore: number;
@@ -43,14 +46,14 @@ function buildHeatScore(news: ThemeNewsItem[]) {
 
 function formatHeatConclusion(score: number): string {
   if (score >= 75) {
-    return "行业热度高，资金关注度与催化事件均较强。";
+    return "行业热度偏高，资金关注度与催化事件相对密集。";
   }
 
   if (score >= 55) {
     return "行业热度中性偏强，建议结合估值与事件窗口择时。";
   }
 
-  return "行业热度偏弱，建议控制仓位并优先防守型标的。";
+  return "行业热度偏弱，建议控制仓位并优先跟踪防守型标的。";
 }
 
 function mapEvidenceToCredibility(
@@ -62,6 +65,21 @@ function mapEvidenceToCredibility(
     credibilityScore: evidence.credibilityScore || fallbackScore,
     highlights: evidence.catalysts,
     risks: evidence.risks,
+  };
+}
+
+function mapCandidateToQuickResearch(
+  candidate: IntelligenceCandidateItem,
+  heatScore: number,
+  index: number,
+): QuickResearchCandidate {
+  const blended = Math.round(heatScore * 0.55 + candidate.heat * 0.45 - index * 3);
+
+  return {
+    stockCode: candidate.stockCode,
+    stockName: candidate.stockName,
+    reason: candidate.reason,
+    score: Math.max(55, Math.min(95, blended)),
   };
 }
 
@@ -85,7 +103,7 @@ export class IntelligenceAgentService {
 
     const fallbackOverview =
       news.length === 0
-        ? `围绕“${query}”，近期公开资讯较少，建议补充产业链上下游访谈和财报佐证。`
+        ? `围绕“${query}”，近期公开资讯偏少，建议补充产业链调研与财报验证。`
         : `围绕“${query}”的近期资讯显示，主要催化集中在政策、订单与资本开支。`;
 
     const overview = await this.deepSeekClient
@@ -94,7 +112,7 @@ export class IntelligenceAgentService {
           {
             role: "system",
             content:
-              "你是股票投研助手，请输出一段不超过120字的行业概览，避免空话，强调驱动因素。",
+              "你是股票投研助手，请输出一段不超过120字的行业概览，避免空话，强调关键驱动因素。",
           },
           {
             role: "user",
@@ -132,7 +150,7 @@ export class IntelligenceAgentService {
           {
             role: "system",
             content:
-              "你是量化投研助理，请基于热度分数输出一句结论，控制在60字以内。",
+              "你是量化投研助理，请基于热度分数输出一句结论，控制在40字以内。",
           },
           {
             role: "user",
@@ -151,6 +169,21 @@ export class IntelligenceAgentService {
   }
 
   async screenCandidates(query: string, heatScore: number): Promise<QuickResearchCandidate[]> {
+    try {
+      const sourcedCandidates = await this.dataClient.getCandidates({
+        theme: query,
+        limit: 8,
+      });
+
+      if (sourcedCandidates.length > 0) {
+        return sourcedCandidates
+          .slice(0, 6)
+          .map((candidate, index) => mapCandidateToQuickResearch(candidate, heatScore, index));
+      }
+    } catch {
+      // Fall through to local fallback pool.
+    }
+
     return this.screeningFacade.screenCandidates(query, heatScore);
   }
 
@@ -187,7 +220,7 @@ export class IntelligenceAgentService {
     candidates: QuickResearchCandidate[];
     credibility: QuickResearchCredibility[];
   }): Promise<string> {
-    const fallback = `${params.query}赛道竞争呈现头部集中趋势，建议优先关注盈利质量和订单可持续性。`;
+    const fallback = `${params.query}赛道竞争呈现头部集中趋势，建议优先关注盈利质量和订单持续性。`;
 
     return this.deepSeekClient
       .complete(
@@ -195,12 +228,12 @@ export class IntelligenceAgentService {
           {
             role: "system",
             content:
-              "你是产业研究员，请输出一句竞争格局总结（80字以内），突出龙头优势与边际风险。",
+              "你是产业研究员，请输出一句竞争格局总结（40字以内），突出龙头优势与边际风险。",
           },
           {
             role: "user",
             content: `赛道: ${params.query}\n候选标的: ${params.candidates
-              .map((item) => `${item.stockName}(${item.stockCode})`) 
+              .map((item) => `${item.stockName}(${item.stockCode})`)
               .join("、")}\n可信度: ${params.credibility
               .map((item) => `${item.stockCode}:${item.credibilityScore}`)
               .join(",")}`,

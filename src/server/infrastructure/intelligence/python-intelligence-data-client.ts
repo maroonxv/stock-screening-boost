@@ -1,4 +1,4 @@
-import { env } from "~/env";
+﻿import { env } from "~/env";
 import type {
   CompanyEvidence,
   CompanyEvidenceBatchRequest,
@@ -8,6 +8,14 @@ import {
   WORKFLOW_ERROR_CODES,
   WorkflowDomainError,
 } from "~/server/domain/workflow/errors";
+
+export type IntelligenceCandidateItem = {
+  stockCode: string;
+  stockName: string;
+  reason: string;
+  heat: number;
+  concept: string;
+};
 
 export type PythonIntelligenceDataClientConfig = {
   baseUrl?: string;
@@ -38,6 +46,20 @@ export class PythonIntelligenceDataClient {
     });
 
     return this.request<ThemeNewsItem[]>(`/api/intelligence/news?${search.toString()}`);
+  }
+
+  async getCandidates(params: {
+    theme: string;
+    limit?: number;
+  }): Promise<IntelligenceCandidateItem[]> {
+    const search = new URLSearchParams({
+      theme: params.theme,
+      limit: String(params.limit ?? 6),
+    });
+
+    return this.request<IntelligenceCandidateItem[]>(
+      `/api/intelligence/candidates?${search.toString()}`,
+    );
   }
 
   async getEvidence(stockCode: string, concept?: string): Promise<CompanyEvidence> {

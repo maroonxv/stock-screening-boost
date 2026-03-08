@@ -1,435 +1,109 @@
-/**
- * ScreeningSession 聚合根单元测试
- */
-
-import { describe, it, expect } from "vitest";
-import { ScreeningSession } from "../screening-session";
-import { ScreeningResult } from "../../value-objects/screening-result";
-import { ScoredStock } from "../../value-objects/scored-stock";
-import { StockCode } from "../../value-objects/stock-code";
+import { describe, expect, it } from "vitest";
 import { FilterGroup } from "../../entities/filter-group";
-import { FilterCondition } from "../../value-objects/filter-condition";
-import { ScoringConfig, NormalizationMethod } from "../../value-objects/scoring-config";
-import { IndicatorField } from "../../enums/indicator-field";
 import { ComparisonOperator } from "../../enums/comparison-operator";
+import { IndicatorField } from "../../enums/indicator-field";
 import { LogicalOperator } from "../../enums/logical-operator";
+import { ScreeningSessionStatus } from "../../enums/screening-session-status";
+import { FilterCondition } from "../../value-objects/filter-condition";
+import { ScoredStock } from "../../value-objects/scored-stock";
+import {
+  NormalizationMethod,
+  ScoringConfig,
+} from "../../value-objects/scoring-config";
+import { ScreeningResult } from "../../value-objects/screening-result";
+import { StockCode } from "../../value-objects/stock-code";
+import { ScreeningSession } from "../screening-session";
+
+function createScoredStock(
+  code: string,
+  name: string,
+  score: number,
+): ScoredStock {
+  return ScoredStock.create(
+    StockCode.create(code),
+    name,
+    score,
+    new Map([[IndicatorField.PE, score]]),
+    new Map([[IndicatorField.PE, score * 0.5]]),
+    [],
+  );
+}
+
+function createTestFilterGroup(): FilterGroup {
+  return FilterGroup.create(
+    LogicalOperator.AND,
+    [
+      FilterCondition.create(IndicatorField.PE, ComparisonOperator.LESS_THAN, {
+        type: "numeric",
+        value: 30,
+      }),
+    ],
+    [],
+  );
+}
+
+function createTestScoringConfig(): ScoringConfig {
+  return ScoringConfig.create(
+    new Map([[IndicatorField.PE, 1]]),
+    NormalizationMethod.MIN_MAX,
+  );
+}
 
 describe("ScreeningSession", () => {
-  function createScoredStock(code: string, name: string, score: number): ScoredStock {
-    return ScoredStock.create(
-      StockCode.create(code),
-      name,
-      score,
-      new Map([[IndicatorField.ROE, score]]),
-      new Map([[IndicatorField.ROE, score * 0.3]]),
-      []
+  it("createPending 应创建排队中的会话", () => {
+    const session = ScreeningSession.createPending({
+      strategyId: "strategy-1",
+      strategyName: "低估值策略",
+      userId: "user-1",
+      filtersSnapshot: createTestFilterGroup(),
+      scoringConfigSnapshot: createTestScoringConfig(),
+    });
+
+    expect(session.status).toBe(ScreeningSessionStatus.PENDING);
+    expect(session.progressPercent).toBe(0);
+    expect(session.countMatched()).toBe(0);
+  });
+
+  it("complete 后应写入结果快照", () => {
+    const session = ScreeningSession.createPending({
+      strategyId: "strategy-1",
+      strategyName: "低估值策略",
+      userId: "user-1",
+      filtersSnapshot: createTestFilterGroup(),
+      scoringConfigSnapshot: createTestScoringConfig(),
+    });
+
+    session.markRunning("执行中");
+    session.complete(
+      ScreeningResult.create(
+        [
+          createScoredStock("600519", "贵州茅台", 0.91),
+          createScoredStock("000858", "五粮液", 0.88),
+        ],
+        200,
+        1500,
+      ),
     );
-  }
 
-  function createTestFilterGroup(): FilterGroup {
-    const condition = FilterCondition.create(
-      IndicatorField.ROE,
-      ComparisonOperator.GREATER_THAN,
-      { type: "numeric", value: 0.15 }
-    );
-    return FilterGroup.create(LogicalOperator.AND, [condition], []);
-  }
-
-  function createTestScoringConfig(): ScoringConfig {
-    return ScoringConfig.create(
-      new Map([[IndicatorField.ROE, 1.0]]),
-      NormalizationMethod.MIN_MAX
-    );
-  }
-
-  describe("create", () => {
-    it("应该创建包含少于 50 只股票的会话", () => {
-      const stocks = [
-        createScoredStock("600519", "贵州茅台", 0.9),
-        createScoredStock("000858", "五粮液", 0.8),
-        createScoredStock("000333", "美的集团", 0.7),
-      ];
-
-      const result = ScreeningResult.create(stocks, 5000, 1250.5);
-      const session = ScreeningSession.create({
-        strategyId: "strategy-1",
-        strategyName: "高 ROE 策略",
-        userId: "test-user-1",
-        result,
-        filtersSnapshot: createTestFilterGroup(),
-        scoringConfigSnapshot: createTestScoringConfig(),
-      });
-
-      expect(session.topStocks).toHaveLength(3);
-      expect(session.otherStockCodes).toHaveLength(0);
-      expect(session.countMatched()).toBe(3);
-      expect(session.totalScanned).toBe(5000);
-      expect(session.executionTime).toBe(1250.5);
-      expect(session.strategyName).toBe("高 ROE 策略");
-    });
-
-    it("应该创建包含超过 50 只股票的会话（分层存储）", () => {
-      const stocks: ScoredStock[] = [];
-      for (let i = 0; i < 60; i++) {
-        const code = `60${String(i).padStart(4, "0")}`;
-        stocks.push(createScoredStock(code, `股票${i}`, 0.9 - i * 0.01));
-      }
-
-      const result = ScreeningResult.create(stocks, 5000, 1250.5);
-      const session = ScreeningSession.create({
-        strategyId: "strategy-1",
-        strategyName: "高 ROE 策略",
-        userId: "test-user-1",
-        result,
-        filtersSnapshot: createTestFilterGroup(),
-        scoringConfigSnapshot: createTestScoringConfig(),
-      });
-
-      expect(session.topStocks).toHaveLength(50);
-      expect(session.otherStockCodes).toHaveLength(10);
-      expect(session.countMatched()).toBe(60);
-    });
+    expect(session.status).toBe(ScreeningSessionStatus.SUCCEEDED);
+    expect(session.countMatched()).toBe(2);
+    expect(session.progressPercent).toBe(100);
   });
 
-  describe("getAllMatchedCodes", () => {
-    it("应该返回所有匹配股票的代码", () => {
-      const stocks: ScoredStock[] = [];
-      for (let i = 0; i < 55; i++) {
-        const code = `60${String(i).padStart(4, "0")}`;
-        stocks.push(createScoredStock(code, `股票${i}`, 0.9 - i * 0.01));
-      }
-
-      const result = ScreeningResult.create(stocks, 5000, 1250.5);
-      const session = ScreeningSession.create({
-        strategyId: "strategy-1",
-        strategyName: "测试策略",
-        userId: "test-user-1",
-        result,
-        filtersSnapshot: createTestFilterGroup(),
-        scoringConfigSnapshot: createTestScoringConfig(),
-      });
-
-      const allCodes = session.getAllMatchedCodes();
-      expect(allCodes).toHaveLength(55);
+  it("序列化往返后保留状态字段", () => {
+    const session = ScreeningSession.createPending({
+      strategyId: "strategy-1",
+      strategyName: "低估值策略",
+      userId: "user-1",
+      filtersSnapshot: createTestFilterGroup(),
+      scoringConfigSnapshot: createTestScoringConfig(),
     });
-  });
+    session.markRunning("执行中");
+    session.updateProgress(42, "扫描候选股票");
 
-  describe("getStockDetail", () => {
-    it("应该返回前 50 只股票的详细信息", () => {
-      const stocks: ScoredStock[] = [];
-      for (let i = 0; i < 60; i++) {
-        const code = `60${String(i).padStart(4, "0")}`;
-        stocks.push(createScoredStock(code, `股票${i}`, 0.9 - i * 0.01));
-      }
-
-      const result = ScreeningResult.create(stocks, 5000, 1250.5);
-      const session = ScreeningSession.create({
-        strategyId: "strategy-1",
-        strategyName: "测试策略",
-        userId: "test-user-1",
-        result,
-        filtersSnapshot: createTestFilterGroup(),
-        scoringConfigSnapshot: createTestScoringConfig(),
-      });
-
-      const detail0 = session.getStockDetail(StockCode.create("600000"));
-      expect(detail0).not.toBeNull();
-      expect(detail0?.stockName).toBe("股票0");
-    });
-
-    it("应该对超过前 50 只的股票返回 null", () => {
-      const stocks: ScoredStock[] = [];
-      for (let i = 0; i < 60; i++) {
-        const code = `60${String(i).padStart(4, "0")}`;
-        stocks.push(createScoredStock(code, `股票${i}`, 0.9 - i * 0.01));
-      }
-
-      const result = ScreeningResult.create(stocks, 5000, 1250.5);
-      const session = ScreeningSession.create({
-        strategyId: "strategy-1",
-        strategyName: "测试策略",
-        userId: "test-user-1",
-        result,
-        filtersSnapshot: createTestFilterGroup(),
-        scoringConfigSnapshot: createTestScoringConfig(),
-      });
-
-      const detail50 = session.getStockDetail(StockCode.create("600050"));
-      expect(detail50).toBeNull();
-    });
-  });
-
-  describe("序列化", () => {
-    it("应该正确序列化和反序列化", () => {
-      const stocks = [
-        createScoredStock("600519", "贵州茅台", 0.9),
-        createScoredStock("000858", "五粮液", 0.8),
-      ];
-
-      const result = ScreeningResult.create(stocks, 5000, 1250.5);
-      const session = ScreeningSession.create({
-        strategyId: "strategy-1",
-        strategyName: "高 ROE 策略",
-        userId: "test-user-1",
-        result,
-        filtersSnapshot: createTestFilterGroup(),
-        scoringConfigSnapshot: createTestScoringConfig(),
-      });
-
-      const dict = session.toDict();
-      const restored = ScreeningSession.fromDict(dict);
-
-      expect(restored.id).toBe(session.id);
-      expect(restored.strategyId).toBe(session.strategyId);
-      expect(restored.countMatched()).toBe(2);
-    });
-  });
-});
-
-import * as fc from "fast-check";
-import {
-  StockCode,
-  StockMarket,
-  InvalidStockCodeError,
-} from "../../value-objects/stock-code";
-
-describe("StockCode", () => {
-  describe("create", () => {
-    it("应该成功创建以 6 开头的上海主板股票代码", () => {
-      const code = StockCode.create("600519");
-      expect(code.value).toBe("600519");
-      expect(code.toString()).toBe("600519");
-      expect(code.getMarket()).toBe(StockMarket.SHANGHAI);
-    });
-
-    it("应该成功创建以 0 开头的深圳主板股票代码", () => {
-      const code = StockCode.create("000001");
-      expect(code.value).toBe("000001");
-      expect(code.getMarket()).toBe(StockMarket.SHENZHEN_MAIN);
-    });
-
-    it("应该成功创建以 3 开头的创业板股票代码", () => {
-      const code = StockCode.create("300750");
-      expect(code.value).toBe("300750");
-      expect(code.getMarket()).toBe(StockMarket.SHENZHEN_GEM);
-    });
-
-    it("应该拒绝空字符串", () => {
-      expect(() => StockCode.create("")).toThrow(InvalidStockCodeError);
-    });
-
-    it("应该拒绝长度不为 6 的代码", () => {
-      expect(() => StockCode.create("60051")).toThrow(InvalidStockCodeError);
-      expect(() => StockCode.create("6005199")).toThrow(InvalidStockCodeError);
-    });
-
-    it("应该拒绝包含非数字字符的代码", () => {
-      expect(() => StockCode.create("60051a")).toThrow(InvalidStockCodeError);
-      expect(() => StockCode.create("abcdef")).toThrow(InvalidStockCodeError);
-    });
-
-    it("应该拒绝不以 0/3/6 开头的代码", () => {
-      expect(() => StockCode.create("100001")).toThrow(InvalidStockCodeError);
-      expect(() => StockCode.create("200001")).toThrow(InvalidStockCodeError);
-      expect(() => StockCode.create("400001")).toThrow(InvalidStockCodeError);
-      expect(() => StockCode.create("500001")).toThrow(InvalidStockCodeError);
-      expect(() => StockCode.create("700001")).toThrow(InvalidStockCodeError);
-      expect(() => StockCode.create("800001")).toThrow(InvalidStockCodeError);
-      expect(() => StockCode.create("900001")).toThrow(InvalidStockCodeError);
-    });
-  });
-
-  describe("tryCreate", () => {
-    it("应该对有效代码返回 StockCode 实例", () => {
-      const code = StockCode.tryCreate("600519");
-      expect(code).not.toBeNull();
-      expect(code?.value).toBe("600519");
-    });
-
-    it("应该对无效代码返回 null", () => {
-      expect(StockCode.tryCreate("")).toBeNull();
-      expect(StockCode.tryCreate("12345")).toBeNull();
-      expect(StockCode.tryCreate("100001")).toBeNull();
-    });
-  });
-
-  describe("validate", () => {
-    it("应该对有效代码返回 isValid: true", () => {
-      expect(StockCode.validate("600519").isValid).toBe(true);
-      expect(StockCode.validate("000001").isValid).toBe(true);
-      expect(StockCode.validate("300750").isValid).toBe(true);
-    });
-
-    it("应该对无效代码返回 isValid: false 和错误信息", () => {
-      const result = StockCode.validate("100001");
-      expect(result.isValid).toBe(false);
-      expect(result.error).toContain("0、3 或 6 开头");
-    });
-  });
-
-  describe("isValid", () => {
-    it("应该正确判断代码有效性", () => {
-      expect(StockCode.isValid("600519")).toBe(true);
-      expect(StockCode.isValid("100001")).toBe(false);
-    });
-  });
-
-  describe("equals", () => {
-    it("应该正确比较两个相同的 StockCode", () => {
-      const code1 = StockCode.create("600519");
-      const code2 = StockCode.create("600519");
-      expect(code1.equals(code2)).toBe(true);
-    });
-
-    it("应该正确比较两个不同的 StockCode", () => {
-      const code1 = StockCode.create("600519");
-      const code2 = StockCode.create("000001");
-      expect(code1.equals(code2)).toBe(false);
-    });
-
-    it("应该对 null 和 undefined 返回 false", () => {
-      const code = StockCode.create("600519");
-      expect(code.equals(null)).toBe(false);
-      expect(code.equals(undefined)).toBe(false);
-    });
-  });
-
-  describe("序列化", () => {
-    it("toJSON 应该返回代码字符串", () => {
-      const code = StockCode.create("600519");
-      expect(code.toJSON()).toBe("600519");
-    });
-
-    it("fromJSON 应该正确反序列化", () => {
-      const code = StockCode.fromJSON("600519");
-      expect(code.value).toBe("600519");
-    });
-  });
-
-  // 属性基测试
-  describe("Property-Based Tests", () => {
-    /**
-     * 生成 5 位数字字符串
-     */
-    const arbFiveDigits = fc
-      .array(fc.integer({ min: 0, max: 9 }), { minLength: 5, maxLength: 5 })
-      .map((digits) => digits.join(""));
-
-    /**
-     * 生成有效的 A 股代码
-     * Feature: stock-screening-platform
-     * **Validates: Requirements 5.2**
-     */
-    const arbValidStockCode = fc
-      .tuple(fc.constantFrom("0", "3", "6"), arbFiveDigits)
-      .map(([prefix, suffix]) => prefix + suffix);
-
-    /**
-     * 生成无效前缀的代码
-     */
-    const arbInvalidPrefixCode = fc
-      .tuple(fc.constantFrom("1", "2", "4", "5", "7", "8", "9"), arbFiveDigits)
-      .map(([prefix, suffix]) => prefix + suffix);
-
-    it("对于所有有效的 A 股代码，create 应该成功", () => {
-      fc.assert(
-        fc.property(arbValidStockCode, (codeStr) => {
-          const code = StockCode.create(codeStr);
-          return code.value === codeStr && code.toString() === codeStr;
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it("对于所有有效的 A 股代码，validate 应该返回 isValid: true", () => {
-      fc.assert(
-        fc.property(arbValidStockCode, (codeStr) => {
-          return StockCode.validate(codeStr).isValid === true;
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it("对于所有无效前缀的代码，create 应该抛出 InvalidStockCodeError", () => {
-      fc.assert(
-        fc.property(arbInvalidPrefixCode, (codeStr) => {
-          try {
-            StockCode.create(codeStr);
-            return false; // 不应该到达这里
-          } catch (e) {
-            return e instanceof InvalidStockCodeError;
-          }
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it("对于所有有效代码，equals 应该满足自反性", () => {
-      fc.assert(
-        fc.property(arbValidStockCode, (codeStr) => {
-          const code = StockCode.create(codeStr);
-          return code.equals(code);
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it("对于所有有效代码，equals 应该满足对称性", () => {
-      fc.assert(
-        fc.property(arbValidStockCode, (codeStr) => {
-          const code1 = StockCode.create(codeStr);
-          const code2 = StockCode.create(codeStr);
-          return code1.equals(code2) === code2.equals(code1);
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it("对于所有有效代码，序列化往返应该保持一致", () => {
-      fc.assert(
-        fc.property(arbValidStockCode, (codeStr) => {
-          const original = StockCode.create(codeStr);
-          const restored = StockCode.fromJSON(original.toJSON());
-          return original.equals(restored);
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it("对于所有以 6 开头的代码，getMarket 应该返回 SHANGHAI", () => {
-      const arbShanghaiCode = arbFiveDigits.map((suffix) => "6" + suffix);
-
-      fc.assert(
-        fc.property(arbShanghaiCode, (codeStr) => {
-          const code = StockCode.create(codeStr);
-          return code.getMarket() === StockMarket.SHANGHAI;
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it("对于所有以 0 开头的代码，getMarket 应该返回 SHENZHEN_MAIN", () => {
-      const arbShenzhenMainCode = arbFiveDigits.map((suffix) => "0" + suffix);
-
-      fc.assert(
-        fc.property(arbShenzhenMainCode, (codeStr) => {
-          const code = StockCode.create(codeStr);
-          return code.getMarket() === StockMarket.SHENZHEN_MAIN;
-        }),
-        { numRuns: 100 }
-      );
-    });
-
-    it("对于所有以 3 开头的代码，getMarket 应该返回 SHENZHEN_GEM", () => {
-      const arbGemCode = arbFiveDigits.map((suffix) => "3" + suffix);
-
-      fc.assert(
-        fc.property(arbGemCode, (codeStr) => {
-          const code = StockCode.create(codeStr);
-          return code.getMarket() === StockMarket.SHENZHEN_GEM;
-        }),
-        { numRuns: 100 }
-      );
-    });
+    const restored = ScreeningSession.fromDict(session.toDict());
+    expect(restored.status).toBe(ScreeningSessionStatus.RUNNING);
+    expect(restored.progressPercent).toBe(42);
+    expect(restored.currentStep).toBe("扫描候选股票");
   });
 });

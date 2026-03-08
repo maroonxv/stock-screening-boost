@@ -8,19 +8,25 @@
  * - 测试筛选执行流程
  */
 
-import { describe, it, expect } from "vitest";
-import { ScreeningStrategy } from "../screening-strategy";
-import type { IScoringService, IIndicatorCalculationService } from "../screening-strategy";
+import { describe, expect, it } from "vitest";
 import { FilterGroup } from "../../entities/filter-group";
-import { FilterCondition } from "../../value-objects/filter-condition";
-import { ScoringConfig, NormalizationMethod } from "../../value-objects/scoring-config";
-import { IndicatorField } from "../../enums/indicator-field";
+import { Stock } from "../../entities/stock";
 import { ComparisonOperator } from "../../enums/comparison-operator";
+import { IndicatorField } from "../../enums/indicator-field";
 import { LogicalOperator } from "../../enums/logical-operator";
 import { InvalidStrategyError } from "../../errors";
-import { Stock } from "../../entities/stock";
-import { StockCode } from "../../value-objects/stock-code";
+import { FilterCondition } from "../../value-objects/filter-condition";
 import { ScoredStock } from "../../value-objects/scored-stock";
+import {
+  NormalizationMethod,
+  ScoringConfig,
+} from "../../value-objects/scoring-config";
+import { StockCode } from "../../value-objects/stock-code";
+import type {
+  IIndicatorCalculationService,
+  IScoringService,
+} from "../screening-strategy";
+import { ScreeningStrategy } from "../screening-strategy";
 
 describe("ScreeningStrategy", () => {
   // Debug: Check if ScreeningStrategy is defined
@@ -34,7 +40,7 @@ describe("ScreeningStrategy", () => {
     return FilterCondition.create(
       IndicatorField.ROE,
       ComparisonOperator.GREATER_THAN,
-      { type: "numeric", value: 0.15 }
+      { type: "numeric", value: 0.15 },
     );
   };
 
@@ -43,7 +49,7 @@ describe("ScreeningStrategy", () => {
     return FilterGroup.create(
       LogicalOperator.AND,
       [createValidFilterCondition()],
-      []
+      [],
     );
   };
 
@@ -54,20 +60,22 @@ describe("ScreeningStrategy", () => {
         [IndicatorField.ROE, 0.5],
         [IndicatorField.PE, 0.5],
       ]),
-      NormalizationMethod.MIN_MAX
+      NormalizationMethod.MIN_MAX,
     );
   };
 
   // Mock 服务
   const mockCalcService: IIndicatorCalculationService = {
-    calculateIndicator: (indicator: IndicatorField, stock: Stock) => stock.getValue(indicator),
-    calculateBatch: (indicators: IndicatorField[], stock: Stock) => {
+    calculateIndicator: async (indicator: IndicatorField, stock: Stock) =>
+      stock.getValue(indicator),
+    calculateBatch: async (indicators: IndicatorField[], stock: Stock) => {
       const result = new Map();
       indicators.forEach((ind: IndicatorField) => {
         result.set(ind, stock.getValue(ind));
       });
       return result;
     },
+    validateDerivedIndicator: () => ({ valid: true }),
   };
 
   const mockScoringService: IScoringService = {
@@ -80,8 +88,8 @@ describe("ScreeningStrategy", () => {
           0.8,
           new Map([[IndicatorField.ROE, 0.8]]),
           new Map([[IndicatorField.ROE, stock.roe]]),
-          []
-        )
+          [],
+        ),
       );
     },
   };
@@ -110,7 +118,7 @@ describe("ScreeningStrategy", () => {
           filters: createValidFilterGroup(),
           scoringConfig: createValidScoringConfig(),
           userId: "user123",
-        })
+        }),
       ).toThrow(InvalidStrategyError);
 
       expect(() =>
@@ -119,7 +127,7 @@ describe("ScreeningStrategy", () => {
           filters: createValidFilterGroup(),
           scoringConfig: createValidScoringConfig(),
           userId: "user123",
-        })
+        }),
       ).toThrow(InvalidStrategyError);
     });
 
@@ -132,7 +140,7 @@ describe("ScreeningStrategy", () => {
           filters: emptyFilterGroup,
           scoringConfig: createValidScoringConfig(),
           userId: "user123",
-        })
+        }),
       ).toThrow(InvalidStrategyError);
     });
 
@@ -144,8 +152,8 @@ describe("ScreeningStrategy", () => {
             [IndicatorField.ROE, 0.5],
             [IndicatorField.PE, 0.4], // 总和 0.9，不等于 1.0
           ]),
-          NormalizationMethod.MIN_MAX
-        )
+          NormalizationMethod.MIN_MAX,
+        ),
       ).toThrow();
     });
   });
@@ -162,7 +170,7 @@ describe("ScreeningStrategy", () => {
       const newFilterGroup = FilterGroup.create(
         LogicalOperator.OR,
         [createValidFilterCondition()],
-        []
+        [],
       );
 
       strategy.update({
@@ -189,13 +197,13 @@ describe("ScreeningStrategy", () => {
       expect(() =>
         strategy.update({
           name: "",
-        })
+        }),
       ).toThrow(InvalidStrategyError);
 
       expect(() =>
         strategy.update({
           filters: FilterGroup.create(LogicalOperator.AND, [], []),
-        })
+        }),
       ).toThrow(InvalidStrategyError);
     });
   });
@@ -230,7 +238,7 @@ describe("ScreeningStrategy", () => {
 
       const clonedStrategy = originalStrategy.cloneWithModifications(
         "克隆策略",
-        "user456"
+        "user456",
       );
 
       expect(clonedStrategy.name).toBe("克隆策略");
@@ -250,14 +258,14 @@ describe("ScreeningStrategy", () => {
 
       const clonedStrategy = originalStrategy.cloneWithModifications(
         "克隆策略",
-        "user456"
+        "user456",
       );
 
       // 修改克隆策略的 filters
       const newFilterGroup = FilterGroup.create(
         LogicalOperator.OR,
         [createValidFilterCondition()],
-        []
+        [],
       );
       clonedStrategy.update({ filters: newFilterGroup });
 
@@ -276,13 +284,13 @@ describe("ScreeningStrategy", () => {
 
       const clonedStrategy = originalStrategy.cloneWithModifications(
         "克隆策略",
-        "user456"
+        "user456",
       );
 
       // 修改克隆策略的 scoringConfig
       const newScoringConfig = ScoringConfig.create(
         new Map([[IndicatorField.ROE, 1.0]]),
-        NormalizationMethod.MIN_MAX
+        NormalizationMethod.MIN_MAX,
       );
       clonedStrategy.update({ scoringConfig: newScoringConfig });
 
@@ -306,7 +314,7 @@ describe("ScreeningStrategy", () => {
         {
           description: "修改后的描述",
           tags: ["新标签"],
-        }
+        },
       );
 
       expect(clonedStrategy.description).toBe("修改后的描述");
@@ -345,7 +353,7 @@ describe("ScreeningStrategy", () => {
           name: "平安银行",
           industry: "银行",
           sector: "主板",
-          roe: 0.10, // 不满足 ROE > 0.15
+          roe: 0.1, // 不满足 ROE > 0.15
           pe: 8.5,
         }),
       ];
@@ -353,7 +361,7 @@ describe("ScreeningStrategy", () => {
       const result = await strategy.execute(
         candidateStocks,
         mockScoringService,
-        mockCalcService
+        mockCalcService,
       );
 
       expect(result.totalScanned).toBe(3);
@@ -379,8 +387,8 @@ describe("ScreeningStrategy", () => {
               0.9 - index * 0.1, // 递减评分
               new Map(),
               new Map(),
-              []
-            )
+              [],
+            ),
           );
         },
       };
@@ -391,7 +399,7 @@ describe("ScreeningStrategy", () => {
           name: "股票1",
           industry: "行业1",
           sector: "主板",
-          roe: 0.20,
+          roe: 0.2,
         }),
         new Stock({
           code: StockCode.create("000858"),
@@ -405,7 +413,7 @@ describe("ScreeningStrategy", () => {
       const result = await strategy.execute(
         candidateStocks,
         customScoringService,
-        mockCalcService
+        mockCalcService,
       );
 
       const scores = result.matchedStocks.map((s) => s.score);

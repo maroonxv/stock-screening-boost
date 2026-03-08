@@ -10,31 +10,32 @@
  * Requirements: 7.1, 7.2, 7.3, 7.5, 7.6
  */
 
-import { z } from "zod";
 import { TRPCError } from "@trpc/server";
+import { z } from "zod";
+import {
+  createStrategyInputSchema,
+  screeningPaginationSchema,
+  updateStrategyInputSchema,
+} from "~/contracts/screening";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { db } from "~/server/db";
-
-// Repository 实现
-import { PrismaScreeningStrategyRepository } from "~/server/infrastructure/screening/prisma-screening-strategy-repository";
-import { PrismaScreeningSessionRepository } from "~/server/infrastructure/screening/prisma-screening-session-repository";
-import { PythonDataServiceClient } from "~/server/infrastructure/screening/python-data-service-client";
-
+import { ScreeningExecutionService } from "~/server/application/screening/screening-execution-service";
 // 领域层
 import { ScreeningStrategy } from "~/server/domain/screening/aggregates/screening-strategy";
-import { ScreeningSession } from "~/server/domain/screening/aggregates/screening-session";
 import { FilterGroup } from "~/server/domain/screening/entities/filter-group";
-import { ScoringConfig } from "~/server/domain/screening/value-objects/scoring-config";
-import { IndicatorCalculationService } from "~/server/domain/screening/services/indicator-calculation-service";
-import { ScoringService } from "~/server/domain/screening/services/scoring-service";
-
+import { ScreeningSessionStatus } from "~/server/domain/screening/enums/screening-session-status";
 // 领域异常
 import {
-  InvalidStrategyError,
-  InvalidFilterConditionError,
-  ScoringError,
   DataNotAvailableError,
+  InvalidFilterConditionError,
+  InvalidStrategyError,
+  NoCandidateStocksError,
+  ScoringError,
+  UnsupportedIndicatorError,
 } from "~/server/domain/screening/errors";
+import { ScoringConfig } from "~/server/domain/screening/value-objects/scoring-config";
+import { PrismaScreeningSessionRepository } from "~/server/infrastructure/screening/prisma-screening-session-repository";
+// Repository 实现
+import { PrismaScreeningStrategyRepository } from "~/server/infrastructure/screening/prisma-screening-strategy-repository";
 
 /**
  * 领域异常到 TRPCError 的映射
@@ -68,6 +69,24 @@ function mapDomainError(error: unknown): TRPCError {
     });
   }
 
+  if (error instanceof UnsupportedIndicatorError) {
+    return new TRPCError({
+      code: "BAD_REQUEST",
+      message: error.message,
+    });
+  }
+
+  if (error instanceof NoCandidateStocksError) {
+    return new TRPCError({
+      code: "BAD_REQUEST",
+      message: error.message,
+    });
+  }
+
+  if (error instanceof TRPCError) {
+    return error;
+  }
+
   if (error instanceof Error) {
     return new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
@@ -82,74 +101,6 @@ function mapDomainError(error: unknown): TRPCError {
 }
 
 /**
- * Zod Schema 定义
- */
-
-// FilterCondition Schema
-const filterConditionSchema = z.object({
-  field: z.string(),
-  operator: z.string(),
-  value: z.union([
-    z.object({ type: z.literal("numeric"), value: z.number(), unit: z.string().optional() }),
-    z.object({ type: z.literal("text"), value: z.string() }),
-    z.object({ type: z.literal("list"), values: z.array(z.string()) }),
-    z.object({ type: z.literal("range"), min: z.number(), max: z.number() }),
-    z.object({ type: z.literal("timeSeries"), years: z.number(), threshold: z.number().optional() }),
-  ]),
-});
-
-// FilterGroup Schema (递归)
-type FilterGroupInput = {
-  groupId: string;
-  operator: string;
-  conditions: z.infer<typeof filterConditionSchema>[];
-  subGroups: FilterGroupInput[];
-};
-
-const filterGroupSchema: z.ZodType<FilterGroupInput> = z.lazy(() =>
-  z.object({
-    groupId: z.string(),
-    operator: z.string(),
-    conditions: z.array(filterConditionSchema),
-    subGroups: z.array(filterGroupSchema),
-  })
-);
-
-// ScoringConfig Schema
-const scoringConfigSchema = z.object({
-  weights: z.record(z.string(), z.number()),
-  directions: z.record(z.string(), z.enum(["ASC", "DESC"])).optional(),
-  normalizationMethod: z.string(),
-});
-
-// 创建策略 Schema
-const createStrategySchema = z.object({
-  name: z.string().min(1, "策略名称不能为空"),
-  description: z.string().optional(),
-  filters: filterGroupSchema,
-  scoringConfig: scoringConfigSchema,
-  tags: z.array(z.string()).default([]),
-  isTemplate: z.boolean().default(false),
-});
-
-// 更新策略 Schema
-const updateStrategySchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, "策略名称不能为空").optional(),
-  description: z.string().optional(),
-  filters: filterGroupSchema.optional(),
-  scoringConfig: scoringConfigSchema.optional(),
-  tags: z.array(z.string()).optional(),
-  isTemplate: z.boolean().optional(),
-});
-
-// 分页 Schema
-const paginationSchema = z.object({
-  limit: z.number().min(1).max(100).default(20),
-  offset: z.number().min(0).default(0),
-});
-
-/**
  * Screening Router
  */
 export const screeningRouter = createTRPCRouter({
@@ -158,14 +109,18 @@ export const screeningRouter = createTRPCRouter({
    * Requirements: 7.1, 7.5, 7.6
    */
   createStrategy: protectedProcedure
-    .input(createStrategySchema)
+    .input(createStrategyInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
         const repository = new PrismaScreeningStrategyRepository(ctx.db);
 
         // 反序列化领域对象
-        const filters = FilterGroup.fromDict(input.filters as Record<string, unknown>);
-        const scoringConfig = ScoringConfig.fromDict(input.scoringConfig as Record<string, unknown>);
+        const filters = FilterGroup.fromDict(
+          input.filters as Record<string, unknown>,
+        );
+        const scoringConfig = ScoringConfig.fromDict(
+          input.scoringConfig as Record<string, unknown>,
+        );
 
         // 创建策略聚合根
         const strategy = ScreeningStrategy.create({
@@ -199,7 +154,7 @@ export const screeningRouter = createTRPCRouter({
    * Requirements: 7.1, 7.5, 7.6
    */
   updateStrategy: protectedProcedure
-    .input(updateStrategySchema)
+    .input(updateStrategyInputSchema)
     .mutation(async ({ ctx, input }) => {
       try {
         const repository = new PrismaScreeningStrategyRepository(ctx.db);
@@ -232,15 +187,21 @@ export const screeningRouter = createTRPCRouter({
         } = {};
 
         if (input.name !== undefined) updates.name = input.name;
-        if (input.description !== undefined) updates.description = input.description;
+        if (input.description !== undefined)
+          updates.description = input.description;
         if (input.filters !== undefined) {
-          updates.filters = FilterGroup.fromDict(input.filters as Record<string, unknown>);
+          updates.filters = FilterGroup.fromDict(
+            input.filters as Record<string, unknown>,
+          );
         }
         if (input.scoringConfig !== undefined) {
-          updates.scoringConfig = ScoringConfig.fromDict(input.scoringConfig as Record<string, unknown>);
+          updates.scoringConfig = ScoringConfig.fromDict(
+            input.scoringConfig as Record<string, unknown>,
+          );
         }
         if (input.tags !== undefined) updates.tags = input.tags;
-        if (input.isTemplate !== undefined) updates.isTemplate = input.isTemplate;
+        if (input.isTemplate !== undefined)
+          updates.isTemplate = input.isTemplate;
 
         strategy.update(updates);
 
@@ -343,7 +304,7 @@ export const screeningRouter = createTRPCRouter({
    * Requirements: 7.1, 7.5, 7.6
    */
   listStrategies: protectedProcedure
-    .input(paginationSchema)
+    .input(screeningPaginationSchema)
     .query(async ({ ctx, input }) => {
       try {
         const repository = new PrismaScreeningStrategyRepository(ctx.db);
@@ -351,7 +312,7 @@ export const screeningRouter = createTRPCRouter({
         const strategies = await repository.findByUserId(
           ctx.session.user.id,
           input.limit,
-          input.offset
+          input.offset,
         );
 
         return strategies.map((strategy) => ({
@@ -378,8 +339,6 @@ export const screeningRouter = createTRPCRouter({
       try {
         const strategyRepo = new PrismaScreeningStrategyRepository(ctx.db);
         const sessionRepo = new PrismaScreeningSessionRepository(ctx.db);
-
-        // 查找策略
         const strategy = await strategyRepo.findById(input.strategyId);
         if (!strategy) {
           throw new TRPCError({
@@ -388,7 +347,6 @@ export const screeningRouter = createTRPCRouter({
           });
         }
 
-        // 验证所有权
         if (strategy.userId !== ctx.session.user.id) {
           throw new TRPCError({
             code: "FORBIDDEN",
@@ -396,43 +354,20 @@ export const screeningRouter = createTRPCRouter({
           });
         }
 
-        // 初始化服务
-        const dataClient = new PythonDataServiceClient({
-          baseUrl: process.env.PYTHON_SERVICE_URL ?? "http://localhost:8000",
+        const executionService = new ScreeningExecutionService({
+          sessionRepository: sessionRepo,
+          strategyRepository: strategyRepo,
         });
-        const calcService = new IndicatorCalculationService(dataClient);
-        const scoringService = new ScoringService();
-
-        // 获取候选股票列表
-        const stockCodes = await dataClient.getAllStockCodes();
-        const candidateStocks = await dataClient.getStocksByCodes(stockCodes);
-
-        // 执行筛选
-        const result = await strategy.execute(
-          candidateStocks,
-          scoringService,
-          calcService
-        );
-
-        // 创建会话
-        const session = ScreeningSession.create({
-          strategyId: strategy.id,
-          strategyName: strategy.name,
-          result,
-          filtersSnapshot: strategy.filters,
-          scoringConfigSnapshot: strategy.scoringConfig,
+        const session = await executionService.enqueueStrategyExecution({
+          strategyId: input.strategyId,
           userId: ctx.session.user.id,
         });
 
-        // 持久化会话
-        await sessionRepo.save(session);
-
         return {
           sessionId: session.id,
-          totalScanned: session.totalScanned,
-          matchedCount: session.countMatched(),
-          executionTime: session.executionTime,
-          topStocks: session.topStocks.map((stock) => stock.toDict()),
+          status: session.status,
+          progressPercent: session.progressPercent,
+          currentStep: session.currentStep,
         };
       } catch (error) {
         throw mapDomainError(error);
@@ -444,7 +379,7 @@ export const screeningRouter = createTRPCRouter({
    * Requirements: 7.3, 7.5, 7.6
    */
   listRecentSessions: protectedProcedure
-    .input(paginationSchema)
+    .input(screeningPaginationSchema)
     .query(async ({ ctx, input }) => {
       try {
         const repository = new PrismaScreeningSessionRepository(ctx.db);
@@ -452,7 +387,7 @@ export const screeningRouter = createTRPCRouter({
         const sessions = await repository.findRecentSessionsByUser(
           ctx.session.user.id,
           input.limit,
-          input.offset
+          input.offset,
         );
 
         return sessions.map((session) => ({
@@ -460,6 +395,10 @@ export const screeningRouter = createTRPCRouter({
           strategyId: session.strategyId,
           strategyName: session.strategyName,
           executedAt: session.executedAt,
+          status: session.status,
+          progressPercent: session.progressPercent,
+          currentStep: session.currentStep,
+          errorMessage: session.errorMessage,
           totalScanned: session.totalScanned,
           matchedCount: session.countMatched(),
           executionTime: session.executionTime,
@@ -479,7 +418,7 @@ export const screeningRouter = createTRPCRouter({
         strategyId: z.string(),
         limit: z.number().min(1).max(100).default(20),
         offset: z.number().min(0).default(0),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       try {
@@ -489,7 +428,7 @@ export const screeningRouter = createTRPCRouter({
           input.strategyId,
           ctx.session.user.id,
           input.limit,
-          input.offset
+          input.offset,
         );
 
         return sessions.map((session) => ({
@@ -497,6 +436,10 @@ export const screeningRouter = createTRPCRouter({
           strategyId: session.strategyId,
           strategyName: session.strategyName,
           executedAt: session.executedAt,
+          status: session.status,
+          progressPercent: session.progressPercent,
+          currentStep: session.currentStep,
+          errorMessage: session.errorMessage,
           totalScanned: session.totalScanned,
           matchedCount: session.countMatched(),
           executionTime: session.executionTime,
@@ -537,6 +480,13 @@ export const screeningRouter = createTRPCRouter({
           strategyId: session.strategyId,
           strategyName: session.strategyName,
           executedAt: session.executedAt,
+          status: session.status,
+          progressPercent: session.progressPercent,
+          currentStep: session.currentStep,
+          errorMessage: session.errorMessage,
+          cancellationRequestedAt: session.cancellationRequestedAt,
+          startedAt: session.startedAt,
+          completedAt: session.completedAt,
           totalScanned: session.totalScanned,
           matchedCount: session.countMatched(),
           executionTime: session.executionTime,
@@ -544,6 +494,89 @@ export const screeningRouter = createTRPCRouter({
           otherStockCodes: session.otherStockCodes.map((code) => code.value),
           filtersSnapshot: session.filtersSnapshot.toDict(),
           scoringConfigSnapshot: session.scoringConfigSnapshot.toDict(),
+        };
+      } catch (error) {
+        throw mapDomainError(error);
+      }
+    }),
+
+  cancelSession: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const sessionRepository = new PrismaScreeningSessionRepository(ctx.db);
+        const session = await sessionRepository.findById(input.sessionId);
+        if (!session) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "会话不存在",
+          });
+        }
+
+        if (session.userId !== ctx.session.user.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "无权限取消此会话",
+          });
+        }
+
+        const executionService = new ScreeningExecutionService({
+          sessionRepository,
+          strategyRepository: new PrismaScreeningStrategyRepository(ctx.db),
+        });
+
+        const updatedSession = await executionService.requestCancellation(
+          input.sessionId,
+          ctx.session.user.id,
+        );
+
+        return {
+          sessionId: updatedSession.id,
+          status: updatedSession.status,
+          progressPercent: updatedSession.progressPercent,
+          currentStep: updatedSession.currentStep,
+        };
+      } catch (error) {
+        throw mapDomainError(error);
+      }
+    }),
+
+  retrySession: protectedProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const sessionRepository = new PrismaScreeningSessionRepository(ctx.db);
+        const existingSession = await sessionRepository.findById(
+          input.sessionId,
+        );
+        if (!existingSession) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "会话不存在",
+          });
+        }
+
+        if (existingSession.userId !== ctx.session.user.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "无权限重试此会话",
+          });
+        }
+
+        const executionService = new ScreeningExecutionService({
+          sessionRepository,
+          strategyRepository: new PrismaScreeningStrategyRepository(ctx.db),
+        });
+        const retried = await executionService.enqueueRetry(
+          input.sessionId,
+          ctx.session.user.id,
+        );
+
+        return {
+          sessionId: retried.id,
+          status: retried.status,
+          progressPercent: retried.progressPercent,
+          currentStep: retried.currentStep,
         };
       } catch (error) {
         throw mapDomainError(error);
@@ -574,6 +607,16 @@ export const screeningRouter = createTRPCRouter({
           throw new TRPCError({
             code: "FORBIDDEN",
             message: "无权限删除此会话",
+          });
+        }
+
+        if (
+          session.status === ScreeningSessionStatus.RUNNING ||
+          session.status === ScreeningSessionStatus.PENDING
+        ) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "请先取消进行中的任务，再删除会话",
           });
         }
 

@@ -33,9 +33,12 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { LogicalOperator } from "../enums/logical-operator";
-import { FilterCondition, type IIndicatorCalculationService } from "../value-objects/filter-condition";
-import type { Stock } from "./stock";
 import { InvalidFilterConditionError } from "../errors";
+import {
+  FilterCondition,
+  type IIndicatorCalculationService,
+} from "../value-objects/filter-condition";
+import type { Stock } from "./stock";
 
 /**
  * FilterGroup 实体属性接口
@@ -86,7 +89,7 @@ export class FilterGroup {
     operator: LogicalOperator,
     conditions: FilterCondition[] = [],
     subGroups: FilterGroup[] = [],
-    groupId?: string
+    groupId?: string,
   ): FilterGroup {
     const id = groupId ?? uuidv4();
 
@@ -95,7 +98,7 @@ export class FilterGroup {
       const totalElements = conditions.length + subGroups.length;
       if (totalElements !== 1) {
         throw new InvalidFilterConditionError(
-          `NOT 组仅允许包含一个子元素（条件或子组），但提供了 ${totalElements} 个元素`
+          `NOT 组仅允许包含一个子元素（条件或子组），但提供了 ${totalElements} 个元素`,
         );
       }
     }
@@ -123,32 +126,47 @@ export class FilterGroup {
    * Requirements: 2.1
    */
   match(stock: Stock, calcService: IIndicatorCalculationService): boolean {
-    // 评估所有直接条件
-    const conditionResults = this.conditions.map((condition) =>
-      condition.evaluate(stock, calcService)
-    );
-
-    // 递归评估所有子组
-    const subGroupResults = this.subGroups.map((subGroup) =>
-      subGroup.match(stock, calcService)
-    );
-
-    // 合并所有结果
-    const allResults = [...conditionResults, ...subGroupResults];
-
-    // 根据逻辑运算符计算最终结果
     switch (this.operator) {
       case LogicalOperator.AND:
-        // 空组返回 true（空集的全称量化为真）
-        return allResults.length === 0 ? true : allResults.every((r) => r);
+        for (const condition of this.conditions) {
+          if (!condition.evaluate(stock, calcService)) {
+            return false;
+          }
+        }
+
+        for (const subGroup of this.subGroups) {
+          if (!subGroup.match(stock, calcService)) {
+            return false;
+          }
+        }
+
+        return true;
 
       case LogicalOperator.OR:
-        // 空组返回 false（空集的存在量化为假）
-        return allResults.length === 0 ? false : allResults.some((r) => r);
+        for (const condition of this.conditions) {
+          if (condition.evaluate(stock, calcService)) {
+            return true;
+          }
+        }
+
+        for (const subGroup of this.subGroups) {
+          if (subGroup.match(stock, calcService)) {
+            return true;
+          }
+        }
+
+        return false;
 
       case LogicalOperator.NOT:
-        // NOT 组必须有且仅有一个子元素（已在 create 中验证）
-        return allResults.length === 1 ? !allResults[0] : false;
+        if (this.conditions.length === 1) {
+          return !this.conditions[0]!.evaluate(stock, calcService);
+        }
+
+        if (this.subGroups.length === 1) {
+          return !this.subGroups[0]!.match(stock, calcService);
+        }
+
+        return false;
 
       default:
         return false;
@@ -162,27 +180,49 @@ export class FilterGroup {
    */
   async matchAsync(
     stock: Stock,
-    calcService: IIndicatorCalculationService
+    calcService: IIndicatorCalculationService,
   ): Promise<boolean> {
-    const conditionResults = await Promise.all(
-      this.conditions.map((condition) => condition.evaluateAsync(stock, calcService))
-    );
-
-    const subGroupResults = await Promise.all(
-      this.subGroups.map((subGroup) => subGroup.matchAsync(stock, calcService))
-    );
-
-    const allResults = [...conditionResults, ...subGroupResults];
-
     switch (this.operator) {
       case LogicalOperator.AND:
-        return allResults.length === 0 ? true : allResults.every((r) => r);
+        for (const condition of this.conditions) {
+          if (!(await condition.evaluateAsync(stock, calcService))) {
+            return false;
+          }
+        }
+
+        for (const subGroup of this.subGroups) {
+          if (!(await subGroup.matchAsync(stock, calcService))) {
+            return false;
+          }
+        }
+
+        return true;
 
       case LogicalOperator.OR:
-        return allResults.length === 0 ? false : allResults.some((r) => r);
+        for (const condition of this.conditions) {
+          if (await condition.evaluateAsync(stock, calcService)) {
+            return true;
+          }
+        }
+
+        for (const subGroup of this.subGroups) {
+          if (await subGroup.matchAsync(stock, calcService)) {
+            return true;
+          }
+        }
+
+        return false;
 
       case LogicalOperator.NOT:
-        return allResults.length === 1 ? !allResults[0] : false;
+        if (this.conditions.length === 1) {
+          return !(await this.conditions[0]!.evaluateAsync(stock, calcService));
+        }
+
+        if (this.subGroups.length === 1) {
+          return !(await this.subGroups[0]!.matchAsync(stock, calcService));
+        }
+
+        return false;
 
       default:
         return false;
@@ -218,7 +258,7 @@ export class FilterGroup {
     // 递归计数子组中的条件
     const subGroupCount = this.subGroups.reduce(
       (sum, subGroup) => sum + subGroup.countTotalConditions(),
-      0
+      0,
     );
 
     return directCount + subGroupCount;
@@ -285,7 +325,8 @@ export class FilterGroup {
       return `${this.operator} []`;
     }
 
-    const separator = this.operator === LogicalOperator.NOT ? " " : ` ${this.operator} `;
+    const separator =
+      this.operator === LogicalOperator.NOT ? " " : ` ${this.operator} `;
     return allStrs.join(separator);
   }
 }

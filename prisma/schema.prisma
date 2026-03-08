@@ -103,6 +103,13 @@ model ScreeningSession {
     strategyId            String?
     strategyName          String
     executedAt            DateTime           @default(now())
+    status                ScreeningSessionStatus @default(PENDING)
+    progressPercent       Int                @default(0)
+    currentStep           String?
+    errorMessage          String?
+    cancellationRequestedAt DateTime?
+    startedAt             DateTime?
+    completedAt           DateTime?
     totalScanned          Int
     executionTime         Float
     topStocks             Json               // ScoredStock[] 序列化
@@ -117,6 +124,15 @@ model ScreeningSession {
     @@index([userId])
     @@index([strategyId])
     @@index([executedAt])
+    @@index([status, executedAt])
+}
+
+enum ScreeningSessionStatus {
+    PENDING
+    RUNNING
+    SUCCEEDED
+    FAILED
+    CANCELLED
 }
 
 model WatchList {

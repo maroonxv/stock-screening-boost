@@ -11,11 +11,12 @@
  * - 至少运行 100 次迭代
  */
 
-import { describe, it, expect } from "vitest";
 import * as fc from "fast-check";
-import { PythonDataServiceClient } from "../python-data-service-client";
-import { StockCode } from "~/server/domain/screening/value-objects/stock-code.js";
+import { describe, expect, it } from "vitest";
 import { arbStockCode } from "~/server/domain/screening/__tests__/generators.js";
+import type { Stock } from "~/server/domain/screening/entities/stock.js";
+import { StockCode } from "~/server/domain/screening/value-objects/stock-code.js";
+import { PythonDataServiceClient } from "../python-data-service-client";
 
 /**
  * 生成有效的 StockData JSON 响应
@@ -25,15 +26,27 @@ const arbStockDataResponse = fc.record({
   name: fc.string({ minLength: 2, maxLength: 10 }),
   industry: fc.constantFrom("白酒", "医药", "银行", "科技", "制造"),
   sector: fc.constantFrom("主板", "创业板", "科创板"),
-  roe: fc.option(fc.double({ min: -0.5, max: 1.0, noNaN: true }), { nil: null }),
+  roe: fc.option(fc.double({ min: -0.5, max: 1.0, noNaN: true }), {
+    nil: null,
+  }),
   pe: fc.option(fc.double({ min: 0, max: 200, noNaN: true }), { nil: null }),
   pb: fc.option(fc.double({ min: 0, max: 50, noNaN: true }), { nil: null }),
   eps: fc.option(fc.double({ min: -10, max: 100, noNaN: true }), { nil: null }),
-  revenue: fc.option(fc.double({ min: 0, max: 10000, noNaN: true }), { nil: null }),
-  netProfit: fc.option(fc.double({ min: -1000, max: 5000, noNaN: true }), { nil: null }),
-  debtRatio: fc.option(fc.double({ min: 0, max: 1.0, noNaN: true }), { nil: null }),
-  marketCap: fc.option(fc.double({ min: 10, max: 100000, noNaN: true }), { nil: null }),
-  floatMarketCap: fc.option(fc.double({ min: 10, max: 100000, noNaN: true }), { nil: null }),
+  revenue: fc.option(fc.double({ min: 0, max: 10000, noNaN: true }), {
+    nil: null,
+  }),
+  netProfit: fc.option(fc.double({ min: -1000, max: 5000, noNaN: true }), {
+    nil: null,
+  }),
+  debtRatio: fc.option(fc.double({ min: 0, max: 1.0, noNaN: true }), {
+    nil: null,
+  }),
+  marketCap: fc.option(fc.double({ min: 10, max: 100000, noNaN: true }), {
+    nil: null,
+  }),
+  floatMarketCap: fc.option(fc.double({ min: 10, max: 100000, noNaN: true }), {
+    nil: null,
+  }),
   dataDate: fc
     .date({ min: new Date("2020-01-01"), max: new Date("2024-12-31") })
     .filter((d) => !Number.isNaN(d.getTime()))
@@ -51,7 +64,9 @@ describe("PythonDataServiceClient - Property 12: HTTP 响应映射正确性", ()
 
         // 通过反射访问私有方法 mapToStock
         // TypeScript 中访问私有方法需要使用类型断言
-        const mapToStock = (client as unknown as { mapToStock: (data: unknown) => unknown }).mapToStock;
+        const mapToStock = (
+          client as unknown as { mapToStock: (data: unknown) => Stock }
+        ).mapToStock;
         const stock = mapToStock.call(client, stockDataJson);
 
         // 验证基础字段
@@ -118,9 +133,11 @@ describe("PythonDataServiceClient - Property 12: HTTP 响应映射正确性", ()
 
         // 验证日期字段
         expect(stock.dataDate).toBeInstanceOf(Date);
-        expect(stock.dataDate?.toISOString().split('T')[0]).toBe(stockDataJson.dataDate);
+        expect(stock.dataDate?.toISOString().split("T")[0]).toBe(
+          stockDataJson.dataDate,
+        );
       }),
-      { numRuns: 100 } // 至少运行 100 次迭代
+      { numRuns: 100 }, // 至少运行 100 次迭代
     );
   });
 
@@ -131,7 +148,9 @@ describe("PythonDataServiceClient - Property 12: HTTP 响应映射正确性", ()
         fc.string({ minLength: 2, maxLength: 10 }),
         fc.constantFrom("白酒", "医药", "银行", "科技", "制造"),
         fc.constantFrom("主板", "创业板", "科创板"),
-        fc.date({ min: new Date("2020-01-01"), max: new Date("2024-12-31") }).filter(d => !isNaN(d.getTime())),
+        fc
+          .date({ min: new Date("2020-01-01"), max: new Date("2024-12-31") })
+          .filter((d) => !isNaN(d.getTime())),
         (code, name, industry, sector, dataDate) => {
           const stockDataJson = {
             code,
@@ -147,14 +166,16 @@ describe("PythonDataServiceClient - Property 12: HTTP 响应映射正确性", ()
             debtRatio: null,
             marketCap: null,
             floatMarketCap: null,
-            dataDate: dataDate.toISOString().split('T')[0]!,
+            dataDate: dataDate.toISOString().split("T")[0]!,
           };
 
           const client = new PythonDataServiceClient({
             baseUrl: "http://localhost:8000",
           });
 
-          const mapToStock = (client as unknown as { mapToStock: (data: unknown) => unknown }).mapToStock;
+          const mapToStock = (
+            client as unknown as { mapToStock: (data: unknown) => Stock }
+          ).mapToStock;
           const stock = mapToStock.call(client, stockDataJson);
 
           // 验证所有数值字段都为 null
@@ -173,9 +194,9 @@ describe("PythonDataServiceClient - Property 12: HTTP 响应映射正确性", ()
           expect(stock.name).toBe(name);
           expect(stock.industry).toBe(industry);
           expect(stock.sector).toBe(sector);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -198,7 +219,22 @@ describe("PythonDataServiceClient - Property 12: HTTP 响应映射正确性", ()
         fc
           .date({ min: new Date("2020-01-01"), max: new Date("2024-12-31") })
           .filter((d) => !Number.isNaN(d.getTime())),
-        (code, name, industry, sector, roe, pe, pb, eps, revenue, netProfit, debtRatio, marketCap, floatMarketCap, dataDate) => {
+        (
+          code,
+          name,
+          industry,
+          sector,
+          roe,
+          pe,
+          pb,
+          eps,
+          revenue,
+          netProfit,
+          debtRatio,
+          marketCap,
+          floatMarketCap,
+          dataDate,
+        ) => {
           const stockDataJson = {
             code,
             name,
@@ -213,14 +249,16 @@ describe("PythonDataServiceClient - Property 12: HTTP 响应映射正确性", ()
             debtRatio,
             marketCap,
             floatMarketCap,
-            dataDate: dataDate.toISOString().split('T')[0]!,
+            dataDate: dataDate.toISOString().split("T")[0]!,
           };
 
           const client = new PythonDataServiceClient({
             baseUrl: "http://localhost:8000",
           });
 
-          const mapToStock = (client as unknown as { mapToStock: (data: unknown) => unknown }).mapToStock;
+          const mapToStock = (
+            client as unknown as { mapToStock: (data: unknown) => Stock }
+          ).mapToStock;
           const stock = mapToStock.call(client, stockDataJson);
 
           // 验证所有字段都正确映射
@@ -237,10 +275,12 @@ describe("PythonDataServiceClient - Property 12: HTTP 响应映射正确性", ()
           expect(stock.debtRatio).toBe(debtRatio);
           expect(stock.marketCap).toBe(marketCap);
           expect(stock.floatMarketCap).toBe(floatMarketCap);
-          expect(stock.dataDate?.toISOString().split('T')[0]).toBe(stockDataJson.dataDate);
-        }
+          expect(stock.dataDate?.toISOString().split("T")[0]).toBe(
+            stockDataJson.dataDate,
+          );
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

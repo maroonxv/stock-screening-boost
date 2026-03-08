@@ -8,12 +8,13 @@
  * **Validates: Requirements 5.2, 5.3, 5.4, 5.5**
  */
 
-import { describe, it } from "vitest";
 import * as fc from "fast-check";
-import { WatchList } from "../watch-list";
-import { StockCode } from "../../value-objects/stock-code";
-import { DuplicateStockError } from "../../errors";
+import { describe, it } from "vitest";
 import { arbStockCode } from "../../__tests__/generators";
+import { DuplicateStockError } from "../../errors";
+import { StockCode } from "../../value-objects/stock-code";
+import { normalizeTags } from "../../value-objects/watched-stock";
+import { WatchList } from "../watch-list";
 
 /**
  * 定义操作类型
@@ -35,70 +36,82 @@ const arbOperationSequence = fc.array(
     fc.record({
       type: fc.constant("remove" as const),
       code: arbStockCode,
-    })
+    }),
   ),
-  { minLength: 1, maxLength: 20 }
+  { minLength: 1, maxLength: 20 },
 );
 
 describe("WatchList Property-Based Tests", () => {
   describe("Property 10: WatchList 添加/移除/包含一致性", () => {
     it("添加后 contains 应返回 true", () => {
       fc.assert(
-        fc.property(arbStockCode, fc.string({ minLength: 2, maxLength: 10 }), (code, name) => {
-          const watchList = WatchList.create({
-            name: "测试列表",
-            userId: "user-1",
-          });
+        fc.property(
+          arbStockCode,
+          fc.string({ minLength: 2, maxLength: 10 }),
+          (code, name) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
 
-          const stockCode = StockCode.create(code);
-          watchList.addStock(stockCode, name);
+            const stockCode = StockCode.create(code);
+            watchList.addStock(stockCode, name);
 
-          // 验证：添加后 contains 返回 true
-          return watchList.contains(stockCode);
-        }),
-        { numRuns: 100 }
+            // 验证：添加后 contains 返回 true
+            return watchList.contains(stockCode);
+          },
+        ),
+        { numRuns: 100 },
       );
     });
 
     it("移除后 contains 应返回 false", () => {
       fc.assert(
-        fc.property(arbStockCode, fc.string({ minLength: 2, maxLength: 10 }), (code, name) => {
-          const watchList = WatchList.create({
-            name: "测试列表",
-            userId: "user-1",
-          });
+        fc.property(
+          arbStockCode,
+          fc.string({ minLength: 2, maxLength: 10 }),
+          (code, name) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
 
-          const stockCode = StockCode.create(code);
-          watchList.addStock(stockCode, name);
-          watchList.removeStock(stockCode);
+            const stockCode = StockCode.create(code);
+            watchList.addStock(stockCode, name);
+            watchList.removeStock(stockCode);
 
-          // 验证：移除后 contains 返回 false
-          return !watchList.contains(stockCode);
-        }),
-        { numRuns: 100 }
+            // 验证：移除后 contains 返回 false
+            return !watchList.contains(stockCode);
+          },
+        ),
+        { numRuns: 100 },
       );
     });
 
     it("重复添加相同股票应抛出 DuplicateStockError", () => {
       fc.assert(
-        fc.property(arbStockCode, fc.string({ minLength: 2, maxLength: 10 }), (code, name) => {
-          const watchList = WatchList.create({
-            name: "测试列表",
-            userId: "user-1",
-          });
+        fc.property(
+          arbStockCode,
+          fc.string({ minLength: 2, maxLength: 10 }),
+          (code, name) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
 
-          const stockCode = StockCode.create(code);
-          watchList.addStock(stockCode, name);
-
-          // 验证：重复添加抛出 DuplicateStockError
-          try {
+            const stockCode = StockCode.create(code);
             watchList.addStock(stockCode, name);
-            return false; // 如果没有抛出异常，测试失败
-          } catch (error) {
-            return error instanceof DuplicateStockError;
-          }
-        }),
-        { numRuns: 100 }
+
+            // 验证：重复添加抛出 DuplicateStockError
+            try {
+              watchList.addStock(stockCode, name);
+              return false; // 如果没有抛出异常，测试失败
+            } catch (error) {
+              return error instanceof DuplicateStockError;
+            }
+          },
+        ),
+        { numRuns: 100 },
       );
     });
 
@@ -152,9 +165,6 @@ describe("WatchList Property-Based Tests", () => {
                   return false;
                 }
               } else {
-                // 如果不存在，移除应抛出异常（但我们跳过这个操作以简化测试）
-                // 这里我们不执行移除操作，因为会抛出 StockNotFoundError
-                continue;
               }
             }
           }
@@ -169,37 +179,41 @@ describe("WatchList Property-Based Tests", () => {
           // 验证 stocks 数量与预期一致
           return watchList.stocks.length === expectedStocks.size;
         }),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
     it("添加-移除-再添加序列应保持一致性", () => {
       fc.assert(
-        fc.property(arbStockCode, fc.string({ minLength: 2, maxLength: 10 }), (code, name) => {
-          const watchList = WatchList.create({
-            name: "测试列表",
-            userId: "user-1",
-          });
+        fc.property(
+          arbStockCode,
+          fc.string({ minLength: 2, maxLength: 10 }),
+          (code, name) => {
+            const watchList = WatchList.create({
+              name: "测试列表",
+              userId: "user-1",
+            });
 
-          const stockCode = StockCode.create(code);
+            const stockCode = StockCode.create(code);
 
-          // 第一次添加
-          watchList.addStock(stockCode, name);
-          if (!watchList.contains(stockCode)) {
-            return false;
-          }
+            // 第一次添加
+            watchList.addStock(stockCode, name);
+            if (!watchList.contains(stockCode)) {
+              return false;
+            }
 
-          // 移除
-          watchList.removeStock(stockCode);
-          if (watchList.contains(stockCode)) {
-            return false;
-          }
+            // 移除
+            watchList.removeStock(stockCode);
+            if (watchList.contains(stockCode)) {
+              return false;
+            }
 
-          // 再次添加（应该成功，因为已经移除了）
-          watchList.addStock(stockCode, name);
-          return watchList.contains(stockCode);
-        }),
-        { numRuns: 100 }
+            // 再次添加（应该成功，因为已经移除了）
+            watchList.addStock(stockCode, name);
+            return watchList.contains(stockCode);
+          },
+        ),
+        { numRuns: 100 },
       );
     });
 
@@ -208,12 +222,12 @@ describe("WatchList Property-Based Tests", () => {
         fc.property(
           fc.array(
             fc.tuple(arbStockCode, fc.string({ minLength: 2, maxLength: 10 })),
-            { minLength: 2, maxLength: 10 }
+            { minLength: 2, maxLength: 10 },
           ),
           (stockPairs) => {
             // 去重：确保所有股票代码不同
             const uniqueStocks = Array.from(
-              new Map(stockPairs.map(([code, name]) => [code, name])).entries()
+              new Map(stockPairs.map(([code, name]) => [code, name])).entries(),
             );
 
             if (uniqueStocks.length < 2) {
@@ -255,9 +269,9 @@ describe("WatchList Property-Based Tests", () => {
             }
 
             return true;
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
   });
@@ -266,10 +280,10 @@ describe("WatchList Property-Based Tests", () => {
     /**
      * 生成随机标签列表
      */
-    const arbTags = fc.array(
-      fc.string({ minLength: 1, maxLength: 10 }),
-      { minLength: 0, maxLength: 5 }
-    );
+    const arbTags = fc.array(fc.string({ minLength: 1, maxLength: 10 }), {
+      minLength: 0,
+      maxLength: 5,
+    });
 
     /**
      * 生成带标签的股票数据
@@ -293,7 +307,7 @@ describe("WatchList Property-Based Tests", () => {
 
             // 去重：确保所有股票代码不同
             const uniqueStocks = Array.from(
-              new Map(stocks.map((s) => [s.code, s])).values()
+              new Map(stocks.map((s) => [s.code, s])).values(),
             );
 
             // 添加所有股票
@@ -302,20 +316,21 @@ describe("WatchList Property-Based Tests", () => {
                 StockCode.create(stock.code),
                 stock.name,
                 undefined,
-                stock.tags
+                stock.tags,
               );
             }
 
             // 查询包含指定标签的股票
-            const result = watchList.getStocksByTag(queryTag);
+            const normalizedQueryTag = normalizeTags([queryTag])[0] ?? "";
+            const result = watchList.getStocksByTag(normalizedQueryTag);
 
             // 验证：返回的所有股票都应包含该标签
             return result.every((watchedStock) =>
-              watchedStock.hasTag(queryTag)
+              watchedStock.hasTag(normalizedQueryTag),
             );
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
@@ -332,7 +347,7 @@ describe("WatchList Property-Based Tests", () => {
 
             // 去重：确保所有股票代码不同
             const uniqueStocks = Array.from(
-              new Map(stocks.map((s) => [s.code, s])).values()
+              new Map(stocks.map((s) => [s.code, s])).values(),
             );
 
             // 添加所有股票
@@ -341,16 +356,17 @@ describe("WatchList Property-Based Tests", () => {
                 StockCode.create(stock.code),
                 stock.name,
                 undefined,
-                stock.tags
+                stock.tags,
               );
             }
 
             // 查询包含指定标签的股票
-            const result = watchList.getStocksByTag(queryTag);
+            const normalizedQueryTag = normalizeTags([queryTag])[0] ?? "";
+            const result = watchList.getStocksByTag(normalizedQueryTag);
 
             // 计算预期包含该标签的股票数量
             const expectedStocksWithTag = uniqueStocks.filter((s) =>
-              s.tags.includes(queryTag)
+              normalizeTags(s.tags).includes(normalizedQueryTag),
             );
 
             // 验证：返回结果的数量应等于预期数量
@@ -362,7 +378,7 @@ describe("WatchList Property-Based Tests", () => {
             for (const expectedStock of expectedStocksWithTag) {
               const found = result.some(
                 (watchedStock) =>
-                  watchedStock.stockCode.value === expectedStock.code
+                  watchedStock.stockCode.value === expectedStock.code,
               );
               if (!found) {
                 return false;
@@ -370,9 +386,9 @@ describe("WatchList Property-Based Tests", () => {
             }
 
             return true;
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
@@ -388,7 +404,7 @@ describe("WatchList Property-Based Tests", () => {
 
             // 去重：确保所有股票代码不同
             const uniqueStocks = Array.from(
-              new Map(stocks.map((s) => [s.code, s])).values()
+              new Map(stocks.map((s) => [s.code, s])).values(),
             );
 
             // 添加所有股票
@@ -397,14 +413,12 @@ describe("WatchList Property-Based Tests", () => {
                 StockCode.create(stock.code),
                 stock.name,
                 undefined,
-                stock.tags
+                stock.tags,
               );
             }
 
             // 收集所有已使用的标签
-            const usedTags = new Set(
-              uniqueStocks.flatMap((s) => s.tags)
-            );
+            const usedTags = new Set(uniqueStocks.flatMap((s) => s.tags));
 
             // 生成一个不存在的标签（使用UUID确保唯一性）
             const nonExistentTag = `non-existent-tag-${Math.random().toString(36).substring(7)}`;
@@ -419,9 +433,9 @@ describe("WatchList Property-Based Tests", () => {
 
             // 验证：应返回空数组
             return result.length === 0;
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
@@ -448,18 +462,21 @@ describe("WatchList Property-Based Tests", () => {
                 StockCode.create(code),
                 `股票-${code}`,
                 undefined,
-                [sharedTag]
+                [sharedTag],
               );
             }
 
             // 查询共享标签
-            const result = watchList.getStocksByTag(sharedTag);
+            const normalizedTag = normalizeTags([sharedTag])[0];
+            const result = normalizedTag
+              ? watchList.getStocksByTag(normalizedTag)
+              : [];
 
             // 验证：返回的股票数量应等于添加的股票数量
-            return result.length === uniqueCodes.length;
-          }
+            return normalizedTag ? result.length === uniqueCodes.length : true;
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
@@ -475,7 +492,7 @@ describe("WatchList Property-Based Tests", () => {
 
             // 去重：确保所有股票代码不同
             const uniqueStocks = Array.from(
-              new Map(stocks.map((s) => [s.code, s])).values()
+              new Map(stocks.map((s) => [s.code, s])).values(),
             );
 
             // 添加所有股票
@@ -484,13 +501,13 @@ describe("WatchList Property-Based Tests", () => {
                 StockCode.create(stock.code),
                 stock.name,
                 undefined,
-                stock.tags
+                stock.tags,
               );
             }
 
             // 收集所有标签
             const allTags = new Set(
-              uniqueStocks.flatMap((s) => s.tags)
+              uniqueStocks.flatMap((s) => normalizeTags(s.tags)),
             );
 
             // 对每个标签进行查询验证
@@ -499,7 +516,7 @@ describe("WatchList Property-Based Tests", () => {
 
               // 计算预期包含该标签的股票
               const expectedStocks = uniqueStocks.filter((s) =>
-                s.tags.includes(tag)
+                normalizeTags(s.tags).includes(tag),
               );
 
               // 验证：返回结果的数量应等于预期数量
@@ -516,38 +533,37 @@ describe("WatchList Property-Based Tests", () => {
             }
 
             return true;
-          }
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
 
     it("空 WatchList 查询任意标签应返回空数组", () => {
       fc.assert(
-        fc.property(
-          fc.string({ minLength: 1, maxLength: 10 }),
-          (tag) => {
-            const watchList = WatchList.create({
-              name: "测试列表",
-              userId: "user-1",
-            });
+        fc.property(fc.string({ minLength: 1, maxLength: 10 }), (tag) => {
+          const watchList = WatchList.create({
+            name: "测试列表",
+            userId: "user-1",
+          });
 
-            // 查询标签
-            const result = watchList.getStocksByTag(tag);
+          // 查询标签
+          const result = watchList.getStocksByTag(tag);
 
-            // 验证：应返回空数组
-            return result.length === 0;
-          }
-        ),
-        { numRuns: 100 }
+          // 验证：应返回空数组
+          return result.length === 0;
+        }),
+        { numRuns: 100 },
       );
     });
 
-    it("标签过滤应区分大小写", () => {
+    it("标签过滤应忽略大小写并自动归一化", () => {
       fc.assert(
         fc.property(
           arbStockCode,
-          fc.string({ minLength: 2, maxLength: 10 }).filter(s => s.toLowerCase() !== s.toUpperCase()),
+          fc
+            .string({ minLength: 2, maxLength: 10 })
+            .filter((s) => s.toLowerCase() !== s.toUpperCase()),
           (code, tag) => {
             const watchList = WatchList.create({
               name: "测试列表",
@@ -563,12 +579,9 @@ describe("WatchList Property-Based Tests", () => {
             }
 
             // 添加股票，使用小写标签
-            watchList.addStock(
-              StockCode.create(code),
-              "测试股票",
-              undefined,
-              [lowerTag]
-            );
+            watchList.addStock(StockCode.create(code), "测试股票", undefined, [
+              lowerTag,
+            ]);
 
             // 查询大写标签
             const resultUpper = watchList.getStocksByTag(upperTag);
@@ -576,11 +589,11 @@ describe("WatchList Property-Based Tests", () => {
             // 查询小写标签
             const resultLower = watchList.getStocksByTag(lowerTag);
 
-            // 验证：大写标签应返回空数组，小写标签应返回1个股票
-            return resultUpper.length === 0 && resultLower.length === 1;
-          }
+            // 验证：大小写查询都命中同一只股票
+            return resultUpper.length === 1 && resultLower.length === 1;
+          },
         ),
-        { numRuns: 100 }
+        { numRuns: 100 },
       );
     });
   });

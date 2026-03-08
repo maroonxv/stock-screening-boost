@@ -28,20 +28,27 @@
  * const restored = FilterCondition.fromDict(dict);
  */
 
-import { IndicatorField, getIndicatorValueType, IndicatorValueType } from "../enums/indicator-field";
+import type { Stock } from "../entities/stock";
 import { ComparisonOperator } from "../enums/comparison-operator";
 import {
-  IndicatorValue,
-  isNumericValue,
-  isTextValue,
-  isListValue,
-  isRangeValue,
-  indicatorValueToDict,
-  indicatorValueFromDict,
-  indicatorValueEquals,
-} from "./indicator-value";
+  getIndicatorLookbackYears,
+  getIndicatorValueType,
+  type IndicatorField,
+  IndicatorValueType,
+  isTimeSeriesIndicator,
+} from "../enums/indicator-field";
 import { InvalidFilterConditionError } from "../errors";
-import type { Stock } from "../entities/stock";
+import {
+  type IndicatorValue,
+  indicatorValueEquals,
+  indicatorValueFromDict,
+  indicatorValueToDict,
+  isListValue,
+  isNumericValue,
+  isRangeValue,
+  isTextValue,
+  isTimeSeriesValue,
+} from "./indicator-value";
 
 /**
  * 指标计算服务接口（前向声明）
@@ -50,7 +57,7 @@ import type { Stock } from "../entities/stock";
 export interface IIndicatorCalculationService {
   calculateIndicator(
     indicator: IndicatorField,
-    stock: Stock
+    stock: Stock,
   ): number | string | null | Promise<number | string | null>;
 }
 
@@ -68,7 +75,7 @@ export class FilterCondition {
   private constructor(
     field: IndicatorField,
     operator: ComparisonOperator,
-    value: IndicatorValue
+    value: IndicatorValue,
   ) {
     this.field = field;
     this.operator = operator;
@@ -93,13 +100,13 @@ export class FilterCondition {
   static create(
     field: IndicatorField,
     operator: ComparisonOperator,
-    value: IndicatorValue
+    value: IndicatorValue,
   ): FilterCondition {
     // 验证类型匹配
     FilterCondition.validateTypeMatch(field, value);
 
     // 验证运算符兼容性
-    FilterCondition.validateOperatorCompatibility(operator, value);
+    FilterCondition.validateOperatorCompatibility(field, operator, value);
 
     return new FilterCondition(field, operator, value);
   }
@@ -115,7 +122,7 @@ export class FilterCondition {
    */
   private static validateTypeMatch(
     field: IndicatorField,
-    value: IndicatorValue
+    value: IndicatorValue,
   ): void {
     const fieldValueType = getIndicatorValueType(field);
 
@@ -127,14 +134,20 @@ export class FilterCondition {
         value.type !== "timeSeries"
       ) {
         throw new InvalidFilterConditionError(
-          `指标 ${field} 为数值类型，但提供的值类型为 ${value.type}`
+          `指标 ${field} 为数值类型，但提供的值类型为 ${value.type}`,
+        );
+      }
+
+      if (isTimeSeriesValue(value) && !isTimeSeriesIndicator(field)) {
+        throw new InvalidFilterConditionError(
+          `指标 ${field} 不是时间序列指标，不能使用 timeSeries 值`,
         );
       }
     } else if (fieldValueType === IndicatorValueType.TEXT) {
       // 文本型指标支持 text、list
       if (!isTextValue(value) && !isListValue(value)) {
         throw new InvalidFilterConditionError(
-          `指标 ${field} 为文本类型，但提供的值类型为 ${value.type}`
+          `指标 ${field} 为文本类型，但提供的值类型为 ${value.type}`,
         );
       }
     }
@@ -153,8 +166,9 @@ export class FilterCondition {
    * Requirements: 2.3
    */
   private static validateOperatorCompatibility(
+    field: IndicatorField,
     operator: ComparisonOperator,
-    value: IndicatorValue
+    value: IndicatorValue,
   ): void {
     switch (operator) {
       case ComparisonOperator.GREATER_THAN:
@@ -162,8 +176,21 @@ export class FilterCondition {
         // timeSeries 最终计算为数值，所以也支持数值比较运算符
         if (!isNumericValue(value) && value.type !== "timeSeries") {
           throw new InvalidFilterConditionError(
-            `运算符 ${operator} 仅适用于 numeric 或 timeSeries 类型，但提供的值类型为 ${value.type}`
+            `运算符 ${operator} 仅适用于 numeric 或 timeSeries 类型，但提供的值类型为 ${value.type}`,
           );
+        }
+        if (isTimeSeriesValue(value) && value.threshold === undefined) {
+          throw new InvalidFilterConditionError(
+            `时间序列条件 ${field} 必须提供 threshold`,
+          );
+        }
+        if (isTimeSeriesValue(value)) {
+          const lookbackYears = getIndicatorLookbackYears(field);
+          if (lookbackYears !== undefined && value.years !== lookbackYears) {
+            throw new InvalidFilterConditionError(
+              `指标 ${field} 固定使用 ${lookbackYears} 年窗口，当前提供 ${value.years} 年`,
+            );
+          }
         }
         break;
 
@@ -171,7 +198,7 @@ export class FilterCondition {
       case ComparisonOperator.NOT_EQUAL:
         if (!isNumericValue(value) && !isTextValue(value)) {
           throw new InvalidFilterConditionError(
-            `运算符 ${operator} 仅适用于 numeric 或 text 类型，但提供的值类型为 ${value.type}`
+            `运算符 ${operator} 仅适用于 numeric 或 text 类型，但提供的值类型为 ${value.type}`,
           );
         }
         break;
@@ -180,7 +207,7 @@ export class FilterCondition {
       case ComparisonOperator.NOT_IN:
         if (!isListValue(value)) {
           throw new InvalidFilterConditionError(
-            `运算符 ${operator} 仅适用于 list 类型，但提供的值类型为 ${value.type}`
+            `运算符 ${operator} 仅适用于 list 类型，但提供的值类型为 ${value.type}`,
           );
         }
         break;
@@ -188,7 +215,7 @@ export class FilterCondition {
       case ComparisonOperator.BETWEEN:
         if (!isRangeValue(value)) {
           throw new InvalidFilterConditionError(
-            `运算符 ${operator} 仅适用于 range 类型，但提供的值类型为 ${value.type}`
+            `运算符 ${operator} 仅适用于 range 类型，但提供的值类型为 ${value.type}`,
           );
         }
         break;
@@ -196,15 +223,13 @@ export class FilterCondition {
       case ComparisonOperator.CONTAINS:
         if (!isTextValue(value)) {
           throw new InvalidFilterConditionError(
-            `运算符 ${operator} 仅适用于 text 类型，但提供的值类型为 ${value.type}`
+            `运算符 ${operator} 仅适用于 text 类型，但提供的值类型为 ${value.type}`,
           );
         }
         break;
 
       default:
-        throw new InvalidFilterConditionError(
-          `未知的比较运算符: ${operator}`
-        );
+        throw new InvalidFilterConditionError(`未知的比较运算符: ${operator}`);
     }
   }
 
@@ -246,7 +271,7 @@ export class FilterCondition {
    */
   async evaluateAsync(
     stock: Stock,
-    calcService: IIndicatorCalculationService
+    calcService: IIndicatorCalculationService,
   ): Promise<boolean> {
     const stockValue = await calcService.calculateIndicator(this.field, stock);
 
@@ -263,18 +288,32 @@ export class FilterCondition {
   private compareValues(
     stockValue: number | string,
     operator: ComparisonOperator,
-    conditionValue: IndicatorValue
+    conditionValue: IndicatorValue,
   ): boolean {
     switch (operator) {
       case ComparisonOperator.GREATER_THAN:
         if (typeof stockValue === "number" && isNumericValue(conditionValue)) {
           return stockValue > conditionValue.value;
         }
+        if (
+          typeof stockValue === "number" &&
+          isTimeSeriesValue(conditionValue) &&
+          typeof conditionValue.threshold === "number"
+        ) {
+          return stockValue > conditionValue.threshold;
+        }
         return false;
 
       case ComparisonOperator.LESS_THAN:
         if (typeof stockValue === "number" && isNumericValue(conditionValue)) {
           return stockValue < conditionValue.value;
+        }
+        if (
+          typeof stockValue === "number" &&
+          isTimeSeriesValue(conditionValue) &&
+          typeof conditionValue.threshold === "number"
+        ) {
+          return stockValue < conditionValue.threshold;
         }
         return false;
 

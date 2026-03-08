@@ -9,15 +9,19 @@
  * - 序列化/反序列化
  */
 
-import { describe, it, expect } from "vitest";
-import { FilterCondition } from "../filter-condition";
-import { IndicatorField, getIndicatorValueType, IndicatorValueType } from "../../enums/indicator-field";
-import { ComparisonOperator } from "../../enums/comparison-operator";
+import { describe, expect, it } from "vitest";
 import { Stock } from "../../entities/stock";
-import { StockCode } from "../stock-code";
+import { ComparisonOperator } from "../../enums/comparison-operator";
+import {
+  getIndicatorValueType,
+  IndicatorField,
+  IndicatorValueType,
+} from "../../enums/indicator-field";
 import { InvalidFilterConditionError } from "../../errors";
 import type { IIndicatorCalculationService } from "../filter-condition";
+import { FilterCondition } from "../filter-condition";
 import type { IndicatorValue } from "../indicator-value";
+import { StockCode } from "../stock-code";
 
 // Mock 指标计算服务
 class MockIndicatorCalculationService implements IIndicatorCalculationService {
@@ -26,14 +30,14 @@ class MockIndicatorCalculationService implements IIndicatorCalculationService {
   setMockValue(
     indicator: IndicatorField,
     stockCode: string,
-    value: number | string | null
+    value: number | string | null,
   ): void {
     this.mockValues.set(`${indicator}-${stockCode}`, value);
   }
 
   calculateIndicator(
     indicator: IndicatorField,
-    stock: Stock
+    stock: Stock,
   ): number | string | null {
     const key = `${indicator}-${stock.code.value}`;
     // 如果有 mock 值（包括 null），直接返回 mock 值
@@ -50,20 +54,28 @@ describe("FilterCondition", () => {
     describe("类型匹配验证 (Requirements: 2.2)", () => {
       it("应接受数值型指标 + numeric 值", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.ROE, ComparisonOperator.GREATER_THAN, {
-            type: "numeric",
-            value: 0.15,
-          })
+          FilterCondition.create(
+            IndicatorField.ROE,
+            ComparisonOperator.GREATER_THAN,
+            {
+              type: "numeric",
+              value: 0.15,
+            },
+          ),
         ).not.toThrow();
       });
 
       it("应接受数值型指标 + range 值", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.PE, ComparisonOperator.BETWEEN, {
-            type: "range",
-            min: 10,
-            max: 30,
-          })
+          FilterCondition.create(
+            IndicatorField.PE,
+            ComparisonOperator.BETWEEN,
+            {
+              type: "range",
+              min: 10,
+              max: 30,
+            },
+          ),
         ).not.toThrow();
       });
 
@@ -75,26 +87,35 @@ describe("FilterCondition", () => {
             {
               type: "timeSeries",
               years: 3,
-            }
-          )
+              threshold: 0.2,
+            },
+          ),
         ).not.toThrow();
       });
 
       it("应接受文本型指标 + text 值", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.EQUAL, {
-            type: "text",
-            value: "白酒",
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.EQUAL,
+            {
+              type: "text",
+              value: "白酒",
+            },
+          ),
         ).not.toThrow();
       });
 
       it("应接受文本型指标 + list 值", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.IN, {
-            type: "list",
-            values: ["白酒", "医药"],
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.IN,
+            {
+              type: "list",
+              values: ["白酒", "医药"],
+            },
+          ),
         ).not.toThrow();
       });
 
@@ -103,16 +124,20 @@ describe("FilterCondition", () => {
           FilterCondition.create(IndicatorField.ROE, ComparisonOperator.EQUAL, {
             type: "text",
             value: "高",
-          })
+          }),
         ).toThrow(InvalidFilterConditionError);
       });
 
       it("应拒绝文本型指标 + numeric 值", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.EQUAL, {
-            type: "numeric",
-            value: 100,
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.EQUAL,
+            {
+              type: "numeric",
+              value: 100,
+            },
+          ),
         ).toThrow(InvalidFilterConditionError);
       });
     });
@@ -120,33 +145,49 @@ describe("FilterCondition", () => {
     describe("运算符兼容性验证 (Requirements: 2.3)", () => {
       it("GREATER_THAN 应仅适用于 numeric", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.ROE, ComparisonOperator.GREATER_THAN, {
-            type: "numeric",
-            value: 0.15,
-          })
+          FilterCondition.create(
+            IndicatorField.ROE,
+            ComparisonOperator.GREATER_THAN,
+            {
+              type: "numeric",
+              value: 0.15,
+            },
+          ),
         ).not.toThrow();
 
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.GREATER_THAN, {
-            type: "text",
-            value: "白酒",
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.GREATER_THAN,
+            {
+              type: "text",
+              value: "白酒",
+            },
+          ),
         ).toThrow(InvalidFilterConditionError);
       });
 
       it("LESS_THAN 应仅适用于 numeric", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.PE, ComparisonOperator.LESS_THAN, {
-            type: "numeric",
-            value: 30,
-          })
+          FilterCondition.create(
+            IndicatorField.PE,
+            ComparisonOperator.LESS_THAN,
+            {
+              type: "numeric",
+              value: 30,
+            },
+          ),
         ).not.toThrow();
 
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.LESS_THAN, {
-            type: "list",
-            values: ["白酒"],
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.LESS_THAN,
+            {
+              type: "list",
+              values: ["白酒"],
+            },
+          ),
         ).toThrow(InvalidFilterConditionError);
       });
 
@@ -155,70 +196,102 @@ describe("FilterCondition", () => {
           FilterCondition.create(IndicatorField.ROE, ComparisonOperator.EQUAL, {
             type: "numeric",
             value: 0.15,
-          })
+          }),
         ).not.toThrow();
 
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.EQUAL, {
-            type: "text",
-            value: "白酒",
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.EQUAL,
+            {
+              type: "text",
+              value: "白酒",
+            },
+          ),
         ).not.toThrow();
 
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.EQUAL, {
-            type: "list",
-            values: ["白酒"],
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.EQUAL,
+            {
+              type: "list",
+              values: ["白酒"],
+            },
+          ),
         ).toThrow(InvalidFilterConditionError);
       });
 
       it("IN/NOT_IN 应仅适用于 list", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.IN, {
-            type: "list",
-            values: ["白酒", "医药"],
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.IN,
+            {
+              type: "list",
+              values: ["白酒", "医药"],
+            },
+          ),
         ).not.toThrow();
 
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.IN, {
-            type: "text",
-            value: "白酒",
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.IN,
+            {
+              type: "text",
+              value: "白酒",
+            },
+          ),
         ).toThrow(InvalidFilterConditionError);
       });
 
       it("BETWEEN 应仅适用于 range", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.PE, ComparisonOperator.BETWEEN, {
-            type: "range",
-            min: 10,
-            max: 30,
-          })
+          FilterCondition.create(
+            IndicatorField.PE,
+            ComparisonOperator.BETWEEN,
+            {
+              type: "range",
+              min: 10,
+              max: 30,
+            },
+          ),
         ).not.toThrow();
 
         expect(() =>
-          FilterCondition.create(IndicatorField.PE, ComparisonOperator.BETWEEN, {
-            type: "numeric",
-            value: 20,
-          })
+          FilterCondition.create(
+            IndicatorField.PE,
+            ComparisonOperator.BETWEEN,
+            {
+              type: "numeric",
+              value: 20,
+            },
+          ),
         ).toThrow(InvalidFilterConditionError);
       });
 
       it("CONTAINS 应仅适用于 text", () => {
         expect(() =>
-          FilterCondition.create(IndicatorField.INDUSTRY, ComparisonOperator.CONTAINS, {
-            type: "text",
-            value: "酒",
-          })
+          FilterCondition.create(
+            IndicatorField.INDUSTRY,
+            ComparisonOperator.CONTAINS,
+            {
+              type: "text",
+              value: "酒",
+            },
+          ),
         ).not.toThrow();
 
         expect(() =>
-          FilterCondition.create(IndicatorField.ROE, ComparisonOperator.CONTAINS, {
-            type: "numeric",
-            value: 0.15,
-          })
+          FilterCondition.create(
+            IndicatorField.ROE,
+            ComparisonOperator.CONTAINS,
+            {
+              type: "numeric",
+              value: 0.15,
+            },
+          ),
         ).toThrow(InvalidFilterConditionError);
       });
     });
@@ -227,7 +300,11 @@ describe("FilterCondition", () => {
   describe("evaluate 方法", () => {
     const calcService = new MockIndicatorCalculationService();
 
-    const createTestStock = (code: string, roe?: number, industry?: string): Stock => {
+    const createTestStock = (
+      code: string,
+      roe?: number,
+      industry?: string,
+    ): Stock => {
       return new Stock({
         code: StockCode.create(code),
         name: "测试股票",
@@ -242,7 +319,7 @@ describe("FilterCondition", () => {
         const condition = FilterCondition.create(
           IndicatorField.ROE,
           ComparisonOperator.GREATER_THAN,
-          { type: "numeric", value: 0.15 }
+          { type: "numeric", value: 0.15 },
         );
 
         const stock = createTestStock("600519", undefined); // ROE 为 null
@@ -253,11 +330,15 @@ describe("FilterCondition", () => {
         const condition = FilterCondition.create(
           IndicatorField.REVENUE_CAGR_3Y,
           ComparisonOperator.GREATER_THAN,
-          { type: "numeric", value: 0.1 }
+          { type: "numeric", value: 0.1 },
         );
 
         const stock = createTestStock("600519", 0.28);
-        calcService.setMockValue(IndicatorField.REVENUE_CAGR_3Y, "600519", null);
+        calcService.setMockValue(
+          IndicatorField.REVENUE_CAGR_3Y,
+          "600519",
+          null,
+        );
 
         expect(condition.evaluate(stock, calcService)).toBe(false);
       });
@@ -268,19 +349,25 @@ describe("FilterCondition", () => {
         const condition = FilterCondition.create(
           IndicatorField.ROE,
           ComparisonOperator.GREATER_THAN,
-          { type: "numeric", value: 0.15 }
+          { type: "numeric", value: 0.15 },
         );
 
-        expect(condition.evaluate(createTestStock("600519", 0.28), calcService)).toBe(true);
-        expect(condition.evaluate(createTestStock("600519", 0.15), calcService)).toBe(false);
-        expect(condition.evaluate(createTestStock("600519", 0.10), calcService)).toBe(false);
+        expect(
+          condition.evaluate(createTestStock("600519", 0.28), calcService),
+        ).toBe(true);
+        expect(
+          condition.evaluate(createTestStock("600519", 0.15), calcService),
+        ).toBe(false);
+        expect(
+          condition.evaluate(createTestStock("600519", 0.1), calcService),
+        ).toBe(false);
       });
 
       it("LESS_THAN: 应正确比较小于", () => {
         const condition = FilterCondition.create(
           IndicatorField.PE,
           ComparisonOperator.LESS_THAN,
-          { type: "numeric", value: 30 }
+          { type: "numeric", value: 30 },
         );
 
         const stock1 = new Stock({
@@ -307,18 +394,22 @@ describe("FilterCondition", () => {
         const condition = FilterCondition.create(
           IndicatorField.ROE,
           ComparisonOperator.EQUAL,
-          { type: "numeric", value: 0.28 }
+          { type: "numeric", value: 0.28 },
         );
 
-        expect(condition.evaluate(createTestStock("600519", 0.28), calcService)).toBe(true);
-        expect(condition.evaluate(createTestStock("600519", 0.27), calcService)).toBe(false);
+        expect(
+          condition.evaluate(createTestStock("600519", 0.28), calcService),
+        ).toBe(true);
+        expect(
+          condition.evaluate(createTestStock("600519", 0.27), calcService),
+        ).toBe(false);
       });
 
       it("BETWEEN: 应正确比较区间", () => {
         const condition = FilterCondition.create(
           IndicatorField.PE,
           ComparisonOperator.BETWEEN,
-          { type: "range", min: 10, max: 30 }
+          { type: "range", min: 10, max: 30 },
         );
 
         const stock1 = new Stock({
@@ -365,81 +456,117 @@ describe("FilterCondition", () => {
         const condition = FilterCondition.create(
           IndicatorField.INDUSTRY,
           ComparisonOperator.EQUAL,
-          { type: "text", value: "白酒" }
+          { type: "text", value: "白酒" },
         );
 
-        expect(condition.evaluate(createTestStock("600519", 0.28, "白酒"), calcService)).toBe(
-          true
-        );
-        expect(condition.evaluate(createTestStock("600519", 0.28, "医药"), calcService)).toBe(
-          false
-        );
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "白酒"),
+            calcService,
+          ),
+        ).toBe(true);
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "医药"),
+            calcService,
+          ),
+        ).toBe(false);
       });
 
       it("NOT_EQUAL: 应正确比较文本不等", () => {
         const condition = FilterCondition.create(
           IndicatorField.INDUSTRY,
           ComparisonOperator.NOT_EQUAL,
-          { type: "text", value: "白酒" }
+          { type: "text", value: "白酒" },
         );
 
-        expect(condition.evaluate(createTestStock("600519", 0.28, "医药"), calcService)).toBe(
-          true
-        );
-        expect(condition.evaluate(createTestStock("600519", 0.28, "白酒"), calcService)).toBe(
-          false
-        );
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "医药"),
+            calcService,
+          ),
+        ).toBe(true);
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "白酒"),
+            calcService,
+          ),
+        ).toBe(false);
       });
 
       it("IN: 应正确判断包含于列表", () => {
         const condition = FilterCondition.create(
           IndicatorField.INDUSTRY,
           ComparisonOperator.IN,
-          { type: "list", values: ["白酒", "医药", "科技"] }
+          { type: "list", values: ["白酒", "医药", "科技"] },
         );
 
-        expect(condition.evaluate(createTestStock("600519", 0.28, "白酒"), calcService)).toBe(
-          true
-        );
-        expect(condition.evaluate(createTestStock("600519", 0.28, "医药"), calcService)).toBe(
-          true
-        );
-        expect(condition.evaluate(createTestStock("600519", 0.28, "银行"), calcService)).toBe(
-          false
-        );
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "白酒"),
+            calcService,
+          ),
+        ).toBe(true);
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "医药"),
+            calcService,
+          ),
+        ).toBe(true);
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "银行"),
+            calcService,
+          ),
+        ).toBe(false);
       });
 
       it("NOT_IN: 应正确判断不包含于列表", () => {
         const condition = FilterCondition.create(
           IndicatorField.INDUSTRY,
           ComparisonOperator.NOT_IN,
-          { type: "list", values: ["白酒", "医药"] }
+          { type: "list", values: ["白酒", "医药"] },
         );
 
-        expect(condition.evaluate(createTestStock("600519", 0.28, "科技"), calcService)).toBe(
-          true
-        );
-        expect(condition.evaluate(createTestStock("600519", 0.28, "白酒"), calcService)).toBe(
-          false
-        );
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "科技"),
+            calcService,
+          ),
+        ).toBe(true);
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "白酒"),
+            calcService,
+          ),
+        ).toBe(false);
       });
 
       it("CONTAINS: 应正确判断包含子串", () => {
         const condition = FilterCondition.create(
           IndicatorField.INDUSTRY,
           ComparisonOperator.CONTAINS,
-          { type: "text", value: "酒" }
+          { type: "text", value: "酒" },
         );
 
-        expect(condition.evaluate(createTestStock("600519", 0.28, "白酒"), calcService)).toBe(
-          true
-        );
         expect(
-          condition.evaluate(createTestStock("600519", 0.28, "啤酒饮料"), calcService)
+          condition.evaluate(
+            createTestStock("600519", 0.28, "白酒"),
+            calcService,
+          ),
         ).toBe(true);
-        expect(condition.evaluate(createTestStock("600519", 0.28, "医药"), calcService)).toBe(
-          false
-        );
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "啤酒饮料"),
+            calcService,
+          ),
+        ).toBe(true);
+        expect(
+          condition.evaluate(
+            createTestStock("600519", 0.28, "医药"),
+            calcService,
+          ),
+        ).toBe(false);
       });
     });
   });
@@ -449,7 +576,7 @@ describe("FilterCondition", () => {
       const condition = FilterCondition.create(
         IndicatorField.ROE,
         ComparisonOperator.GREATER_THAN,
-        { type: "numeric", value: 0.15, unit: "%" }
+        { type: "numeric", value: 0.15, unit: "%" },
       );
 
       const dict = condition.toDict();
@@ -464,7 +591,7 @@ describe("FilterCondition", () => {
       const condition = FilterCondition.create(
         IndicatorField.INDUSTRY,
         ComparisonOperator.EQUAL,
-        { type: "text", value: "白酒" }
+        { type: "text", value: "白酒" },
       );
 
       const dict = condition.toDict();
@@ -477,7 +604,7 @@ describe("FilterCondition", () => {
       const condition = FilterCondition.create(
         IndicatorField.INDUSTRY,
         ComparisonOperator.IN,
-        { type: "list", values: ["白酒", "医药", "科技"] }
+        { type: "list", values: ["白酒", "医药", "科技"] },
       );
 
       const dict = condition.toDict();
@@ -490,7 +617,7 @@ describe("FilterCondition", () => {
       const condition = FilterCondition.create(
         IndicatorField.PE,
         ComparisonOperator.BETWEEN,
-        { type: "range", min: 10, max: 30 }
+        { type: "range", min: 10, max: 30 },
       );
 
       const dict = condition.toDict();
@@ -505,13 +632,13 @@ describe("FilterCondition", () => {
       const condition1 = FilterCondition.create(
         IndicatorField.ROE,
         ComparisonOperator.GREATER_THAN,
-        { type: "numeric", value: 0.15 }
+        { type: "numeric", value: 0.15 },
       );
 
       const condition2 = FilterCondition.create(
         IndicatorField.ROE,
         ComparisonOperator.GREATER_THAN,
-        { type: "numeric", value: 0.15 }
+        { type: "numeric", value: 0.15 },
       );
 
       expect(condition1.equals(condition2)).toBe(true);
@@ -521,13 +648,13 @@ describe("FilterCondition", () => {
       const condition1 = FilterCondition.create(
         IndicatorField.ROE,
         ComparisonOperator.GREATER_THAN,
-        { type: "numeric", value: 0.15 }
+        { type: "numeric", value: 0.15 },
       );
 
       const condition2 = FilterCondition.create(
         IndicatorField.PE,
         ComparisonOperator.GREATER_THAN,
-        { type: "numeric", value: 0.15 }
+        { type: "numeric", value: 0.15 },
       );
 
       expect(condition1.equals(condition2)).toBe(false);
@@ -537,13 +664,13 @@ describe("FilterCondition", () => {
       const condition1 = FilterCondition.create(
         IndicatorField.ROE,
         ComparisonOperator.GREATER_THAN,
-        { type: "numeric", value: 0.15 }
+        { type: "numeric", value: 0.15 },
       );
 
       const condition2 = FilterCondition.create(
         IndicatorField.ROE,
         ComparisonOperator.LESS_THAN,
-        { type: "numeric", value: 0.15 }
+        { type: "numeric", value: 0.15 },
       );
 
       expect(condition1.equals(condition2)).toBe(false);
@@ -553,13 +680,13 @@ describe("FilterCondition", () => {
       const condition1 = FilterCondition.create(
         IndicatorField.ROE,
         ComparisonOperator.GREATER_THAN,
-        { type: "numeric", value: 0.15 }
+        { type: "numeric", value: 0.15 },
       );
 
       const condition2 = FilterCondition.create(
         IndicatorField.ROE,
         ComparisonOperator.GREATER_THAN,
-        { type: "numeric", value: 0.20 }
+        { type: "numeric", value: 0.2 },
       );
 
       expect(condition1.equals(condition2)).toBe(false);
@@ -571,7 +698,7 @@ describe("FilterCondition", () => {
       const condition = FilterCondition.create(
         IndicatorField.ROE,
         ComparisonOperator.GREATER_THAN,
-        { type: "numeric", value: 0.15, unit: "%" }
+        { type: "numeric", value: 0.15, unit: "%" },
       );
 
       expect(condition.toString()).toBe("ROE GREATER_THAN 0.15%");
@@ -581,7 +708,7 @@ describe("FilterCondition", () => {
       const condition = FilterCondition.create(
         IndicatorField.INDUSTRY,
         ComparisonOperator.EQUAL,
-        { type: "text", value: "白酒" }
+        { type: "text", value: "白酒" },
       );
 
       expect(condition.toString()).toBe('INDUSTRY EQUAL "白酒"');
@@ -591,7 +718,7 @@ describe("FilterCondition", () => {
       const condition = FilterCondition.create(
         IndicatorField.INDUSTRY,
         ComparisonOperator.IN,
-        { type: "list", values: ["白酒", "医药"] }
+        { type: "list", values: ["白酒", "医药"] },
       );
 
       expect(condition.toString()).toBe("INDUSTRY IN [白酒, 医药]");
@@ -601,7 +728,7 @@ describe("FilterCondition", () => {
       const condition = FilterCondition.create(
         IndicatorField.PE,
         ComparisonOperator.BETWEEN,
-        { type: "range", min: 10, max: 30 }
+        { type: "range", min: 10, max: 30 },
       );
 
       expect(condition.toString()).toBe("PE BETWEEN [10, 30]");
@@ -642,7 +769,13 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
     IndicatorField.NET_PROFIT_CAGR_3Y,
     IndicatorField.ROE_AVG_3Y,
     IndicatorField.PEG,
-    IndicatorField.ROE_MINUS_DEBT
+    IndicatorField.ROE_MINUS_DEBT,
+  );
+
+  const arbTimeSeriesIndicatorField = fc.constantFrom(
+    IndicatorField.REVENUE_CAGR_3Y,
+    IndicatorField.NET_PROFIT_CAGR_3Y,
+    IndicatorField.ROE_AVG_3Y,
   );
 
   /**
@@ -650,7 +783,7 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
    */
   const arbTextIndicatorField = fc.constantFrom(
     IndicatorField.INDUSTRY,
-    IndicatorField.SECTOR
+    IndicatorField.SECTOR,
   );
 
   /**
@@ -687,7 +820,7 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
   const arbRangeValue = fc
     .tuple(
       fc.double({ min: -1000, max: 10000, noNaN: true }),
-      fc.double({ min: -1000, max: 10000, noNaN: true })
+      fc.double({ min: -1000, max: 10000, noNaN: true }),
     )
     .map(([a, b]) => ({
       type: "range" as const,
@@ -717,7 +850,7 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
     ComparisonOperator.IN,
     ComparisonOperator.NOT_IN,
     ComparisonOperator.BETWEEN,
-    ComparisonOperator.CONTAINS
+    ComparisonOperator.CONTAINS,
   );
 
   /**
@@ -730,7 +863,10 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
       return (
         value.type === "numeric" ||
         value.type === "range" ||
-        value.type === "timeSeries"
+        (value.type === "timeSeries" &&
+          (field === IndicatorField.REVENUE_CAGR_3Y ||
+            field === IndicatorField.NET_PROFIT_CAGR_3Y ||
+            field === IndicatorField.ROE_AVG_3Y))
       );
     } else {
       // TEXT
@@ -743,12 +879,15 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
    */
   function isOperatorCompatible(
     operator: ComparisonOperator,
-    value: IndicatorValue
+    value: IndicatorValue,
   ): boolean {
     switch (operator) {
       case ComparisonOperator.GREATER_THAN:
       case ComparisonOperator.LESS_THAN:
-        return value.type === "numeric" || value.type === "timeSeries";
+        return (
+          value.type === "numeric" ||
+          (value.type === "timeSeries" && value.threshold !== undefined)
+        );
 
       case ComparisonOperator.EQUAL:
       case ComparisonOperator.NOT_EQUAL:
@@ -789,25 +928,37 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
           arbTextValue,
           arbListValue,
           arbRangeValue,
-          arbTimeSeriesValue
+          arbTimeSeriesValue.filter(
+            (value) => value.threshold !== undefined && value.years === 3,
+          ),
         ),
         (field, operator, value) => {
           const typeMatches = isTypeMatch(field, value);
           const operatorCompatible = isOperatorCompatible(operator, value);
-          const shouldSucceed = typeMatches && operatorCompatible;
+          const timeSeriesShapeValid =
+            value.type !== "timeSeries" ||
+            ((field === IndicatorField.REVENUE_CAGR_3Y ||
+              field === IndicatorField.NET_PROFIT_CAGR_3Y ||
+              field === IndicatorField.ROE_AVG_3Y) &&
+              value.threshold !== undefined &&
+              value.years === 3);
+          const shouldSucceed =
+            typeMatches && operatorCompatible && timeSeriesShapeValid;
 
           if (shouldSucceed) {
             // 应该构造成功
-            expect(() => FilterCondition.create(field, operator, value)).not.toThrow();
+            expect(() =>
+              FilterCondition.create(field, operator, value),
+            ).not.toThrow();
           } else {
             // 应该抛出 InvalidFilterConditionError
-            expect(() => FilterCondition.create(field, operator, value)).toThrow(
-              InvalidFilterConditionError
-            );
+            expect(() =>
+              FilterCondition.create(field, operator, value),
+            ).toThrow(InvalidFilterConditionError);
           }
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -825,9 +976,9 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
           ComparisonOperator.GREATER_THAN,
           ComparisonOperator.LESS_THAN,
           ComparisonOperator.EQUAL,
-          ComparisonOperator.NOT_EQUAL
+          ComparisonOperator.NOT_EQUAL,
         ),
-        arbNumericValue
+        arbNumericValue,
       )
       .map(([field, operator, value]) => ({ field, operator, value }));
 
@@ -843,9 +994,14 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
     // 数值型指标 + timeSeries + 数值比较运算符
     const arbValidTimeSeriesComparison = fc
       .tuple(
-        arbNumericIndicatorField,
-        fc.constantFrom(ComparisonOperator.GREATER_THAN, ComparisonOperator.LESS_THAN),
-        arbTimeSeriesValue
+        arbTimeSeriesIndicatorField,
+        fc.constantFrom(
+          ComparisonOperator.GREATER_THAN,
+          ComparisonOperator.LESS_THAN,
+        ),
+        arbTimeSeriesValue.filter(
+          (value) => value.threshold !== undefined && value.years === 3,
+        ),
       )
       .map(([field, operator, value]) => ({ field, operator, value }));
 
@@ -856,9 +1012,9 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
         fc.constantFrom(
           ComparisonOperator.EQUAL,
           ComparisonOperator.NOT_EQUAL,
-          ComparisonOperator.CONTAINS
+          ComparisonOperator.CONTAINS,
         ),
-        arbTextValue
+        arbTextValue,
       )
       .map(([field, operator, value]) => ({ field, operator, value }));
 
@@ -867,7 +1023,7 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
       .tuple(
         arbTextIndicatorField,
         fc.constantFrom(ComparisonOperator.IN, ComparisonOperator.NOT_IN),
-        arbListValue
+        arbListValue,
       )
       .map(([field, operator, value]) => ({ field, operator, value }));
 
@@ -878,20 +1034,22 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
           arbValidRangeComparison,
           arbValidTimeSeriesComparison,
           arbValidTextComparison,
-          arbValidListComparison
+          arbValidListComparison,
         ),
         ({ field, operator, value }) => {
           // 所有有效组合都应构造成功
-          expect(() => FilterCondition.create(field, operator, value)).not.toThrow();
+          expect(() =>
+            FilterCondition.create(field, operator, value),
+          ).not.toThrow();
 
           // 构造的对象应包含正确的字段
           const condition = FilterCondition.create(field, operator, value);
           expect(condition.field).toBe(field);
           expect(condition.operator).toBe(operator);
           expect(condition.value).toEqual(value);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -917,11 +1075,11 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
         ({ field, value, operator }) => {
           // 类型不匹配应抛出错误
           expect(() => FilterCondition.create(field, operator, value)).toThrow(
-            InvalidFilterConditionError
+            InvalidFilterConditionError,
           );
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -969,15 +1127,20 @@ describe("Property-Based Tests: FilterCondition 构造验证", () => {
 
     fc.assert(
       fc.property(
-        fc.oneof(arbGreaterThanText, arbInNumeric, arbBetweenNumeric, arbContainsNumeric),
+        fc.oneof(
+          arbGreaterThanText,
+          arbInNumeric,
+          arbBetweenNumeric,
+          arbContainsNumeric,
+        ),
         ({ field, operator, value }) => {
           // 运算符不兼容应抛出错误
           expect(() => FilterCondition.create(field, operator, value)).toThrow(
-            InvalidFilterConditionError
+            InvalidFilterConditionError,
           );
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });
@@ -1012,13 +1175,15 @@ describe("Property-Based Tests: 缺失指标值导致条件不匹配", () => {
         IndicatorField.MARKET_CAP,
         IndicatorField.FLOAT_MARKET_CAP,
         IndicatorField.INDUSTRY,
-        IndicatorField.SECTOR
+        IndicatorField.SECTOR,
       ),
-      fc.tuple(
-        fc.constantFrom("0", "3", "6"),
-        fc.integer({ min: 0, max: 99999 })
-      ).map(([prefix, num]) => `${prefix}${num.toString().padStart(5, "0")}`),
-      fc.string({ minLength: 2, maxLength: 10 })
+      fc
+        .tuple(
+          fc.constantFrom("0", "3", "6"),
+          fc.integer({ min: 0, max: 99999 }),
+        )
+        .map(([prefix, num]) => `${prefix}${num.toString().padStart(5, "0")}`),
+      fc.string({ minLength: 2, maxLength: 10 }),
     )
     .map(([nullField, code, name]) => {
       // 创建一个 Stock，其中 nullField 对应的指标值为 null
@@ -1091,24 +1256,20 @@ describe("Property-Based Tests: 缺失指标值导致条件不匹配", () => {
 
     if (fieldValueType === IndicatorValueType.NUMERIC) {
       // 数值型指标：使用 GREATER_THAN 运算符
-      return fc
-        .double({ min: -1000, max: 10000, noNaN: true })
-        .map((value) =>
-          FilterCondition.create(field, ComparisonOperator.GREATER_THAN, {
-            type: "numeric",
-            value,
-          })
-        );
+      return fc.double({ min: -1000, max: 10000, noNaN: true }).map((value) =>
+        FilterCondition.create(field, ComparisonOperator.GREATER_THAN, {
+          type: "numeric",
+          value,
+        }),
+      );
     } else {
       // 文本型指标：使用 EQUAL 运算符
-      return fc
-        .string({ minLength: 1, maxLength: 20 })
-        .map((value) =>
-          FilterCondition.create(field, ComparisonOperator.EQUAL, {
-            type: "text",
-            value,
-          })
-        );
+      return fc.string({ minLength: 1, maxLength: 20 }).map((value) =>
+        FilterCondition.create(field, ComparisonOperator.EQUAL, {
+          type: "text",
+          value,
+        }),
+      );
     }
   };
 
@@ -1130,10 +1291,10 @@ describe("Property-Based Tests: 缺失指标值导致条件不匹配", () => {
             const result = condition.evaluate(stock, calcService);
             expect(result).toBe(false);
           }),
-          { numRuns: 10 }
+          { numRuns: 10 },
         );
       }),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1163,12 +1324,16 @@ describe("Property-Based Tests: 缺失指标值导致条件不匹配", () => {
         fc.constantFrom(
           IndicatorField.ROE,
           IndicatorField.PE,
-          IndicatorField.PB
+          IndicatorField.PB,
         ),
-        fc.tuple(
-          fc.constantFrom("0", "3", "6"),
-          fc.integer({ min: 0, max: 99999 })
-        ).map(([prefix, num]) => `${prefix}${num.toString().padStart(5, "0")}`),
+        fc
+          .tuple(
+            fc.constantFrom("0", "3", "6"),
+            fc.integer({ min: 0, max: 99999 }),
+          )
+          .map(
+            ([prefix, num]) => `${prefix}${num.toString().padStart(5, "0")}`,
+          ),
         (field, code) => {
           const operators = numericOperators;
 
@@ -1205,9 +1370,9 @@ describe("Property-Based Tests: 缺失指标值导致条件不匹配", () => {
             const result = condition.evaluate(stock, calcService);
             expect(result).toBe(false);
           });
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 
@@ -1223,12 +1388,16 @@ describe("Property-Based Tests: 缺失指标值导致条件不匹配", () => {
           IndicatorField.ROE,
           IndicatorField.PE,
           IndicatorField.REVENUE_CAGR_3Y,
-          IndicatorField.NET_PROFIT_CAGR_3Y
+          IndicatorField.NET_PROFIT_CAGR_3Y,
         ),
-        fc.tuple(
-          fc.constantFrom("0", "3", "6"),
-          fc.integer({ min: 0, max: 99999 })
-        ).map(([prefix, num]) => `${prefix}${num.toString().padStart(5, "0")}`),
+        fc
+          .tuple(
+            fc.constantFrom("0", "3", "6"),
+            fc.integer({ min: 0, max: 99999 }),
+          )
+          .map(
+            ([prefix, num]) => `${prefix}${num.toString().padStart(5, "0")}`,
+          ),
         fc.double({ min: -1000, max: 10000, noNaN: true }),
         (field, code, conditionValue) => {
           // 创建一个新的 mock 服务实例，确保每次测试都是独立的
@@ -1251,15 +1420,15 @@ describe("Property-Based Tests: 缺失指标值导致条件不匹配", () => {
           const condition = FilterCondition.create(
             field,
             ComparisonOperator.GREATER_THAN,
-            { type: "numeric", value: conditionValue }
+            { type: "numeric", value: conditionValue },
           );
 
           // 验证 evaluate 返回 false
           const result = condition.evaluate(stock, mockCalcService);
           expect(result).toBe(false);
-        }
+        },
       ),
-      { numRuns: 100 }
+      { numRuns: 100 },
     );
   });
 });

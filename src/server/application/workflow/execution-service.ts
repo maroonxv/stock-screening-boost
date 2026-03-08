@@ -10,11 +10,10 @@ import type {
   WorkflowEventStreamType,
 } from "~/server/domain/workflow/types";
 import { QUICK_RESEARCH_NODE_KEYS } from "~/server/domain/workflow/types";
-import { PythonIntelligenceDataClient } from "~/server/infrastructure/intelligence/python-intelligence-data-client";
 import { DeepSeekClient } from "~/server/infrastructure/intelligence/deepseek-client";
-import { ScreeningFacade } from "~/server/application/screening/screening-facade";
+import { PythonIntelligenceDataClient } from "~/server/infrastructure/intelligence/python-intelligence-data-client";
 import { QuickResearchLangGraph } from "~/server/infrastructure/workflow/langgraph/quick-research-graph";
-import { PrismaWorkflowRunRepository } from "~/server/infrastructure/workflow/prisma/workflow-run-repository";
+import type { PrismaWorkflowRunRepository } from "~/server/infrastructure/workflow/prisma/workflow-run-repository";
 import { RedisWorkflowRuntimeStore } from "~/server/infrastructure/workflow/redis/redis-workflow-runtime-store";
 
 class RunCancelledError extends Error {
@@ -24,7 +23,9 @@ class RunCancelledError extends Error {
   }
 }
 
-function mapEventType(eventType: WorkflowEventType): WorkflowEventStreamType | null {
+function mapEventType(
+  eventType: WorkflowEventType,
+): WorkflowEventStreamType | null {
   switch (eventType) {
     case WorkflowEventType.RUN_STARTED:
       return "RUN_STARTED";
@@ -88,11 +89,12 @@ export type WorkflowExecutionServiceDependencies = {
   graph: QuickResearchLangGraph;
 };
 
-export function createWorkflowExecutionService(repository: PrismaWorkflowRunRepository) {
+export function createWorkflowExecutionService(
+  repository: PrismaWorkflowRunRepository,
+) {
   const intelligenceService = new IntelligenceAgentService({
     deepSeekClient: new DeepSeekClient(),
     dataClient: new PythonIntelligenceDataClient(),
-    screeningFacade: new ScreeningFacade(),
   });
 
   return new WorkflowExecutionService({
@@ -142,7 +144,11 @@ export class WorkflowExecutionService {
     return true;
   }
 
-  private async executeRun(runId: string, workerId: string, recovering: boolean) {
+  private async executeRun(
+    runId: string,
+    workerId: string,
+    recovering: boolean,
+  ) {
     const run = await this.repository.getRunById(runId);
 
     if (!run) {
@@ -157,7 +163,11 @@ export class WorkflowExecutionService {
         runId,
         reason: "cancelled_before_execution",
       });
-      await this.publishLatestEvent(runId, run.progressPercent, run.currentNodeKey ?? undefined);
+      await this.publishLatestEvent(
+        runId,
+        run.progressPercent,
+        run.currentNodeKey ?? undefined,
+      );
       return;
     }
 
@@ -218,7 +228,11 @@ export class WorkflowExecutionService {
               progressPercent: state.progressPercent,
             });
 
-            await this.publishLatestEvent(runId, state.progressPercent, nodeKey);
+            await this.publishLatestEvent(
+              runId,
+              state.progressPercent,
+              nodeKey,
+            );
           },
           onNodeProgress: async (nodeKey, payload) => {
             const nodeRunId = nodeRunIds.get(nodeKey);
@@ -228,7 +242,11 @@ export class WorkflowExecutionService {
               nodeKey,
               payload,
             });
-            await this.publishLatestEvent(runId, state.progressPercent, nodeKey);
+            await this.publishLatestEvent(
+              runId,
+              state.progressPercent,
+              nodeKey,
+            );
           },
           onNodeSucceeded: async (nodeKey, updatedState) => {
             const startedAt = nodeStartedAt.get(nodeKey) ?? Date.now();
@@ -257,7 +275,11 @@ export class WorkflowExecutionService {
             });
 
             await this.runtimeStore.saveCheckpoint(runId, updatedState);
-            await this.publishLatestEvent(runId, updatedState.progressPercent, nodeKey);
+            await this.publishLatestEvent(
+              runId,
+              updatedState.progressPercent,
+              nodeKey,
+            );
 
             state = updatedState;
 
@@ -289,7 +311,11 @@ export class WorkflowExecutionService {
           runId,
           reason: error.message,
         });
-        await this.publishLatestEvent(runId, state.progressPercent, state.currentNodeKey);
+        await this.publishLatestEvent(
+          runId,
+          state.progressPercent,
+          state.currentNodeKey,
+        );
         return;
       }
 
@@ -297,7 +323,8 @@ export class WorkflowExecutionService {
         error instanceof WorkflowDomainError
           ? error.code
           : WORKFLOW_ERROR_CODES.WORKFLOW_NODE_EXECUTION_FAILED;
-      const errorMessage = error instanceof Error ? error.message : "未知执行错误";
+      const errorMessage =
+        error instanceof Error ? error.message : "未知执行错误";
 
       if (state.currentNodeKey) {
         const nodeRunId = nodeRunIds.get(state.currentNodeKey);
@@ -309,9 +336,15 @@ export class WorkflowExecutionService {
             nodeKey: state.currentNodeKey,
             errorCode,
             errorMessage,
-            durationMs: Date.now() - (nodeStartedAt.get(state.currentNodeKey) ?? Date.now()),
+            durationMs:
+              Date.now() -
+              (nodeStartedAt.get(state.currentNodeKey) ?? Date.now()),
           });
-          await this.publishLatestEvent(runId, state.progressPercent, state.currentNodeKey);
+          await this.publishLatestEvent(
+            runId,
+            state.progressPercent,
+            state.currentNodeKey,
+          );
         }
       }
 
@@ -320,7 +353,11 @@ export class WorkflowExecutionService {
         errorCode,
         errorMessage,
       });
-      await this.publishLatestEvent(runId, state.progressPercent, state.currentNodeKey);
+      await this.publishLatestEvent(
+        runId,
+        state.progressPercent,
+        state.currentNodeKey,
+      );
     }
   }
 

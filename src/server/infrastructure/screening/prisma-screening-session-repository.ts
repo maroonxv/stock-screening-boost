@@ -1,43 +1,33 @@
 /**
  * PrismaScreeningSessionRepository 实现
- *
- * 基于 Prisma ORM 实现 IScreeningSessionRepository 接口。
- * 负责 ScreeningSession 聚合根的持久化操作，处理领域对象与数据库模型之间的映射。
- *
- * 核心职责：
- * - 将 ScreeningSession 聚合根序列化为 Prisma 模型
- * - 将 Prisma 模型反序列化为 ScreeningSession 聚合根
- * - 处理 topStocks、filtersSnapshot 和 scoringConfigSnapshot 的 JSON 序列化/反序列化
- * - 提供 CRUD 和查询操作
- *
- * Requirements: 4.1, 4.2, 4.3, 4.4
  */
 
 import type { PrismaClient } from "~/generated/prisma";
-import type { IScreeningSessionRepository } from "~/server/domain/screening/repositories/screening-session-repository";
 import { ScreeningSession } from "~/server/domain/screening/aggregates/screening-session";
-import { ScoredStock } from "~/server/domain/screening/value-objects/scored-stock";
-import { StockCode } from "~/server/domain/screening/value-objects/stock-code";
 import { FilterGroup } from "~/server/domain/screening/entities/filter-group";
+import { ScreeningSessionStatus } from "~/server/domain/screening/enums/screening-session-status";
+import type { IScreeningSessionRepository } from "~/server/domain/screening/repositories/screening-session-repository";
+import { ScoredStock } from "~/server/domain/screening/value-objects/scored-stock";
 import { ScoringConfig } from "~/server/domain/screening/value-objects/scoring-config";
+import { StockCode } from "~/server/domain/screening/value-objects/stock-code";
 
-/**
- * Prisma 实现的筛选会话仓储
- */
 export class PrismaScreeningSessionRepository
   implements IScreeningSessionRepository
 {
   constructor(private readonly prisma: PrismaClient) {}
 
-  /**
-   * 保存会话（创建或更新）
-   * @param session 筛选会话
-   */
   async save(session: ScreeningSession): Promise<void> {
     const data = {
       strategyId: session.strategyId,
       strategyName: session.strategyName,
       executedAt: session.executedAt,
+      status: session.status,
+      progressPercent: session.progressPercent,
+      currentStep: session.currentStep,
+      errorMessage: session.errorMessage,
+      cancellationRequestedAt: session.cancellationRequestedAt,
+      startedAt: session.startedAt,
+      completedAt: session.completedAt,
       totalScanned: session.totalScanned,
       executionTime: session.executionTime,
       topStocks: session.topStocks.map((stock) => stock.toDict()) as object[],
@@ -57,11 +47,6 @@ export class PrismaScreeningSessionRepository
     });
   }
 
-  /**
-   * 根据 ID 查找会话
-   * @param id 会话 ID
-   * @returns 会话实例或 null
-   */
   async findById(id: string): Promise<ScreeningSession | null> {
     const record = await this.prisma.screeningSession.findUnique({
       where: { id },
@@ -74,110 +59,133 @@ export class PrismaScreeningSessionRepository
     return this.toDomain(record);
   }
 
-  /**
-   * 删除会话
-   * @param id 会话 ID
-   */
   async delete(id: string): Promise<void> {
     await this.prisma.screeningSession.delete({
       where: { id },
     });
   }
 
-  /**
-   * 根据策略 ID 查找会话列表
-   * @param strategyId 策略 ID
-   * @param limit 限制数量（可选）
-   * @param offset 偏移量（可选）
-   * @returns 会话列表
-   */
   async findByStrategy(
     strategyId: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<ScreeningSession[]> {
     const records = await this.prisma.screeningSession.findMany({
       where: { strategyId },
       take: limit,
       skip: offset,
-      orderBy: { executedAt: "desc" },
+      orderBy: [{ executedAt: "desc" }, { id: "desc" }],
     });
 
     return records.map((record) => this.toDomain(record));
   }
 
-  /**
-   * 根据策略 ID 和用户 ID 查找会话列表
-   * @param strategyId 策略 ID
-   * @param userId 用户 ID
-   * @param limit 限制数量（可选）
-   * @param offset 偏移量（可选）
-   * @returns 会话列表
-   */
   async findByStrategyForUser(
     strategyId: string,
     userId: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<ScreeningSession[]> {
     const records = await this.prisma.screeningSession.findMany({
       where: { strategyId, userId },
       take: limit,
       skip: offset,
-      orderBy: { executedAt: "desc" },
+      orderBy: [{ executedAt: "desc" }, { id: "desc" }],
     });
 
     return records.map((record) => this.toDomain(record));
   }
 
-  /**
-   * 查找最近的会话列表（按执行时间降序）
-   * @param limit 限制数量（可选）
-   * @param offset 偏移量（可选）
-   * @returns 会话列表
-   */
-  async findRecentSessions(limit?: number, offset?: number): Promise<ScreeningSession[]> {
+  async findRecentSessions(
+    limit?: number,
+    offset?: number,
+  ): Promise<ScreeningSession[]> {
     const records = await this.prisma.screeningSession.findMany({
       take: limit,
       skip: offset,
-      orderBy: { executedAt: "desc" },
+      orderBy: [{ executedAt: "desc" }, { id: "desc" }],
     });
 
     return records.map((record) => this.toDomain(record));
   }
 
-  /**
-   * 查找指定用户最近会话（按执行时间降序）
-   * @param userId 用户 ID
-   * @param limit 限制数量（可选）
-   * @param offset 偏移量（可选）
-   * @returns 会话列表
-   */
   async findRecentSessionsByUser(
     userId: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<ScreeningSession[]> {
     const records = await this.prisma.screeningSession.findMany({
       where: { userId },
       take: limit,
       skip: offset,
-      orderBy: { executedAt: "desc" },
+      orderBy: [{ executedAt: "desc" }, { id: "desc" }],
     });
 
     return records.map((record) => this.toDomain(record));
   }
 
-  /**
-   * 将 Prisma 记录转换为领域对象
-   * @param record Prisma 记录
-   * @returns ScreeningSession 实例
-   */
+  async claimNextPendingSession(): Promise<ScreeningSession | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const candidate = await tx.screeningSession.findFirst({
+        where: {
+          status: ScreeningSessionStatus.PENDING,
+        },
+        orderBy: [{ executedAt: "asc" }, { id: "asc" }],
+      });
+
+      if (!candidate) {
+        return null;
+      }
+
+      const claimResult = await tx.screeningSession.updateMany({
+        where: {
+          id: candidate.id,
+          status: ScreeningSessionStatus.PENDING,
+        },
+        data: {
+          status: ScreeningSessionStatus.RUNNING,
+          startedAt: candidate.startedAt ?? new Date(),
+          currentStep: "准备执行",
+          progressPercent: Math.max(candidate.progressPercent, 1),
+        },
+      });
+
+      if (claimResult.count === 0) {
+        return null;
+      }
+
+      const claimed = await tx.screeningSession.findUnique({
+        where: { id: candidate.id },
+      });
+
+      return claimed ? this.toDomain(claimed) : null;
+    });
+  }
+
+  async findRunningSessions(limit = 20): Promise<ScreeningSession[]> {
+    const records = await this.prisma.screeningSession.findMany({
+      where: {
+        status: ScreeningSessionStatus.RUNNING,
+      },
+      orderBy: [{ startedAt: "asc" }, { executedAt: "asc" }],
+      take: limit,
+    });
+
+    return records.map((record) => this.toDomain(record));
+  }
+
   private toDomain(record: {
     id: string;
     strategyId: string | null;
     strategyName: string;
     executedAt: Date;
+    status: string;
+    progressPercent: number;
+    currentStep: string | null;
+    errorMessage: string | null;
+    cancellationRequestedAt: Date | null;
+    startedAt: Date | null;
+    completedAt: Date | null;
     totalScanned: number;
     executionTime: number;
     topStocks: unknown;
@@ -186,40 +194,40 @@ export class PrismaScreeningSessionRepository
     scoringConfigSnapshot: unknown;
     userId: string;
   }): ScreeningSession {
-    // 反序列化 topStocks
     const topStocksData = record.topStocks as Record<string, unknown>[];
     const topStocks = topStocksData.map((stockData) =>
-      ScoredStock.fromDict(stockData)
+      ScoredStock.fromDict(stockData),
     );
-
-    // 反序列化 otherStockCodes
     const otherStockCodes = record.otherStockCodes.map((code) =>
-      StockCode.create(code)
+      StockCode.create(code),
     );
-
-    // 反序列化 filtersSnapshot
     const filtersSnapshot = FilterGroup.fromDict(
-      record.filtersSnapshot as Record<string, unknown>
+      record.filtersSnapshot as Record<string, unknown>,
     );
-
-    // 反序列化 scoringConfigSnapshot
     const scoringConfigSnapshot = ScoringConfig.fromDict(
-      record.scoringConfigSnapshot as Record<string, unknown>
+      record.scoringConfigSnapshot as Record<string, unknown>,
     );
 
-    // 使用 fromDict 方法重建 ScreeningSession
     return ScreeningSession.fromDict({
       id: record.id,
       strategyId: record.strategyId,
       strategyName: record.strategyName,
+      userId: record.userId,
       executedAt: record.executedAt.toISOString(),
+      status: record.status,
+      progressPercent: record.progressPercent,
+      currentStep: record.currentStep,
+      errorMessage: record.errorMessage,
+      cancellationRequestedAt:
+        record.cancellationRequestedAt?.toISOString() ?? null,
+      startedAt: record.startedAt?.toISOString() ?? null,
+      completedAt: record.completedAt?.toISOString() ?? null,
       totalScanned: record.totalScanned,
       executionTime: record.executionTime,
       topStocks: topStocks.map((stock) => stock.toDict()),
       otherStockCodes: otherStockCodes.map((code) => code.value),
       filtersSnapshot: filtersSnapshot.toDict(),
       scoringConfigSnapshot: scoringConfigSnapshot.toDict(),
-      userId: record.userId,
     });
   }
 }

@@ -22,6 +22,8 @@ export interface IndicatorFieldMetadata {
   description: string;
   /** 单位（可选） */
   unit?: string;
+  /** 时间序列指标对应的回溯年数 */
+  lookbackYears?: number;
 }
 
 /**
@@ -145,18 +147,21 @@ export const INDICATOR_FIELD_METADATA: Record<
     valueType: IndicatorValueType.NUMERIC,
     description: "3年营收复合增长率",
     unit: "%",
+    lookbackYears: 3,
   },
   [IndicatorField.NET_PROFIT_CAGR_3Y]: {
     category: IndicatorCategory.TIME_SERIES,
     valueType: IndicatorValueType.NUMERIC,
     description: "3年净利润复合增长率",
     unit: "%",
+    lookbackYears: 3,
   },
   [IndicatorField.ROE_AVG_3Y]: {
     category: IndicatorCategory.TIME_SERIES,
     valueType: IndicatorValueType.NUMERIC,
     description: "3年ROE平均值",
     unit: "%",
+    lookbackYears: 3,
   },
 
   // 衍生指标
@@ -177,7 +182,7 @@ export const INDICATOR_FIELD_METADATA: Record<
  * 获取指标字段的元数据
  */
 export function getIndicatorFieldMetadata(
-  field: IndicatorField
+  field: IndicatorField,
 ): IndicatorFieldMetadata {
   return INDICATOR_FIELD_METADATA[field];
 }
@@ -190,10 +195,19 @@ export function getIndicatorCategory(field: IndicatorField): IndicatorCategory {
 }
 
 /**
+ * 获取时间序列指标预期的回溯年数
+ */
+export function getIndicatorLookbackYears(
+  field: IndicatorField,
+): number | undefined {
+  return INDICATOR_FIELD_METADATA[field].lookbackYears;
+}
+
+/**
  * 获取指标字段的值类型
  */
 export function getIndicatorValueType(
-  field: IndicatorField
+  field: IndicatorField,
 ): IndicatorValueType {
   return INDICATOR_FIELD_METADATA[field].valueType;
 }
@@ -215,12 +229,21 @@ export function isTextIndicator(field: IndicatorField): boolean {
 }
 
 /**
+ * 判断指标是否为时间序列指标
+ */
+export function isTimeSeriesIndicator(field: IndicatorField): boolean {
+  return (
+    INDICATOR_FIELD_METADATA[field].category === IndicatorCategory.TIME_SERIES
+  );
+}
+
+/**
  * 按类别获取指标字段列表
  */
 export function getIndicatorsByCategory(
-  category: IndicatorCategory
+  category: IndicatorCategory,
 ): IndicatorField[] {
   return Object.values(IndicatorField).filter(
-    (field) => INDICATOR_FIELD_METADATA[field].category === category
+    (field) => INDICATOR_FIELD_METADATA[field].category === category,
   );
 }

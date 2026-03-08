@@ -23,13 +23,23 @@ export const env = createEnv({
     AUTH_CREDENTIALS_PASSWORD: z.string().optional(),
     DATABASE_URL: z.string().url(),
     REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
+    PYTHON_SERVICE_URL: z.string().url().default("http://127.0.0.1:8000"),
     PYTHON_INTELLIGENCE_SERVICE_URL: z
       .string()
       .url()
       .default("http://127.0.0.1:8000"),
     DEEPSEEK_API_KEY: z.string().optional(),
     DEEPSEEK_BASE_URL: z.string().url().default("https://api.deepseek.com"),
-    WORKFLOW_WORKER_POLL_INTERVAL_MS: z.coerce.number().int().positive().default(2000),
+    WORKFLOW_WORKER_POLL_INTERVAL_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(2000),
+    SCREENING_WORKER_POLL_INTERVAL_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(2000),
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
@@ -62,10 +72,15 @@ export const env = createEnv({
     AUTH_CREDENTIALS_PASSWORD: process.env.AUTH_CREDENTIALS_PASSWORD,
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
-    PYTHON_INTELLIGENCE_SERVICE_URL: process.env.PYTHON_INTELLIGENCE_SERVICE_URL,
+    PYTHON_SERVICE_URL: process.env.PYTHON_SERVICE_URL,
+    PYTHON_INTELLIGENCE_SERVICE_URL:
+      process.env.PYTHON_INTELLIGENCE_SERVICE_URL,
     DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY,
     DEEPSEEK_BASE_URL: process.env.DEEPSEEK_BASE_URL,
-    WORKFLOW_WORKER_POLL_INTERVAL_MS: process.env.WORKFLOW_WORKER_POLL_INTERVAL_MS,
+    WORKFLOW_WORKER_POLL_INTERVAL_MS:
+      process.env.WORKFLOW_WORKER_POLL_INTERVAL_MS,
+    SCREENING_WORKER_POLL_INTERVAL_MS:
+      process.env.SCREENING_WORKER_POLL_INTERVAL_MS,
     NODE_ENV: process.env.NODE_ENV,
   },
   /**
@@ -79,4 +94,3 @@ export const env = createEnv({
    */
   emptyStringAsUndefined: true,
 });
-

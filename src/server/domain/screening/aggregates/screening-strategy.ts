@@ -24,10 +24,10 @@ import { ScreeningResult } from "../value-objects/screening-result";
 import { InvalidStrategyError } from "../errors";
 import type { Stock } from "../entities/stock";
 import type { ScoredStock } from "../value-objects/scored-stock";
-import type { IIndicatorCalculationService } from "../value-objects/filter-condition";
+import type { IIndicatorCalculationService } from "../services/indicator-calculation-service";
 
 // Re-export IIndicatorCalculationService for convenience
-export type { IIndicatorCalculationService } from "../value-objects/filter-condition";
+export type { IIndicatorCalculationService } from "../services/indicator-calculation-service";
 
 /**
  * IScoringService 接口

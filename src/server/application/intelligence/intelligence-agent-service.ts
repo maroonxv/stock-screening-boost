@@ -7,11 +7,10 @@ import type {
   QuickResearchCredibility,
   QuickResearchResultDto,
 } from "~/server/domain/workflow/types";
-import { ScreeningFacade } from "~/server/application/screening/screening-facade";
-import { DeepSeekClient } from "~/server/infrastructure/intelligence/deepseek-client";
-import {
+import type { DeepSeekClient } from "~/server/infrastructure/intelligence/deepseek-client";
+import type {
+  IntelligenceCandidateItem,
   PythonIntelligenceDataClient,
-  type IntelligenceCandidateItem,
 } from "~/server/infrastructure/intelligence/python-intelligence-data-client";
 
 export type MarketHeatAnalysis = {
@@ -23,7 +22,6 @@ export type MarketHeatAnalysis = {
 export type IntelligenceAgentServiceDependencies = {
   deepSeekClient: DeepSeekClient;
   dataClient: PythonIntelligenceDataClient;
-  screeningFacade: ScreeningFacade;
 };
 
 function buildHeatScore(news: ThemeNewsItem[]) {
@@ -73,7 +71,9 @@ function mapCandidateToQuickResearch(
   heatScore: number,
   index: number,
 ): QuickResearchCandidate {
-  const blended = Math.round(heatScore * 0.55 + candidate.heat * 0.45 - index * 3);
+  const blended = Math.round(
+    heatScore * 0.55 + candidate.heat * 0.45 - index * 3,
+  );
 
   return {
     stockCode: candidate.stockCode,
@@ -86,15 +86,15 @@ function mapCandidateToQuickResearch(
 export class IntelligenceAgentService {
   private readonly deepSeekClient: DeepSeekClient;
   private readonly dataClient: PythonIntelligenceDataClient;
-  private readonly screeningFacade: ScreeningFacade;
 
   constructor(dependencies: IntelligenceAgentServiceDependencies) {
     this.deepSeekClient = dependencies.deepSeekClient;
     this.dataClient = dependencies.dataClient;
-    this.screeningFacade = dependencies.screeningFacade;
   }
 
-  async generateIndustryOverview(query: string): Promise<{ overview: string; news: ThemeNewsItem[] }> {
+  async generateIndustryOverview(
+    query: string,
+  ): Promise<{ overview: string; news: ThemeNewsItem[] }> {
     const news = await this.dataClient.getThemeNews({
       theme: query,
       days: 7,
@@ -132,7 +132,10 @@ export class IntelligenceAgentService {
     };
   }
 
-  async analyzeMarketHeat(query: string, newsFromOverview?: ThemeNewsItem[]): Promise<MarketHeatAnalysis> {
+  async analyzeMarketHeat(
+    query: string,
+    newsFromOverview?: ThemeNewsItem[],
+  ): Promise<MarketHeatAnalysis> {
     const news =
       newsFromOverview ??
       (await this.dataClient.getThemeNews({
@@ -168,23 +171,22 @@ export class IntelligenceAgentService {
     };
   }
 
-  async screenCandidates(query: string, heatScore: number): Promise<QuickResearchCandidate[]> {
-    try {
-      const sourcedCandidates = await this.dataClient.getCandidates({
+  async screenCandidates(
+    query: string,
+    heatScore: number,
+  ): Promise<QuickResearchCandidate[]> {
+    const sourcedCandidates = await this.dataClient
+      .getCandidates({
         theme: query,
         limit: 8,
-      });
+      })
+      .catch(() => []);
 
-      if (sourcedCandidates.length > 0) {
-        return sourcedCandidates
-          .slice(0, 6)
-          .map((candidate, index) => mapCandidateToQuickResearch(candidate, heatScore, index));
-      }
-    } catch {
-      // Fall through to local fallback pool.
-    }
-
-    return this.screeningFacade.screenCandidates(query, heatScore);
+    return sourcedCandidates
+      .slice(0, 6)
+      .map((candidate, index) =>
+        mapCandidateToQuickResearch(candidate, heatScore, index),
+      );
   }
 
   async evaluateCredibility(

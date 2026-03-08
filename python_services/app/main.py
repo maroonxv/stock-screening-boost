@@ -1,11 +1,14 @@
-"""
-FastAPI application entry point
-Provides financial data interfaces using AkShare
-"""
+"""FastAPI application entry point for the Python data gateway."""
 
 import os
-from fastapi import FastAPI
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from app.contracts.meta import GatewayErrorBody, GatewayErrorResponse
+from app.gateway.common import GatewayError, build_meta
+from app.infrastructure.logging.request_id import RequestIdMiddleware, create_request_id
 
 app = FastAPI(
     title="Stock Screening Data Service",
@@ -29,6 +32,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(RequestIdMiddleware)
+
+
+@app.exception_handler(GatewayError)
+async def handle_gateway_error(request: Request, exc: GatewayError):
+    request_id = getattr(request.state, "request_id", create_request_id())
+    payload = GatewayErrorResponse(
+        meta=build_meta(
+            request_id=request_id,
+            provider=exc.provider,
+            started_at=0,
+            cache_hit=False,
+            is_stale=False,
+            warnings=exc.warnings,
+        ),
+        error=GatewayErrorBody(code=exc.code, message=exc.message),
+    )
+    return JSONResponse(status_code=exc.status_code, content=payload.model_dump(mode="json"))
 
 
 @app.get("/")
@@ -49,8 +70,11 @@ async def health_check():
 
 # Register routers
 from app.routers import intelligence_data, stock_data
+from app.routers import intelligence_v1, market_data
 
 app.include_router(stock_data.router, prefix="/api", tags=["stocks"])
 app.include_router(
     intelligence_data.router, prefix="/api", tags=["intelligence"]
 )
+app.include_router(market_data.router, tags=["market-v1"])
+app.include_router(intelligence_v1.router, tags=["intelligence-v1"])

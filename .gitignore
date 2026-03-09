@@ -50,3 +50,7 @@ yarn-error.log*
 
 # idea files
 .idea
+
+temp/
+
+data/

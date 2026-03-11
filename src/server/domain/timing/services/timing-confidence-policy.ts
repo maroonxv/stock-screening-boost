@@ -1,6 +1,7 @@
 import type {
   TimingDirection,
   TimingFactorBreakdownItem,
+  TimingPresetConfig,
   TimingRiskFlag,
 } from "~/server/domain/timing/types";
 
@@ -9,12 +10,15 @@ function clamp(value: number, min: number, max: number) {
 }
 
 export class TimingConfidencePolicy {
-  calculate(params: {
-    direction: TimingDirection;
-    signalStrength: number;
-    factorBreakdown: TimingFactorBreakdownItem[];
-    riskFlags: TimingRiskFlag[];
-  }) {
+  calculate(
+    params: {
+      direction: TimingDirection;
+      signalStrength: number;
+      factorBreakdown: TimingFactorBreakdownItem[];
+      riskFlags: TimingRiskFlag[];
+    },
+    presetConfig?: TimingPresetConfig,
+  ) {
     const total = params.factorBreakdown.length || 1;
     const aligned = params.factorBreakdown.filter((factor) => {
       if (params.direction === "bullish") {
@@ -26,19 +30,26 @@ export class TimingConfidencePolicy {
       return factor.status === "neutral";
     }).length;
 
-    const alignmentScore = (aligned / total) * 35;
-    const riskPenalty = params.riskFlags.length * 4;
-    const neutralPenalty = params.direction === "neutral" ? 8 : 0;
+    const thresholds = presetConfig?.confidenceThresholds;
+    const alignmentScore =
+      (aligned / total) * (thresholds?.alignmentWeight ?? 35);
+    const riskPenalty =
+      params.riskFlags.length * (thresholds?.riskPenaltyPerFlag ?? 4);
+    const neutralPenalty =
+      params.direction === "neutral" ? (thresholds?.neutralPenalty ?? 8) : 0;
+    const signalStrengthWeight = thresholds?.signalStrengthWeight ?? 0.55;
+    const minConfidence = thresholds?.minConfidence ?? 25;
+    const maxConfidence = thresholds?.maxConfidence ?? 95;
 
     return clamp(
       Math.round(
-        params.signalStrength * 0.55 +
+        params.signalStrength * signalStrengthWeight +
           alignmentScore -
           riskPenalty -
           neutralPenalty,
       ),
-      25,
-      95,
+      minConfidence,
+      maxConfidence,
     );
   }
 }

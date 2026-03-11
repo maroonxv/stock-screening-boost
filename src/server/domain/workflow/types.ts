@@ -6,8 +6,12 @@ import type {
   TechnicalAssessment,
   TimingAnalysisCardRecord,
   TimingCardDraft,
+  TimingPresetConfig,
+  TimingPresetRecord,
   TimingRecommendationDraft,
   TimingRecommendationRecord,
+  TimingReviewCompletionDraft,
+  TimingReviewRecord,
   TimingSignalBatchError,
   TimingSignalData,
   TimingSignalSnapshotRecord,
@@ -22,6 +26,8 @@ export const WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE =
   "watchlist_timing_cards_pipeline_v1";
 export const WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE =
   "watchlist_timing_pipeline_v1";
+export const SCREENING_TO_TIMING_TEMPLATE_CODE = "screening_to_timing_v1";
+export const TIMING_REVIEW_LOOP_TEMPLATE_CODE = "timing_review_loop_v1";
 
 export const QUICK_RESEARCH_NODE_KEYS = [
   "agent1_industry_overview",
@@ -78,6 +84,21 @@ export const WATCHLIST_TIMING_PIPELINE_NODE_KEYS = [
   "persist_recommendations",
 ] as const;
 
+export const SCREENING_TO_TIMING_NODE_KEYS = [
+  "load_screening_results",
+  "select_top_candidates",
+  "run_timing_pipeline",
+  "archive_results",
+] as const;
+
+export const TIMING_REVIEW_LOOP_NODE_KEYS = [
+  "load_due_reviews",
+  "evaluate_outcomes",
+  "review_agent",
+  "persist_reviews",
+  "schedule_next_review",
+] as const;
+
 export type QuickResearchNodeKey = (typeof QUICK_RESEARCH_NODE_KEYS)[number];
 export type CompanyResearchNodeKey =
   (typeof COMPANY_RESEARCH_NODE_KEYS)[number];
@@ -89,6 +110,10 @@ export type WatchlistTimingCardsPipelineNodeKey =
   (typeof WATCHLIST_TIMING_CARDS_PIPELINE_NODE_KEYS)[number];
 export type WatchlistTimingPipelineNodeKey =
   (typeof WATCHLIST_TIMING_PIPELINE_NODE_KEYS)[number];
+export type ScreeningToTimingNodeKey =
+  (typeof SCREENING_TO_TIMING_NODE_KEYS)[number];
+export type TimingReviewLoopNodeKey =
+  (typeof TIMING_REVIEW_LOOP_NODE_KEYS)[number];
 export type WorkflowNodeKey =
   | QuickResearchNodeKey
   | CompanyResearchNodeKey
@@ -96,6 +121,8 @@ export type WorkflowNodeKey =
   | TimingSignalPipelineNodeKey
   | WatchlistTimingCardsPipelineNodeKey
   | WatchlistTimingPipelineNodeKey
+  | ScreeningToTimingNodeKey
+  | TimingReviewLoopNodeKey
   | string;
 
 export type WorkflowTemplateCode =
@@ -104,7 +131,9 @@ export type WorkflowTemplateCode =
   | typeof SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE
   | typeof TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE
   | typeof WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE
-  | typeof WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE;
+  | typeof WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE
+  | typeof SCREENING_TO_TIMING_TEMPLATE_CODE
+  | typeof TIMING_REVIEW_LOOP_TEMPLATE_CODE;
 
 export type WorkflowEventStreamType =
   | "RUN_STARTED"
@@ -279,17 +308,32 @@ export type ScreeningInsightPipelineInput = {
 export type TimingSignalPipelineInput = {
   stockCode: string;
   asOfDate?: string;
+  presetId?: string;
 };
 
 export type WatchlistTimingCardsPipelineInput = {
   watchListId: string;
   asOfDate?: string;
+  presetId?: string;
 };
 
 export type WatchlistTimingPipelineInput = {
   watchListId: string;
   portfolioSnapshotId: string;
   asOfDate?: string;
+  presetId?: string;
+};
+
+export type ScreeningToTimingPipelineInput = {
+  screeningSessionId: string;
+  candidateLimit?: number;
+  asOfDate?: string;
+  presetId?: string;
+};
+
+export type TimingReviewLoopInput = {
+  date?: string;
+  limit?: number;
 };
 
 export type TimingPipelineTarget = {
@@ -389,6 +433,8 @@ export type TimingSignalPipelineGraphState = WorkflowGraphState & {
   currentNodeKey?: TimingSignalPipelineNodeKey;
   lastCompletedNodeKey?: TimingSignalPipelineNodeKey;
   timingInput: TimingSignalPipelineInput;
+  preset?: TimingPresetRecord;
+  presetConfig?: TimingPresetConfig;
   targets: TimingPipelineTarget[];
   signalSnapshots: TimingSignalData[];
   technicalAssessments: TechnicalAssessment[];
@@ -402,6 +448,8 @@ export type WatchlistTimingCardsPipelineGraphState = WorkflowGraphState & {
   currentNodeKey?: WatchlistTimingCardsPipelineNodeKey;
   lastCompletedNodeKey?: WatchlistTimingCardsPipelineNodeKey;
   timingInput: WatchlistTimingCardsPipelineInput;
+  preset?: TimingPresetRecord;
+  presetConfig?: TimingPresetConfig;
   watchlist?: TimingWatchlistContext;
   targets: TimingPipelineTarget[];
   signalSnapshots: TimingSignalData[];
@@ -416,6 +464,8 @@ export type WatchlistTimingPipelineGraphState = WorkflowGraphState & {
   currentNodeKey?: WatchlistTimingPipelineNodeKey;
   lastCompletedNodeKey?: WatchlistTimingPipelineNodeKey;
   timingInput: WatchlistTimingPipelineInput;
+  preset?: TimingPresetRecord;
+  presetConfig?: TimingPresetConfig;
   watchlist?: TimingWatchlistContext;
   portfolioSnapshot?: PortfolioSnapshotRecord;
   targets: TimingPipelineTarget[];
@@ -427,7 +477,52 @@ export type WatchlistTimingPipelineGraphState = WorkflowGraphState & {
   riskPlan?: PortfolioRiskPlan;
   recommendations: TimingRecommendationDraft[];
   persistedRecommendations: TimingRecommendationRecord[];
+  reviewRecords: TimingReviewRecord[];
+  scheduledReminderIds: string[];
   batchErrors: TimingSignalBatchError[];
+};
+
+export type ScreeningToTimingSessionSnapshot = {
+  id: string;
+  strategyName: string;
+  executedAt: string;
+  completedAt?: string;
+  matchedCount: number;
+};
+
+export type ScreeningToTimingGraphState = WorkflowGraphState & {
+  currentNodeKey?: ScreeningToTimingNodeKey;
+  lastCompletedNodeKey?: ScreeningToTimingNodeKey;
+  timingInput: ScreeningToTimingPipelineInput;
+  screeningSession?: ScreeningToTimingSessionSnapshot;
+  preset?: TimingPresetRecord;
+  presetConfig?: TimingPresetConfig;
+  targets: TimingPipelineTarget[];
+  selectedTargets: TimingPipelineTarget[];
+  signalSnapshots: TimingSignalData[];
+  technicalAssessments: TechnicalAssessment[];
+  cards: TimingCardDraft[];
+  persistedSignalSnapshots: TimingSignalSnapshotRecord[];
+  persistedCards: TimingAnalysisCardRecord[];
+  reviewRecords: TimingReviewRecord[];
+  scheduledReminderIds: string[];
+  batchErrors: TimingSignalBatchError[];
+};
+
+export type TimingReviewOutcome = TimingReviewCompletionDraft & {
+  stockCode: string;
+  reviewHorizon: TimingReviewRecord["reviewHorizon"];
+  expectedAction: TimingReviewRecord["expectedAction"];
+};
+
+export type TimingReviewLoopGraphState = WorkflowGraphState & {
+  currentNodeKey?: TimingReviewLoopNodeKey;
+  lastCompletedNodeKey?: TimingReviewLoopNodeKey;
+  timingInput: TimingReviewLoopInput;
+  dueReviews: TimingReviewRecord[];
+  evaluatedReviews: TimingReviewOutcome[];
+  persistedReviews: TimingReviewRecord[];
+  consumedReminderIds: string[];
 };
 
 export function getWorkflowNodeKeysFromGraphConfig(

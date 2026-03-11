@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import {
   EmptyState,
+  KeyPointList,
   KpiCard,
   Panel,
   ProgressBar,
@@ -13,8 +14,9 @@ import {
   statusTone,
   WorkspaceShell,
 } from "~/app/_components/ui";
+import { buildResearchDigest } from "~/app/workflows/research-view-models";
 import { COMPANY_RESEARCH_TEMPLATE_CODE } from "~/server/domain/workflow/types";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 
 function formatDate(value?: Date | null) {
   if (!value) {
@@ -32,7 +34,7 @@ function formatDate(value?: Date | null) {
 
 function parseLines(value: string) {
   return value
-    .split(/[\n,，、;]/)
+    .split(/[\n,，、]/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -48,30 +50,174 @@ function normalizeUrlInput(value: string) {
 }
 
 const statusLabelMap: Record<string, string> = {
-  PENDING: "排队中",
-  RUNNING: "进行中",
-  SUCCEEDED: "已完成",
-  FAILED: "失败",
+  PENDING: "等待执行",
+  RUNNING: "研究进行中",
+  SUCCEEDED: "结论已生成",
+  FAILED: "需要重跑",
   CANCELLED: "已取消",
 };
 
 const starterCases = [
   {
     companyName: "英伟达",
-    focusConcepts: "AI 服务器\n数据中心网络\n软件生态",
-    keyQuestion: "过去几个季度中，真正能拉动利润率提升的业务环节有哪些？",
+    focusConcepts: `AI 服务器
+数据中心网络
+软件生态`,
+    keyQuestion: "过去几个季度里，真正驱动利润率抬升的业务环节有哪些？",
   },
   {
     companyName: "特斯拉",
-    focusConcepts: "储能\n自动驾驶\n机器人",
-    keyQuestion: "去年利润中有多少仍在继续投入到下一轮技术平台？",
+    focusConcepts: `储能
+自动驾驶
+机器人`,
+    keyQuestion: "当前新业务增长是订单先行，还是利润已经开始兑现？",
   },
   {
     companyName: "药明康德",
-    focusConcepts: "ADC\n多肽\n海外产能",
-    keyQuestion: "新业务增长是订单先行，还是利润已经开始兑现？",
+    focusConcepts: `ADC
+多肽
+海外产能`,
+    keyQuestion: "新业务增长背后，哪些指标能够证明需求与利润同步兑现？",
   },
 ];
+
+type RunListItem = RouterOutputs["workflow"]["listRuns"]["items"][number];
+
+function CompanyRunCard({
+  run,
+  onCancel,
+}: {
+  run: RunListItem;
+  onCancel: (runId: string) => void;
+}) {
+  const detailQuery = api.workflow.getRun.useQuery(
+    { runId: run.id },
+    {
+      enabled: run.status === "SUCCEEDED",
+      refetchOnWindowFocus: false,
+    },
+  );
+
+  const digest = buildResearchDigest({
+    templateCode: run.templateCode,
+    query: run.query,
+    status: run.status,
+    progressPercent: run.progressPercent,
+    currentNodeKey: run.currentNodeKey,
+    result: detailQuery.data?.result,
+  });
+
+  return (
+    <article className="rounded-[18px] border border-[var(--app-border)] bg-[rgba(12,16,22,0.88)] p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusPill label="公司判断" tone="info" />
+            <StatusPill
+              label={statusLabelMap[run.status] ?? run.status}
+              tone={statusTone(run.status)}
+            />
+            <StatusPill label={digest.verdictLabel} tone={digest.verdictTone} />
+          </div>
+          <p className="mt-3 text-lg font-medium text-[var(--app-text)]">
+            {run.query}
+          </p>
+          <p className="mt-2 text-sm leading-6 text-[var(--app-text-muted)]">
+            {digest.summary}
+          </p>
+        </div>
+
+        <div className="text-right text-xs text-[var(--app-text-soft)]">
+          <p>{formatDate(run.createdAt)}</p>
+          {run.status === "RUNNING" || run.status === "PENDING" ? (
+            <p className="mt-2">{run.currentNodeKey ?? "等待更新"}</p>
+          ) : null}
+        </div>
+      </div>
+
+      {run.status === "RUNNING" || run.status === "PENDING" ? (
+        <div className="mt-4">
+          <div className="mb-2 flex items-center justify-between gap-3 text-xs text-[var(--app-text-soft)]">
+            <span>当前进度</span>
+            <span>{run.progressPercent}%</span>
+          </div>
+          <ProgressBar
+            value={run.progressPercent}
+            tone={statusTone(run.status)}
+          />
+        </div>
+      ) : null}
+
+      <div className="mt-4 grid gap-3 md:grid-cols-4">
+        {digest.metrics.slice(0, 4).map((metric) => (
+          <div
+            key={`${run.id}-${metric.label}`}
+            className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(16,21,29,0.84)] px-4 py-3"
+          >
+            <div className="text-xs text-[var(--app-text-soft)]">
+              {metric.label}
+            </div>
+            <div className="app-data mt-2 text-lg text-[var(--app-text)]">
+              {metric.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-4">
+        <KeyPointList
+          title="看多理由"
+          items={digest.bullPoints}
+          emptyText="等待正式结论后补充。"
+          tone="success"
+        />
+        <KeyPointList
+          title="风险点"
+          items={digest.bearPoints}
+          emptyText="当前未单独标注风险点。"
+          tone="warning"
+        />
+        <KeyPointList
+          title="证据摘要"
+          items={digest.evidence}
+          emptyText="进入详情页查看完整证据。"
+          tone="info"
+        />
+        <KeyPointList
+          title="待核验动作"
+          items={
+            digest.nextActions.length > 0 ? digest.nextActions : digest.gaps
+          }
+          emptyText="进入详情页查看完整待办。"
+          tone="neutral"
+        />
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="text-xs text-[var(--app-text-soft)]">
+          {digest.headline}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href={`/workflows/${run.id}`}
+            className="app-button app-button-primary"
+          >
+            查看结论
+          </Link>
+          {(run.status === "PENDING" || run.status === "RUNNING") && (
+            <button
+              type="button"
+              onClick={() => onCancel(run.id)}
+              className="app-button app-button-danger"
+            >
+              取消研究
+            </button>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export function CompanyResearchClient() {
   const router = useRouter();
@@ -109,11 +255,11 @@ export function CompanyResearchClient() {
   });
 
   const sortedRuns = useMemo(() => {
-    return [...(runsQuery.data?.items ?? [])].sort((left, right) => {
-      return (
-        (right.createdAt?.getTime?.() ?? 0) - (left.createdAt?.getTime?.() ?? 0)
-      );
-    });
+    return [...(runsQuery.data?.items ?? [])].sort(
+      (left, right) =>
+        (right.createdAt?.getTime?.() ?? 0) -
+        (left.createdAt?.getTime?.() ?? 0),
+    );
   }, [runsQuery.data?.items]);
 
   const liveRuns = sortedRuns.filter(
@@ -144,55 +290,55 @@ export function CompanyResearchClient() {
   return (
     <WorkspaceShell
       section="companyResearch"
-      eyebrow="Company Research Workflow"
-      title="公司研究任务中心"
-      description="用 LangGraph.js 把公司研究拆成概念解析、深问题设计、网页证据抓取和投资判断四个层次。配置 Firecrawl 后，工作流会主动抓官网和公开网页线索；未配置时也会先生成研究框架与待核验问题。"
+      eyebrow="Company Judgement"
+      title="公司判断"
+      description="先给出标的结论、证据与风险，再引导你继续核验最关键的问题；抓取过程与调试信息退到次级页面。"
       actions={
         <>
           <Link href="/" className="app-button">
-            返回总览
+            返回看板
           </Link>
           <Link href="/workflows" className="app-button app-button-primary">
-            打开行业研究
+            打开行业判断
           </Link>
-          <Link href="/screening" className="app-button app-button-success">
-            去策略筛选台
+          <Link href="/timing" className="app-button app-button-success">
+            前往择时组合
           </Link>
         </>
       }
       summary={
         <>
           <KpiCard
-            label="任务总数"
+            label="研究卡片"
             value={sortedRuns.length}
-            hint="最近 20 条公司研究记录"
+            hint="最近 20 条公司判断记录"
             tone="info"
           />
           <KpiCard
             label="进行中"
             value={liveRuns.length}
-            hint="排队中与抓取中的任务"
+            hint="仍在收集证据与结论"
             tone="warning"
           />
           <KpiCard
             label="已完成"
             value={finishedRuns.length}
-            hint="已生成概念解析与研究结论"
+            hint="可继续阅读完整结论"
             tone="success"
           />
           <KpiCard
-            label="最近发起"
+            label="最近更新"
             value={formatDate(sortedRuns[0]?.createdAt ?? null)}
-            hint="用于确认研究台是否持续运转"
+            hint="用于确认当前研究节奏"
             tone="neutral"
           />
         </>
       }
     >
-      <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <Panel
-          title="发起公司研究"
-          description="至少填写公司名。官网地址、概念标签和关键问题越具体，后续抓取和概念拆解就越精准。"
+          title="发起公司判断"
+          description="只需要先回答两件事：研究哪家公司、最想优先确认什么问题。其余字段作为高级选项收起。"
           actions={
             <button
               type="button"
@@ -200,65 +346,73 @@ export function CompanyResearchClient() {
               disabled={startMutation.isPending || !companyName.trim()}
               className="app-button app-button-primary"
             >
-              {startMutation.isPending ? "任务创建中" : "开始研究"}
+              {startMutation.isPending ? "正在生成判断" : "开始判断"}
             </button>
           }
         >
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4">
             <input
               value={companyName}
               onChange={(event) => setCompanyName(event.target.value)}
               placeholder="公司名称，例如：英伟达"
               className="app-input"
             />
-            <input
-              value={stockCode}
-              onChange={(event) => setStockCode(event.target.value)}
-              placeholder="股票代码，可选"
-              className="app-input"
-            />
-            <input
-              value={officialWebsite}
-              onChange={(event) => setOfficialWebsite(event.target.value)}
-              placeholder="官网或 IR 地址，可选"
-              className="app-input md:col-span-2"
-            />
-            <textarea
-              value={focusConcepts}
-              onChange={(event) => setFocusConcepts(event.target.value)}
-              placeholder="重点概念，每行或逗号分隔，例如：\nAI 芯片\n数据中心\n软件生态"
-              className="app-input min-h-[180px] resize-none"
-            />
             <textarea
               value={keyQuestion}
               onChange={(event) => setKeyQuestion(event.target.value)}
-              placeholder="你最想先回答的问题，例如：这家公司过去几个季度有多少利润来自某个新业务？"
-              className="app-input min-h-[180px] resize-none"
+              placeholder="最想优先确认的问题，例如：过去几个季度里，真正驱动利润率上行的业务环节有哪些？"
+              className="app-textarea min-h-[150px]"
             />
-            <textarea
-              value={supplementalUrls}
-              onChange={(event) => setSupplementalUrls(event.target.value)}
-              placeholder="补充网页 URL，可选，每行一个"
-              className="app-input min-h-[120px] resize-none md:col-span-2"
-            />
-            <input
-              value={idempotencyKey}
-              onChange={(event) => setIdempotencyKey(event.target.value)}
-              placeholder="可选：幂等键，用于避免重复创建"
-              className="app-input md:col-span-2"
-            />
-          </div>
 
-          {startMutation.error ? (
-            <div className="mt-4 rounded-[10px] border border-[rgba(239,142,157,0.34)] bg-[rgba(97,39,50,0.2)] px-4 py-3 text-sm text-[var(--app-danger)]">
-              {startMutation.error.message}
-            </div>
-          ) : null}
+            <details className="rounded-[14px] border border-[var(--app-border)] bg-[rgba(12,16,22,0.82)] p-4">
+              <summary className="cursor-pointer text-sm font-medium text-[var(--app-text)]">
+                高级选项
+              </summary>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <input
+                  value={stockCode}
+                  onChange={(event) => setStockCode(event.target.value)}
+                  placeholder="股票代码，可选"
+                  className="app-input"
+                />
+                <input
+                  value={officialWebsite}
+                  onChange={(event) => setOfficialWebsite(event.target.value)}
+                  placeholder="官网或 IR 地址，可选"
+                  className="app-input"
+                />
+                <textarea
+                  value={focusConcepts}
+                  onChange={(event) => setFocusConcepts(event.target.value)}
+                  placeholder="重点概念，每行一个，例如：AI 芯片、数据中心、软件生态"
+                  className="app-textarea min-h-[140px]"
+                />
+                <textarea
+                  value={supplementalUrls}
+                  onChange={(event) => setSupplementalUrls(event.target.value)}
+                  placeholder="补充 URL，每行一个，可选"
+                  className="app-textarea min-h-[140px]"
+                />
+                <input
+                  value={idempotencyKey}
+                  onChange={(event) => setIdempotencyKey(event.target.value)}
+                  placeholder="可选：幂等键，用于避免重复创建"
+                  className="app-input md:col-span-2"
+                />
+              </div>
+            </details>
+
+            {startMutation.error ? (
+              <div className="rounded-[12px] border border-[rgba(201,119,132,0.34)] bg-[rgba(81,33,43,0.2)] px-4 py-3 text-sm text-[var(--app-danger)]">
+                {startMutation.error.message}
+              </div>
+            ) : null}
+          </div>
         </Panel>
 
         <Panel
-          title="启动样例"
-          description="直接套用一个公司研究场景，然后再改成你自己的标的。"
+          title="快速样例"
+          description="直接套用一个公司判断场景，再改成你自己的标的。"
         >
           <div className="grid gap-3">
             {starterCases.map((item) => (
@@ -270,30 +424,29 @@ export function CompanyResearchClient() {
                   setFocusConcepts(item.focusConcepts);
                   setKeyQuestion(item.keyQuestion);
                 }}
-                className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(14,19,25,0.84)] px-4 py-4 text-left transition-colors hover:border-[var(--app-border-strong)] hover:bg-[rgba(18,24,32,0.94)]"
+                className="rounded-[14px] border border-[var(--app-border)] bg-[rgba(12,16,22,0.84)] px-4 py-3 text-left transition-colors hover:border-[var(--app-border-strong)] hover:bg-[rgba(16,21,29,0.94)]"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-[15px] font-medium text-[var(--app-text)]">
+                  <p className="text-sm font-medium text-[var(--app-text)]">
                     {item.companyName}
                   </p>
-                  <StatusPill label="概念深挖" tone="info" />
+                  <StatusPill label="概念拆解" tone="info" />
                 </div>
                 <p className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
                   {item.keyQuestion}
                 </p>
               </button>
             ))}
-            <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(14,19,25,0.76)] p-4 text-sm leading-6 text-[var(--app-text-muted)]">
-              当前工作流会先做概念映射，再生成“利润占比”“投入强度”“兑现节奏”这类深问题，随后用
-              Firecrawl 搜索与抓取网页证据，最后输出投资判断。
+            <div className="rounded-[14px] border border-[var(--app-border)] bg-[rgba(12,16,22,0.72)] p-4 text-sm leading-6 text-[var(--app-text-muted)]">
+              当前流程会先做概念映射，再生成“利润占比”“投入强度”“兑现节奏”这类深问题，随后抓取网页证据并产出投资判断。
             </div>
           </div>
         </Panel>
       </div>
 
       <Panel
-        title="最近研究记录"
-        description="完成后可以回看概念解析、抓取证据和待核验缺口。"
+        title="最新公司判断"
+        description="优先显示结论、证据摘要与待核验动作；运行中的任务仅展示进度与当前步骤。"
         actions={
           <button
             type="button"
@@ -306,85 +459,28 @@ export function CompanyResearchClient() {
       >
         {runsQuery.isLoading ? (
           <EmptyState
-            title="正在加载公司研究记录"
-            description="任务列表会在查询完成后显示。"
+            title="正在加载公司判断"
+            description="研究卡会在查询完成后显示。"
           />
         ) : sortedRuns.length === 0 ? (
           <EmptyState
-            title="还没有公司研究记录"
-            description="从上面的表单发起一条任务，系统会自动创建公司研究工作流。"
+            title="还没有公司判断记录"
+            description="从上方发起一个标的研究，系统会自动生成新的公司判断。"
           />
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             {sortedRuns.map((run) => (
-              <article
+              <CompanyRunCard
                 key={run.id}
-                className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.74)] p-4"
-              >
-                <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_140px_150px_auto] xl:items-start">
-                  <div className="min-w-0">
-                    <p className="text-base font-medium text-[var(--app-text)]">
-                      {run.query}
-                    </p>
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <StatusPill
-                        label={statusLabelMap[run.status] ?? run.status}
-                        tone={statusTone(run.status)}
-                      />
-                      <span className="text-xs text-[var(--app-text-soft)]">
-                        创建于 {formatDate(run.createdAt)}
-                      </span>
-                    </div>
-                    <p className="app-data mt-3 break-all text-[11px] text-[var(--app-text-soft)]">
-                      {run.id}
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
-                      进度
-                    </p>
-                    <p className="app-data mt-2 text-lg text-[var(--app-text)]">
-                      {run.progressPercent}%
-                    </p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
-                      状态条
-                    </p>
-                    <ProgressBar
-                      value={run.progressPercent}
-                      tone={statusTone(run.status)}
-                      className="mt-3"
-                    />
-                  </div>
-
-                  <div className="flex flex-wrap items-start justify-end gap-2">
-                    <Link
-                      href={`/workflows/${run.id}`}
-                      className="app-button app-button-primary"
-                    >
-                      查看详情
-                    </Link>
-                    {(run.status === "PENDING" || run.status === "RUNNING") && (
-                      <button
-                        type="button"
-                        onClick={() => cancelMutation.mutate({ runId: run.id })}
-                        className="app-button app-button-danger"
-                      >
-                        取消任务
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </article>
+                run={run}
+                onCancel={(runId) => cancelMutation.mutate({ runId })}
+              />
             ))}
           </div>
         )}
 
         {runsQuery.error ? (
-          <div className="mt-4 rounded-[10px] border border-[rgba(239,142,157,0.34)] bg-[rgba(97,39,50,0.2)] px-4 py-3 text-sm text-[var(--app-danger)]">
+          <div className="mt-4 rounded-[12px] border border-[rgba(201,119,132,0.34)] bg-[rgba(81,33,43,0.2)] px-4 py-3 text-sm text-[var(--app-danger)]">
             {runsQuery.error.message}
           </div>
         ) : null}

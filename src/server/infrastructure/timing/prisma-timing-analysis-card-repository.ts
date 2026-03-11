@@ -49,6 +49,7 @@ function mapCard(record: {
   userId: string;
   workflowRunId: string | null;
   watchListId: string | null;
+  presetId: string | null;
   stockCode: string;
   stockName: string;
   sourceType: string;
@@ -85,6 +86,7 @@ function mapCard(record: {
     userId: record.userId,
     workflowRunId: record.workflowRunId,
     watchListId: record.watchListId,
+    presetId: record.presetId,
     stockCode: record.stockCode,
     stockName: record.stockName,
     sourceType: record.sourceType as TimingSourceType,
@@ -119,6 +121,7 @@ export class PrismaTimingAnalysisCardRepository {
             userId: item.userId,
             workflowRunId: item.workflowRunId,
             watchListId: item.watchListId,
+            presetId: item.presetId,
             stockCode: item.stockCode,
             stockName: item.stockName,
             sourceType: item.sourceType,

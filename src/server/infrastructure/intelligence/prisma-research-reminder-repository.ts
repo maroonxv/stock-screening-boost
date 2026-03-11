@@ -14,9 +14,11 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
       create: {
         id: reminder.id,
         userId: reminder.userId,
-        insightId: reminder.insightId,
+        screeningInsightId: reminder.screeningInsightId,
+        timingReviewRecordId: reminder.timingReviewRecordId,
         stockCode: reminder.stockCode,
         reminderType: reminder.reminderType,
+        targetType: reminder.targetType,
         scheduledAt: reminder.scheduledAt,
         status: reminder.status,
         payload: toJson(reminder.payload),
@@ -25,8 +27,11 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
         updatedAt: reminder.updatedAt,
       },
       update: {
+        screeningInsightId: reminder.screeningInsightId,
+        timingReviewRecordId: reminder.timingReviewRecordId,
         scheduledAt: reminder.scheduledAt,
         status: reminder.status,
+        targetType: reminder.targetType,
         payload: toJson(reminder.payload),
         triggeredAt: reminder.triggeredAt,
         updatedAt: reminder.updatedAt,
@@ -43,8 +48,25 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
   }
 
   async findByInsightId(insightId: string): Promise<ResearchReminder[]> {
+    return this.findByScreeningInsightId(insightId);
+  }
+
+  async findByScreeningInsightId(
+    insightId: string,
+  ): Promise<ResearchReminder[]> {
     const records = await this.prisma.researchReminder.findMany({
-      where: { insightId },
+      where: { screeningInsightId: insightId },
+      orderBy: { scheduledAt: "asc" },
+    });
+
+    return records.map((record) => this.toDomain(record));
+  }
+
+  async findByTimingReviewRecordId(
+    reviewRecordId: string,
+  ): Promise<ResearchReminder[]> {
+    const records = await this.prisma.researchReminder.findMany({
+      where: { timingReviewRecordId: reviewRecordId },
       orderBy: { scheduledAt: "asc" },
     });
 
@@ -72,9 +94,11 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
   private toDomain(record: {
     id: string;
     userId: string;
-    insightId: string;
+    screeningInsightId: string | null;
+    timingReviewRecordId: string | null;
     stockCode: string;
     reminderType: string;
+    targetType: string;
     scheduledAt: Date;
     status: string;
     payload: unknown;
@@ -85,9 +109,11 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
     return ResearchReminder.create({
       id: record.id,
       userId: record.userId,
-      insightId: record.insightId,
+      screeningInsightId: record.screeningInsightId ?? undefined,
+      timingReviewRecordId: record.timingReviewRecordId ?? undefined,
       stockCode: record.stockCode,
       reminderType: record.reminderType as ResearchReminder["reminderType"],
+      targetType: record.targetType as ResearchReminder["targetType"],
       scheduledAt: record.scheduledAt,
       status: record.status as ResearchReminder["status"],
       payload: record.payload as Record<string, unknown>,

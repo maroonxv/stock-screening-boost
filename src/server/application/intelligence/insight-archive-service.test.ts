@@ -81,9 +81,19 @@ class InMemoryReminderRepository implements IReminderRepository {
   }
 
   async findByInsightId(insightId: string): Promise<ResearchReminder[]> {
+    return this.findByScreeningInsightId(insightId);
+  }
+
+  async findByScreeningInsightId(
+    insightId: string,
+  ): Promise<ResearchReminder[]> {
     return [...this.reminders.values()].filter(
       (item) => item.insightId === insightId,
     );
+  }
+
+  async findByTimingReviewRecordId(): Promise<ResearchReminder[]> {
+    return [];
   }
 
   async findPendingByUserId(): Promise<ResearchReminder[]> {

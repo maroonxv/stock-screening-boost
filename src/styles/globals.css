@@ -1,31 +1,32 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "..";
 
 @theme {
-  --font-sans: var(--font-body), "Noto Sans SC", "PingFang SC",
+  --font-sans: var(--font-body, "Noto Sans SC"), "PingFang SC",
     "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  --font-mono: var(--font-data), "IBM Plex Mono", "JetBrains Mono", ui-monospace,
+  --font-mono: var(--font-data, "IBM Plex Mono"), "JetBrains Mono", ui-monospace,
     "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
     monospace;
 }
 
 :root {
-  --app-bg: #07090c;
-  --app-bg-soft: #0c1117;
-  --app-bg-elevated: #111823;
-  --app-panel: rgba(16, 22, 30, 0.92);
-  --app-panel-muted: rgba(13, 18, 25, 0.82);
-  --app-border: rgba(115, 128, 148, 0.22);
-  --app-border-strong: rgba(132, 157, 188, 0.42);
-  --app-text: #edf2f7;
-  --app-text-muted: #9aa7b8;
-  --app-text-soft: #687587;
-  --app-accent: #69c4ff;
-  --app-accent-strong: #b8ecff;
-  --app-success: #78d3ad;
-  --app-warning: #ddb06a;
-  --app-danger: #eb909f;
-  --app-shadow: 0 20px 48px -30px rgba(0, 0, 0, 0.72);
+  --app-bg: #06080b;
+  --app-bg-soft: #0b1015;
+  --app-bg-elevated: #10161d;
+  --app-panel: rgba(12, 17, 23, 0.94);
+  --app-panel-muted: rgba(13, 18, 24, 0.9);
+  --app-border: rgba(106, 120, 137, 0.2);
+  --app-border-strong: rgba(130, 149, 170, 0.36);
+  --app-text: #eef3f8;
+  --app-text-muted: #a3b0bf;
+  --app-text-soft: #6f7d8c;
+  --app-accent: #6ca7d2;
+  --app-accent-strong: #c3ddf0;
+  --app-success: #6cc2a1;
+  --app-warning: #c39b62;
+  --app-danger: #cc7886;
+  --app-shadow: 0 28px 56px -36px rgba(0, 0, 0, 0.78);
 }
 
 html,
@@ -36,11 +37,11 @@ body {
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(80, 128, 173, 0.11), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(100, 212, 186, 0.08), transparent 30%),
+    radial-gradient(circle at top left, rgba(88, 117, 146, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(92, 112, 84, 0.05), transparent 24%),
     var(--app-bg);
   color: var(--app-text);
-  font-family: var(--font-body), "Noto Sans SC", "PingFang SC", "Microsoft YaHei",
+  font-family: var(--font-body, "Noto Sans SC"), "PingFang SC", "Microsoft YaHei",
     sans-serif;
   text-rendering: optimizeLegibility;
 }
@@ -54,8 +55,8 @@ body::before {
   background-image:
     linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(circle at center, black 45%, transparent 90%);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at center, black 52%, transparent 92%);
 }
 
 a {
@@ -71,7 +72,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(105, 196, 255, 0.24);
+  background: rgba(108, 167, 210, 0.24);
   color: #f8fbff;
 }
 
@@ -80,26 +81,30 @@ textarea {
 }
 
 .app-display {
-  font-family: var(--font-display), "Noto Serif SC", "Songti SC", serif;
+  font-family: var(--font-display, "Noto Serif SC"), "Songti SC", serif;
 }
 
 .app-data,
 .market-data {
-  font-family: var(--font-data), "IBM Plex Mono", "JetBrains Mono", ui-monospace,
+  font-family: var(--font-data, "IBM Plex Mono"), "JetBrains Mono", ui-monospace,
     "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
     monospace;
+}
+
+.market-kicker {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--app-text-soft);
 }
 
 .app-panel,
 .market-panel {
   border: 1px solid var(--app-border);
-  background: linear-gradient(
-      180deg,
-      rgba(19, 26, 35, 0.96),
-      rgba(13, 18, 25, 0.96)
-    ),
+  background:
+    linear-gradient(180deg, rgba(15, 20, 27, 0.98), rgba(10, 14, 19, 0.98)),
     var(--app-panel);
-  border-radius: 12px;
+  border-radius: 18px;
   box-shadow: var(--app-shadow);
 }
 
@@ -107,7 +112,7 @@ textarea {
 .market-soft-panel {
   border: 1px solid var(--app-border);
   background: var(--app-panel-muted);
-  border-radius: 12px;
+  border-radius: 16px;
 }
 
 .app-progress {
@@ -115,7 +120,7 @@ textarea {
   width: 100%;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(8, 12, 17, 0.94);
+  background: rgba(7, 11, 15, 0.96);
 }
 
 .app-input,
@@ -123,8 +128,8 @@ textarea {
 .app-textarea {
   width: 100%;
   border: 1px solid var(--app-border);
-  background: var(--app-bg-soft);
-  border-radius: 10px;
+  background: rgba(10, 15, 20, 0.96);
+  border-radius: 12px;
   color: var(--app-text);
   outline: none;
   transition:
@@ -135,21 +140,21 @@ textarea {
 
 .app-input,
 .app-select {
-  min-height: 42px;
-  padding: 0.7rem 0.85rem;
+  min-height: 44px;
+  padding: 0.72rem 0.9rem;
 }
 
 .app-textarea {
   min-height: 120px;
-  padding: 0.85rem;
+  padding: 0.9rem;
   resize: vertical;
 }
 
 .app-input:focus,
 .app-select:focus,
 .app-textarea:focus {
-  border-color: rgba(105, 196, 255, 0.52);
-  box-shadow: 0 0 0 3px rgba(105, 196, 255, 0.12);
+  border-color: rgba(108, 167, 210, 0.52);
+  box-shadow: 0 0 0 3px rgba(108, 167, 210, 0.12);
 }
 
 .app-input::placeholder,
@@ -159,14 +164,16 @@ textarea {
 
 .app-button {
   display: inline-flex;
-  min-height: 40px;
+  min-height: 42px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--app-border);
-  border-radius: 10px;
-  padding: 0 0.95rem;
-  font-size: 0.9rem;
+  border-radius: 12px;
+  padding: 0 1rem;
+  font-size: 0.92rem;
   font-weight: 500;
+  color: var(--app-text);
+  background: rgba(11, 15, 21, 0.94);
   transition:
     border-color 160ms ease,
     background-color 160ms ease,
@@ -176,6 +183,7 @@ textarea {
 
 .app-button:hover {
   border-color: var(--app-border-strong);
+  background: rgba(15, 20, 28, 0.98);
 }
 
 .app-button:disabled {
@@ -185,118 +193,60 @@ textarea {
 
 .app-button-primary,
 .market-button-primary {
-  border-color: rgba(105, 196, 255, 0.34);
-  background: rgba(20, 40, 58, 0.94);
-  color: #eef8ff;
+  border-color: rgba(108, 167, 210, 0.32);
+  background: rgba(20, 41, 58, 0.96);
+  color: #eef6fc;
 }
 
 .app-button-primary:hover,
 .market-button-primary:hover {
-  background: rgba(24, 50, 74, 0.98);
+  background: rgba(26, 52, 74, 0.98);
 }
 
 .app-button-success,
 .market-button-positive {
-  border-color: rgba(120, 211, 173, 0.34);
-  background: rgba(17, 46, 38, 0.94);
-  color: #ebfff7;
+  border-color: rgba(108, 194, 161, 0.32);
+  background: rgba(17, 43, 37, 0.96);
+  color: #ecfff8;
 }
 
 .app-button-success:hover,
 .market-button-positive:hover {
-  background: rgba(22, 60, 49, 0.98);
+  background: rgba(22, 56, 48, 0.98);
 }
 
 .app-button-danger,
 .market-button-danger {
-  border-color: rgba(235, 144, 159, 0.34);
-  background: rgba(68, 27, 35, 0.94);
-  color: #ffe8ed;
+  border-color: rgba(204, 120, 134, 0.34);
+  background: rgba(68, 27, 35, 0.96);
+  color: #ffe9ee;
 }
 
 .app-button-danger:hover,
 .market-button-danger:hover {
-  background: rgba(84, 33, 43, 0.98);
+  background: rgba(84, 34, 43, 0.98);
 }
 
 .app-table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
-}
-
-.app-table thead th {
-  color: var(--app-text-soft);
-  font-size: 0.74rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
 }
 
 .app-table th,
 .app-table td {
-  padding: 0.82rem 0.9rem;
-  border-top: 1px solid var(--app-border);
-  vertical-align: top;
+  border-bottom: 1px solid var(--app-border);
+  padding: 0.85rem 1rem;
+  text-align: left;
 }
 
-.app-table thead th {
-  border-top: 0;
+.app-table th {
+  font-size: 0.73rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--app-text-soft);
 }
 
-.app-scroll {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(132, 157, 188, 0.3) transparent;
-}
-
-.app-scroll::-webkit-scrollbar {
-  height: 8px;
-  width: 8px;
-}
-
-.app-scroll::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: rgba(132, 157, 188, 0.28);
-}
-
-.market-shell,
-.market-frame {
-  min-height: auto;
-  max-width: none;
-}
-
-.market-chip {
-  border: 1px solid var(--app-border);
-  background: rgba(16, 21, 29, 0.85);
+.app-table td {
+  font-size: 0.92rem;
   color: var(--app-text-muted);
-}
-
-.market-muted {
-  color: var(--app-text-muted);
-}
-
-.market-divider {
-  border-color: var(--app-border);
-}
-
-@keyframes app-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.studio-rise,
-.studio-float {
-  animation: app-fade-in 240ms ease-out both;
-}
-
-@media (max-width: 1023px) {
-  body::before {
-    background-size: 44px 44px;
-  }
 }

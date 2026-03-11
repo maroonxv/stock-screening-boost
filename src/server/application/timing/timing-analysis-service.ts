@@ -1,9 +1,11 @@
+import { resolveTimingPresetConfig } from "~/server/domain/timing/preset";
 import { TimingActionPolicy } from "~/server/domain/timing/services/timing-action-policy";
 import { TimingConfidencePolicy } from "~/server/domain/timing/services/timing-confidence-policy";
 import type {
   TechnicalAssessment,
   TimingCardDraft,
   TimingFactorBreakdownItem,
+  TimingPresetConfig,
   TimingRiskFlag,
   TimingSignalData,
   TimingSourceType,
@@ -16,6 +18,21 @@ function uniqueFlags(flags: string[]): TimingRiskFlag[] {
 
 function summarizeFactorLabel(factor: TimingFactorBreakdownItem) {
   return `${factor.label}：${factor.detail}`;
+}
+
+function applyFactorWeight(
+  factor: TimingFactorBreakdownItem,
+  presetConfig: TimingPresetConfig,
+) {
+  const weight =
+    presetConfig.factorWeights?.[
+      factor.key as keyof NonNullable<TimingPresetConfig["factorWeights"]>
+    ] ?? 1;
+
+  return {
+    ...factor,
+    score: Math.round(factor.score * weight),
+  };
 }
 
 export class TimingAnalysisService {
@@ -34,8 +51,13 @@ export class TimingAnalysisService {
     return this.deps.actionPolicy ?? new TimingActionPolicy();
   }
 
-  buildTechnicalAssessments(signalSnapshots: TimingSignalData[]) {
-    return signalSnapshots.map((snapshot) => this.buildAssessment(snapshot));
+  buildTechnicalAssessments(
+    signalSnapshots: TimingSignalData[],
+    presetConfig?: TimingPresetConfig,
+  ) {
+    return signalSnapshots.map((snapshot) =>
+      this.buildAssessment(snapshot, presetConfig),
+    );
   }
 
   buildCards(params: {
@@ -44,6 +66,8 @@ export class TimingAnalysisService {
     sourceType: TimingSourceType;
     sourceId: string;
     watchListId?: string;
+    presetId?: string;
+    presetConfig?: TimingPresetConfig;
     signalSnapshots: TimingSignalData[];
     technicalAssessments: TechnicalAssessment[];
     hasPortfolioContext?: boolean;
@@ -59,12 +83,15 @@ export class TimingAnalysisService {
         throw new Error(`缺少 ${assessment.stockCode} 的信号快照`);
       }
 
-      const actionBias = this.actionPolicy.decide({
-        direction: assessment.direction,
-        confidence: assessment.confidence,
-        signalStrength: assessment.signalStrength,
-        hasPortfolioContext: params.hasPortfolioContext,
-      });
+      const actionBias = this.actionPolicy.decide(
+        {
+          direction: assessment.direction,
+          confidence: assessment.confidence,
+          signalStrength: assessment.signalStrength,
+          hasPortfolioContext: params.hasPortfolioContext,
+        },
+        params.presetConfig,
+      );
 
       const actionRationale =
         actionBias === "ADD"
@@ -77,6 +104,7 @@ export class TimingAnalysisService {
         userId: params.userId,
         workflowRunId: params.workflowRunId,
         watchListId: params.watchListId,
+        presetId: params.presetId,
         stockCode: assessment.stockCode,
         stockName: assessment.stockName,
         sourceType: params.sourceType,
@@ -101,7 +129,11 @@ export class TimingAnalysisService {
     });
   }
 
-  private buildAssessment(snapshot: TimingSignalData): TechnicalAssessment {
+  private buildAssessment(
+    snapshot: TimingSignalData,
+    presetConfig?: TimingPresetConfig,
+  ): TechnicalAssessment {
+    const resolvedPresetConfig = resolveTimingPresetConfig(presetConfig);
     const indicators = TechnicalSignalSet.create(
       snapshot.indicators,
     ).toObject();
@@ -275,17 +307,34 @@ export class TimingAnalysisService {
             },
     ];
 
-    const confidence = this.confidencePolicy.calculate({
-      direction: snapshot.ruleSummary.direction,
-      signalStrength: snapshot.ruleSummary.signalStrength,
-      factorBreakdown,
-      riskFlags: uniqueFlags(snapshot.ruleSummary.warnings),
-    });
+    const weightedFactorBreakdown = factorBreakdown.map((factor) =>
+      applyFactorWeight(factor, resolvedPresetConfig),
+    );
+    const signalStrength = Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          snapshot.ruleSummary.signalStrength *
+            (resolvedPresetConfig.agentWeights?.technicalSignal ?? 1),
+        ),
+      ),
+    );
 
-    const positiveFactors = factorBreakdown.filter(
+    const confidence = this.confidencePolicy.calculate(
+      {
+        direction: snapshot.ruleSummary.direction,
+        signalStrength,
+        factorBreakdown: weightedFactorBreakdown,
+        riskFlags: uniqueFlags(snapshot.ruleSummary.warnings),
+      },
+      resolvedPresetConfig,
+    );
+
+    const positiveFactors = weightedFactorBreakdown.filter(
       (factor) => factor.status === "positive",
     );
-    const negativeFactors = factorBreakdown.filter(
+    const negativeFactors = weightedFactorBreakdown.filter(
       (factor) => factor.status === "negative",
     );
 
@@ -311,9 +360,9 @@ export class TimingAnalysisService {
       stockName: snapshot.stockName,
       asOfDate: snapshot.asOfDate,
       direction: snapshot.ruleSummary.direction,
-      signalStrength: snapshot.ruleSummary.signalStrength,
+      signalStrength,
       confidence,
-      factorBreakdown,
+      factorBreakdown: weightedFactorBreakdown,
       triggerNotes,
       invalidationNotes,
       riskFlags,

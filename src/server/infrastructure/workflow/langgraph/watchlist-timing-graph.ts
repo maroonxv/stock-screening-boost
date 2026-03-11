@@ -1,8 +1,10 @@
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import type { MarketRegimeService } from "~/server/application/timing/market-regime-service";
 import type { TimingAnalysisService } from "~/server/application/timing/timing-analysis-service";
+import type { TimingReviewSchedulingService } from "~/server/application/timing/timing-review-scheduling-service";
 import type { WatchlistPortfolioManagerService } from "~/server/application/timing/watchlist-portfolio-manager-service";
 import type { WatchlistRiskManagerService } from "~/server/application/timing/watchlist-risk-manager-service";
+import { resolveTimingPresetConfig } from "~/server/domain/timing/preset";
 import type {
   WatchlistTimingPipelineGraphState,
   WatchlistTimingPipelineInput,
@@ -16,6 +18,7 @@ import {
 } from "~/server/domain/workflow/types";
 import type { PrismaWatchListRepository } from "~/server/infrastructure/screening/prisma-watch-list-repository";
 import type { PrismaPortfolioSnapshotRepository } from "~/server/infrastructure/timing/prisma-portfolio-snapshot-repository";
+import type { PrismaTimingPresetRepository } from "~/server/infrastructure/timing/prisma-timing-preset-repository";
 import type { PrismaTimingRecommendationRepository } from "~/server/infrastructure/timing/prisma-timing-recommendation-repository";
 import type { PythonTimingDataClient } from "~/server/infrastructure/timing/python-timing-data-client";
 import type {
@@ -31,6 +34,8 @@ const WorkflowState = Annotation.Root({
   progressPercent: Annotation<number>,
   currentNodeKey: Annotation<WatchlistTimingPipelineNodeKey | undefined>,
   timingInput: Annotation<WatchlistTimingPipelineInput>,
+  preset: Annotation<WatchlistTimingPipelineGraphState["preset"]>,
+  presetConfig: Annotation<WatchlistTimingPipelineGraphState["presetConfig"]>,
   watchlist: Annotation<WatchlistTimingPipelineGraphState["watchlist"]>,
   portfolioSnapshot: Annotation<
     WatchlistTimingPipelineGraphState["portfolioSnapshot"]
@@ -55,6 +60,10 @@ const WorkflowState = Annotation.Root({
   >,
   persistedRecommendations: Annotation<
     WatchlistTimingPipelineGraphState["persistedRecommendations"]
+  >,
+  reviewRecords: Annotation<WatchlistTimingPipelineGraphState["reviewRecords"]>,
+  scheduledReminderIds: Annotation<
+    WatchlistTimingPipelineGraphState["scheduledReminderIds"]
   >,
   batchErrors: Annotation<WatchlistTimingPipelineGraphState["batchErrors"]>,
   errors: Annotation<string[]>({
@@ -81,20 +90,28 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
       portfolioSnapshotRepository: PrismaPortfolioSnapshotRepository;
       timingDataClient: PythonTimingDataClient;
       analysisService: TimingAnalysisService;
+      presetRepository: PrismaTimingPresetRepository;
       marketRegimeService: MarketRegimeService;
       riskManagerService: WatchlistRiskManagerService;
       portfolioManagerService: WatchlistPortfolioManagerService;
       recommendationRepository: PrismaTimingRecommendationRepository;
+      reviewSchedulingService: TimingReviewSchedulingService;
     },
   ) {
     this.nodeExecutors = {
       load_watchlist_context: async (state) => {
-        const [watchList, portfolioSnapshot] = await Promise.all([
+        const [watchList, portfolioSnapshot, preset] = await Promise.all([
           this.deps.watchListRepository.findById(state.timingInput.watchListId),
           this.deps.portfolioSnapshotRepository.getByIdForUser(
             state.userId,
             state.timingInput.portfolioSnapshotId,
           ),
+          state.timingInput.presetId
+            ? this.deps.presetRepository.getByIdForUser(
+                state.userId,
+                state.timingInput.presetId,
+              )
+            : Promise.resolve(null),
         ]);
 
         if (!watchList || watchList.userId !== state.userId) {
@@ -106,6 +123,8 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
         }
 
         return {
+          preset: preset ?? undefined,
+          presetConfig: resolveTimingPresetConfig(preset?.config),
           watchlist: {
             id: watchList.id,
             name: watchList.name,
@@ -146,6 +165,7 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
         technicalAssessments:
           this.deps.analysisService.buildTechnicalAssessments(
             state.signalSnapshots,
+            state.presetConfig,
           ),
       }),
       timing_synthesis_agent: async (state) => ({
@@ -155,6 +175,8 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
           sourceType: "watchlist",
           sourceId: state.timingInput.watchListId,
           watchListId: state.timingInput.watchListId,
+          presetId: state.preset?.id,
+          presetConfig: state.presetConfig,
           signalSnapshots: state.signalSnapshots,
           technicalAssessments: state.technicalAssessments,
           hasPortfolioContext: true,
@@ -196,8 +218,8 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
         }
 
         return {
-          recommendations:
-            this.deps.portfolioManagerService.buildRecommendations({
+          recommendations: this.deps.portfolioManagerService
+            .buildRecommendations({
               userId: state.userId,
               workflowRunId: state.runId,
               watchListId: state.watchlist.id,
@@ -205,15 +227,36 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
               timingCards: state.cards,
               riskPlan: state.riskPlan,
               marketRegimeAnalysis: state.marketRegimeAnalysis,
-            }),
+            })
+            .map((recommendation) => ({
+              ...recommendation,
+              presetId: state.preset?.id,
+            })),
         };
       },
-      persist_recommendations: async (state) => ({
-        persistedRecommendations:
+      persist_recommendations: async (state) => {
+        const persistedRecommendations =
           await this.deps.recommendationRepository.createMany({
             items: state.recommendations,
-          }),
-      }),
+          });
+        const reviewArtifacts =
+          await this.deps.reviewSchedulingService.scheduleForRecommendations({
+            recommendations: persistedRecommendations,
+            sourceAsOfDateByStockCode: new Map(
+              state.signalSnapshots.map((snapshot) => [
+                snapshot.stockCode,
+                snapshot.asOfDate,
+              ]),
+            ),
+            presetConfig: state.presetConfig,
+          });
+
+        return {
+          persistedRecommendations,
+          reviewRecords: reviewArtifacts.records,
+          scheduledReminderIds: reviewArtifacts.reminderIds,
+        };
+      },
     };
   }
 
@@ -232,6 +275,8 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
       currentNodeKey: undefined,
       lastCompletedNodeKey: undefined,
       timingInput: params.input as WatchlistTimingPipelineInput,
+      preset: undefined,
+      presetConfig: undefined,
       watchlist: undefined,
       portfolioSnapshot: undefined,
       targets: [],
@@ -243,6 +288,8 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
       riskPlan: undefined,
       recommendations: [],
       persistedRecommendations: [],
+      reviewRecords: [],
+      scheduledReminderIds: [],
       batchErrors: [],
       errors: [],
     };
@@ -303,6 +350,8 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
       return {
         persistedRecommendationCount:
           timingState.persistedRecommendations.length,
+        reviewRecordCount: timingState.reviewRecords.length,
+        reminderCount: timingState.scheduledReminderIds.length,
       };
     }
 
@@ -333,6 +382,8 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
       partialErrors: timingState.batchErrors,
       marketRegime: timingState.marketRegimeAnalysis?.marketRegime,
       riskPlan: timingState.riskPlan,
+      reviewRecordIds: timingState.reviewRecords.map((record) => record.id),
+      reminderIds: timingState.scheduledReminderIds,
     };
   }
 

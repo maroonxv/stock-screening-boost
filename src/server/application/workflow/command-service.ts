@@ -8,6 +8,8 @@ import {
   getWorkflowNodeKeysFromGraphConfig,
   QUICK_RESEARCH_TEMPLATE_CODE,
   SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
+  SCREENING_TO_TIMING_TEMPLATE_CODE,
+  TIMING_REVIEW_LOOP_TEMPLATE_CODE,
   TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE,
   WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE,
   WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE,
@@ -47,6 +49,7 @@ export type StartTimingSignalPipelineCommand = {
   userId: string;
   stockCode: string;
   asOfDate?: string;
+  presetId?: string;
   templateVersion?: number;
   idempotencyKey?: string;
 };
@@ -55,6 +58,7 @@ export type StartWatchlistTimingCardsPipelineCommand = {
   userId: string;
   watchListId: string;
   asOfDate?: string;
+  presetId?: string;
   watchListName?: string;
   templateVersion?: number;
   idempotencyKey?: string;
@@ -65,8 +69,28 @@ export type StartWatchlistTimingPipelineCommand = {
   watchListId: string;
   portfolioSnapshotId: string;
   asOfDate?: string;
+  presetId?: string;
   watchListName?: string;
   portfolioSnapshotName?: string;
+  templateVersion?: number;
+  idempotencyKey?: string;
+};
+
+export type StartScreeningToTimingPipelineCommand = {
+  userId: string;
+  screeningSessionId: string;
+  strategyName?: string;
+  candidateLimit?: number;
+  asOfDate?: string;
+  presetId?: string;
+  templateVersion?: number;
+  idempotencyKey?: string;
+};
+
+export type StartTimingReviewLoopCommand = {
+  userId: string;
+  date?: string;
+  limit?: number;
   templateVersion?: number;
   idempotencyKey?: string;
 };
@@ -160,10 +184,11 @@ export class WorkflowCommandService {
       input: {
         stockCode: command.stockCode,
         asOfDate: command.asOfDate,
+        presetId: command.presetId,
       },
       idempotencyKey:
         command.idempotencyKey ??
-        `timing-signal:${command.userId}:${command.stockCode}:${command.asOfDate ?? "latest"}`,
+        `timing-signal:${command.userId}:${command.stockCode}:${command.asOfDate ?? "latest"}${command.presetId ? `:${command.presetId}` : ""}`,
     });
   }
 
@@ -180,10 +205,11 @@ export class WorkflowCommandService {
       input: {
         watchListId: command.watchListId,
         asOfDate: command.asOfDate,
+        presetId: command.presetId,
       },
       idempotencyKey:
         command.idempotencyKey ??
-        `watchlist-timing-cards:${command.userId}:${command.watchListId}:${command.asOfDate ?? "latest"}`,
+        `watchlist-timing-cards:${command.userId}:${command.watchListId}:${command.asOfDate ?? "latest"}${command.presetId ? `:${command.presetId}` : ""}`,
     });
   }
 
@@ -202,10 +228,49 @@ export class WorkflowCommandService {
         watchListId: command.watchListId,
         portfolioSnapshotId: command.portfolioSnapshotId,
         asOfDate: command.asOfDate,
+        presetId: command.presetId,
       },
       idempotencyKey:
         command.idempotencyKey ??
-        `watchlist-timing:${command.userId}:${command.watchListId}:${command.portfolioSnapshotId}:${command.asOfDate ?? "latest"}`,
+        `watchlist-timing:${command.userId}:${command.watchListId}:${command.portfolioSnapshotId}:${command.asOfDate ?? "latest"}${command.presetId ? `:${command.presetId}` : ""}`,
+    });
+  }
+
+  async startScreeningToTimingPipeline(
+    command: StartScreeningToTimingPipelineCommand,
+  ) {
+    return this.startWorkflow({
+      userId: command.userId,
+      query: command.strategyName
+        ? `筛选联动择时 - ${command.strategyName}`
+        : `筛选联动择时 - ${command.screeningSessionId}`,
+      templateCode: SCREENING_TO_TIMING_TEMPLATE_CODE,
+      templateVersion: command.templateVersion,
+      input: {
+        screeningSessionId: command.screeningSessionId,
+        candidateLimit: command.candidateLimit,
+        asOfDate: command.asOfDate,
+        presetId: command.presetId,
+      },
+      idempotencyKey:
+        command.idempotencyKey ??
+        `screening-to-timing:${command.screeningSessionId}${command.presetId ? `:${command.presetId}` : ""}`,
+    });
+  }
+
+  async startTimingReviewLoop(command: StartTimingReviewLoopCommand) {
+    return this.startWorkflow({
+      userId: command.userId,
+      query: `择时复查 - ${command.date ?? "today"}`,
+      templateCode: TIMING_REVIEW_LOOP_TEMPLATE_CODE,
+      templateVersion: command.templateVersion,
+      input: {
+        date: command.date,
+        limit: command.limit,
+      },
+      idempotencyKey:
+        command.idempotencyKey ??
+        `timing-review:${command.date ?? new Date().toISOString().slice(0, 10)}`,
     });
   }
 
@@ -265,6 +330,21 @@ export class WorkflowCommandService {
       command.templateCode === WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE
     ) {
       template = await this.repository.ensureWatchlistTimingPipelineTemplate();
+    }
+
+    if (
+      !template &&
+      command.templateCode === SCREENING_TO_TIMING_TEMPLATE_CODE
+    ) {
+      template =
+        await this.repository.ensureScreeningToTimingPipelineTemplate();
+    }
+
+    if (
+      !template &&
+      command.templateCode === TIMING_REVIEW_LOOP_TEMPLATE_CODE
+    ) {
+      template = await this.repository.ensureTimingReviewLoopTemplate();
     }
 
     if (!template) {

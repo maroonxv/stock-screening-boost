@@ -2,10 +2,15 @@ import { v4 as uuidv4 } from "uuid";
 import { InvalidInsightError } from "~/server/domain/intelligence/errors";
 import type {
   ResearchReminderStatus,
+  ResearchReminderTargetType,
   ResearchReminderType,
 } from "~/server/domain/intelligence/types";
 
 const REMINDER_TYPES: ResearchReminderType[] = ["REVIEW"];
+const REMINDER_TARGET_TYPES: ResearchReminderTargetType[] = [
+  "SCREENING_INSIGHT",
+  "TIMING_REVIEW",
+];
 const REMINDER_STATUSES: ResearchReminderStatus[] = [
   "PENDING",
   "TRIGGERED",
@@ -15,9 +20,11 @@ const REMINDER_STATUSES: ResearchReminderStatus[] = [
 export type ResearchReminderParams = {
   id?: string;
   userId: string;
-  insightId: string;
+  screeningInsightId?: string;
+  timingReviewRecordId?: string;
   stockCode: string;
   reminderType: ResearchReminderType;
+  targetType: ResearchReminderTargetType;
   scheduledAt: Date;
   status?: ResearchReminderStatus;
   payload: Record<string, unknown>;
@@ -29,9 +36,11 @@ export type ResearchReminderParams = {
 export class ResearchReminder {
   private readonly _id: string;
   private readonly _userId: string;
-  private readonly _insightId: string;
+  private readonly _screeningInsightId: string | null;
+  private readonly _timingReviewRecordId: string | null;
   private readonly _stockCode: string;
   private readonly _reminderType: ResearchReminderType;
+  private readonly _targetType: ResearchReminderTargetType;
   private readonly _scheduledAt: Date;
   private _status: ResearchReminderStatus;
   private readonly _payload: Record<string, unknown>;
@@ -42,9 +51,11 @@ export class ResearchReminder {
   private constructor(params: ResearchReminderParams) {
     this._id = params.id ?? uuidv4();
     this._userId = params.userId;
-    this._insightId = params.insightId;
+    this._screeningInsightId = params.screeningInsightId ?? null;
+    this._timingReviewRecordId = params.timingReviewRecordId ?? null;
     this._stockCode = params.stockCode;
     this._reminderType = params.reminderType;
+    this._targetType = params.targetType;
     this._scheduledAt = params.scheduledAt;
     this._status = params.status ?? "PENDING";
     this._payload = params.payload;
@@ -61,16 +72,28 @@ export class ResearchReminder {
     return this._userId;
   }
 
-  get insightId(): string {
-    return this._insightId;
+  get screeningInsightId(): string | null {
+    return this._screeningInsightId;
   }
 
-  get stockCode(): string {
-    return this._stockCode;
+  get insightId(): string | null {
+    return this._screeningInsightId;
+  }
+
+  get timingReviewRecordId(): string | null {
+    return this._timingReviewRecordId;
   }
 
   get reminderType(): ResearchReminderType {
     return this._reminderType;
+  }
+
+  get targetType(): ResearchReminderTargetType {
+    return this._targetType;
+  }
+
+  get stockCode(): string {
+    return this._stockCode;
   }
 
   get scheduledAt(): Date {
@@ -102,8 +125,29 @@ export class ResearchReminder {
       throw new InvalidInsightError("提醒缺少 userId");
     }
 
-    if (!params.insightId.trim()) {
-      throw new InvalidInsightError("提醒缺少 insightId");
+    if (!REMINDER_TARGET_TYPES.includes(params.targetType)) {
+      throw new InvalidInsightError("无效的提醒目标类型");
+    }
+
+    const hasInsightTarget = Boolean(params.screeningInsightId?.trim());
+    const hasTimingTarget = Boolean(params.timingReviewRecordId?.trim());
+
+    if (hasInsightTarget === hasTimingTarget) {
+      throw new InvalidInsightError("提醒目标必须且只能绑定一个实体");
+    }
+
+    if (
+      params.targetType === "SCREENING_INSIGHT" &&
+      !params.screeningInsightId?.trim()
+    ) {
+      throw new InvalidInsightError("筛选洞察提醒缺少 screeningInsightId");
+    }
+
+    if (
+      params.targetType === "TIMING_REVIEW" &&
+      !params.timingReviewRecordId?.trim()
+    ) {
+      throw new InvalidInsightError("择时复查提醒缺少 timingReviewRecordId");
     }
 
     if (!params.stockCode.trim()) {
@@ -144,9 +188,11 @@ export class ResearchReminder {
     return {
       id: this._id,
       userId: this._userId,
-      insightId: this._insightId,
+      screeningInsightId: this._screeningInsightId,
+      timingReviewRecordId: this._timingReviewRecordId,
       stockCode: this._stockCode,
       reminderType: this._reminderType,
+      targetType: this._targetType,
       scheduledAt: this._scheduledAt.toISOString(),
       status: this._status,
       payload: this._payload,
@@ -160,9 +206,17 @@ export class ResearchReminder {
     return ResearchReminder.create({
       id: data.id as string | undefined,
       userId: data.userId as string,
-      insightId: data.insightId as string,
+      screeningInsightId:
+        (data.screeningInsightId as string | undefined) ??
+        (data.insightId as string | undefined),
+      timingReviewRecordId: data.timingReviewRecordId as string | undefined,
       stockCode: data.stockCode as string,
       reminderType: data.reminderType as ResearchReminderType,
+      targetType:
+        (data.targetType as ResearchReminderTargetType | undefined) ??
+        ((data.timingReviewRecordId
+          ? "TIMING_REVIEW"
+          : "SCREENING_INSIGHT") as ResearchReminderTargetType),
       scheduledAt: new Date(data.scheduledAt as string),
       status: data.status as ResearchReminderStatus,
       payload: data.payload as Record<string, unknown>,

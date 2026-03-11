@@ -1,4 +1,4 @@
-import { RunDetailClient } from "~/app/workflows/[runId]/run-detail-client";
+import { RunInvestorClient } from "~/app/workflows/[runId]/run-investor-client";
 
 type PageProps = {
   params: Promise<{
@@ -9,5 +9,5 @@ type PageProps = {
 export default async function WorkflowRunDetailPage({ params }: PageProps) {
   const { runId } = await params;
 
-  return <RunDetailClient runId={runId} />;
+  return <RunInvestorClient runId={runId} />;
 }

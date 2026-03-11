@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { KpiCard, WorkspaceShell } from "~/app/_components/ui";
+import { ActionBanner, KpiCard, WorkspaceShell } from "~/app/_components/ui";
 import {
   type CreateStrategyInput,
   type FilterGroupInput,
@@ -401,6 +401,11 @@ export function ScreeningStudioClient() {
   const liveSessionCount = sessions.filter((session) =>
     isLiveSession(session.status),
   ).length;
+  const leadOpportunity = parsedTopStocks[0] ?? null;
+  const activeWatchList =
+    watchLists.find((item) => item.id === selectedWatchListId) ??
+    watchLists[0] ??
+    null;
 
   const resetStrategyForm = () => {
     setStrategyMode("create");
@@ -461,31 +466,31 @@ export function ScreeningStudioClient() {
   return (
     <WorkspaceShell
       section="screening"
-      eyebrow="Screening And Watchlist Desk"
-      title="策略筛选与清单沉淀工作台"
-      description="策略规则、异步执行、取消重试和加入清单都集中在同一个暗色工作台里，保持更清晰的研究操作顺序。"
+      eyebrow="Opportunity Pool"
+      title="机会池"
+      description="默认先看最新命中标的、自选清单和最近结果；筛选器设置作为二级区域保留，方便继续优化候选来源。"
       actions={
         <>
           <Link href="/" className="app-button">
-            返回总览
+            返回看板
           </Link>
-          <Link href="/workflows" className="app-button app-button-primary">
-            行业研究任务中心
+          <Link href="/timing" className="app-button app-button-primary">
+            打开择时组合
           </Link>
         </>
       }
       summary={
         <>
           <KpiCard
-            label="策略数量"
+            label="筛选器"
             value={strategies.length}
-            hint="当前策略库规模"
+            hint="当前可复用的筛选器数量"
             tone="info"
           />
           <KpiCard
-            label="进行中会话"
+            label="刷新中"
             value={liveSessionCount}
-            hint="排队与执行中的筛选任务"
+            hint="排队与执行中的机会池刷新"
             tone="warning"
           />
           <KpiCard
@@ -495,29 +500,58 @@ export function ScreeningStudioClient() {
             tone="success"
           />
           <KpiCard
-            label="条件数量"
+            label="当前条件"
             value={countConditions(strategyForm.filters)}
-            hint={strategyMode === "create" ? "新建模式" : "编辑模式"}
+            hint={strategyMode === "create" ? "新建筛选器" : "编辑现有筛选器"}
             tone="neutral"
           />
         </>
       }
     >
       <div className="grid gap-6">
+        <ActionBanner
+          title={
+            leadOpportunity
+              ? `${leadOpportunity.stockName} 进入最新机会池`
+              : activeWatchList
+                ? `继续维护清单：${activeWatchList.name}`
+                : "先刷新一轮机会池"
+          }
+          description={
+            leadOpportunity
+              ? `最新命中标的代码 ${leadOpportunity.stockCode}，评分 ${leadOpportunity.score.toFixed(2)}。优先看命中原因，再决定是否加入当前清单。`
+              : activeWatchList
+                ? `当前默认清单为「${activeWatchList.name}」，可直接补充观察标的，或先刷新最近一次筛选结果。`
+                : "当前还没有新的命中结果，建议先执行已有筛选器，再把值得跟踪的标的沉淀到清单。"
+          }
+          tone={leadOpportunity ? "success" : "info"}
+          actions={
+            selectedSessionId ? (
+              <button
+                type="button"
+                onClick={() => setSelectedSessionId(selectedSessionId)}
+                className="app-button app-button-primary"
+              >
+                查看最新结果
+              </button>
+            ) : undefined
+          }
+        />
+
         <Notice notice={notice} />
 
         <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <section className="rounded-[26px] border border-[#35526f]/35 bg-[#0d1e33]/95 p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
-                策略库
+                筛选器库
               </h2>
               <button
                 type="button"
                 onClick={resetStrategyForm}
                 className="rounded-full border border-[#d2e5f9]/20 bg-[#0f2137]/88 px-3 py-1.5 text-xs font-medium text-[#d2e5f9]"
               >
-                新建策略
+                新建筛选器
               </button>
             </div>
             <div className="mt-4 grid gap-3">
@@ -570,7 +604,7 @@ export function ScreeningStudioClient() {
 
           <section className="rounded-[26px] border border-[#35526f]/35 bg-[#0d1e33]/95 p-5 sm:p-6">
             <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
-              结构化编辑策略
+              筛选器设置
             </h2>
             <div className="mt-4 grid gap-3 lg:grid-cols-2">
               <input
@@ -582,7 +616,7 @@ export function ScreeningStudioClient() {
                   }))
                 }
                 className="rounded-xl border border-[#e1eeff]/28 bg-[#0a1a2d] px-3 py-2 text-sm text-[#e1eeff]"
-                placeholder="策略名称"
+                placeholder="筛选器名称"
               />
               <input
                 value={strategyForm.tagsText}
@@ -605,7 +639,7 @@ export function ScreeningStudioClient() {
                 }
                 rows={3}
                 className="rounded-xl border border-[#e1eeff]/28 bg-[#0a1a2d] px-3 py-2 text-sm text-[#e1eeff] lg:col-span-2"
-                placeholder="策略说明"
+                placeholder="筛选器说明"
               />
             </div>
             <label className="mt-3 flex items-center gap-2 text-xs text-[#97b0c9]">
@@ -673,14 +707,14 @@ export function ScreeningStudioClient() {
               onClick={handleSubmitStrategy}
               className="mt-5 rounded-xl border border-[#e1eeff]/34 bg-[#0f8468] px-4 py-2 text-sm font-semibold text-[#eefef8]"
             >
-              {strategyMode === "create" ? "保存策略" : "保存更新"}
+              {strategyMode === "create" ? "保存筛选器" : "保存更新"}
             </button>
           </section>
         </section>
 
         <section className="rounded-[26px] border border-[#35526f]/35 bg-[#0d1e33]/95 p-5 sm:p-6">
           <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
-            执行队列与结果
+            最近结果与候选机会
           </h2>
           <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-3">
@@ -842,7 +876,7 @@ export function ScreeningStudioClient() {
 
         <section className="rounded-[26px] border border-[#35526f]/35 bg-[#0d1e33]/95 p-5 sm:p-6">
           <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
-            自选股清单
+            跟踪清单
           </h2>
           <div className="mt-4 grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
             <div className="grid gap-4">

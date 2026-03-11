@@ -1,18 +1,20 @@
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import type { TimingAnalysisService } from "~/server/application/timing/timing-analysis-service";
+import type { TimingReviewSchedulingService } from "~/server/application/timing/timing-review-scheduling-service";
+import { ScreeningSessionStatus } from "~/server/domain/screening/enums/screening-session-status";
+import type { IScreeningSessionRepository } from "~/server/domain/screening/repositories/screening-session-repository";
 import { resolveTimingPresetConfig } from "~/server/domain/timing/preset";
 import type {
-  WatchlistTimingCardsPipelineGraphState,
-  WatchlistTimingCardsPipelineInput,
-  WatchlistTimingCardsPipelineNodeKey,
+  ScreeningToTimingGraphState,
+  ScreeningToTimingNodeKey,
+  ScreeningToTimingPipelineInput,
   WorkflowGraphState,
   WorkflowNodeKey,
 } from "~/server/domain/workflow/types";
 import {
-  WATCHLIST_TIMING_CARDS_PIPELINE_NODE_KEYS,
-  WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE,
+  SCREENING_TO_TIMING_NODE_KEYS,
+  SCREENING_TO_TIMING_TEMPLATE_CODE,
 } from "~/server/domain/workflow/types";
-import type { PrismaWatchListRepository } from "~/server/infrastructure/screening/prisma-watch-list-repository";
 import type { PrismaTimingAnalysisCardRepository } from "~/server/infrastructure/timing/prisma-timing-analysis-card-repository";
 import type { PrismaTimingPresetRepository } from "~/server/infrastructure/timing/prisma-timing-preset-repository";
 import type { PrismaTimingSignalSnapshotRepository } from "~/server/infrastructure/timing/prisma-timing-signal-snapshot-repository";
@@ -28,30 +30,27 @@ const WorkflowState = Annotation.Root({
   userId: Annotation<string>,
   query: Annotation<string>,
   progressPercent: Annotation<number>,
-  currentNodeKey: Annotation<WatchlistTimingCardsPipelineNodeKey | undefined>,
-  timingInput: Annotation<WatchlistTimingCardsPipelineInput>,
-  preset: Annotation<WatchlistTimingCardsPipelineGraphState["preset"]>,
-  presetConfig: Annotation<
-    WatchlistTimingCardsPipelineGraphState["presetConfig"]
-  >,
-  watchlist: Annotation<WatchlistTimingCardsPipelineGraphState["watchlist"]>,
-  targets: Annotation<WatchlistTimingCardsPipelineGraphState["targets"]>,
-  signalSnapshots: Annotation<
-    WatchlistTimingCardsPipelineGraphState["signalSnapshots"]
-  >,
+  currentNodeKey: Annotation<ScreeningToTimingNodeKey | undefined>,
+  timingInput: Annotation<ScreeningToTimingPipelineInput>,
+  screeningSession: Annotation<ScreeningToTimingGraphState["screeningSession"]>,
+  preset: Annotation<ScreeningToTimingGraphState["preset"]>,
+  presetConfig: Annotation<ScreeningToTimingGraphState["presetConfig"]>,
+  targets: Annotation<ScreeningToTimingGraphState["targets"]>,
+  selectedTargets: Annotation<ScreeningToTimingGraphState["selectedTargets"]>,
+  signalSnapshots: Annotation<ScreeningToTimingGraphState["signalSnapshots"]>,
   technicalAssessments: Annotation<
-    WatchlistTimingCardsPipelineGraphState["technicalAssessments"]
+    ScreeningToTimingGraphState["technicalAssessments"]
   >,
-  cards: Annotation<WatchlistTimingCardsPipelineGraphState["cards"]>,
+  cards: Annotation<ScreeningToTimingGraphState["cards"]>,
   persistedSignalSnapshots: Annotation<
-    WatchlistTimingCardsPipelineGraphState["persistedSignalSnapshots"]
+    ScreeningToTimingGraphState["persistedSignalSnapshots"]
   >,
-  persistedCards: Annotation<
-    WatchlistTimingCardsPipelineGraphState["persistedCards"]
+  persistedCards: Annotation<ScreeningToTimingGraphState["persistedCards"]>,
+  reviewRecords: Annotation<ScreeningToTimingGraphState["reviewRecords"]>,
+  scheduledReminderIds: Annotation<
+    ScreeningToTimingGraphState["scheduledReminderIds"]
   >,
-  batchErrors: Annotation<
-    WatchlistTimingCardsPipelineGraphState["batchErrors"]
-  >,
+  batchErrors: Annotation<ScreeningToTimingGraphState["batchErrors"]>,
   errors: Annotation<string[]>({
     reducer: (left, right) => left.concat(right),
     default: () => [],
@@ -59,33 +58,34 @@ const WorkflowState = Annotation.Root({
 });
 
 type NodeExecutor = (
-  state: WatchlistTimingCardsPipelineGraphState,
-) => Promise<Partial<WatchlistTimingCardsPipelineGraphState>>;
+  state: ScreeningToTimingGraphState,
+) => Promise<Partial<ScreeningToTimingGraphState>>;
 
-export class WatchlistTimingCardsPipelineLangGraph
-  implements WorkflowGraphRunner
-{
-  readonly templateCode = WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE;
+export class ScreeningToTimingPipelineLangGraph implements WorkflowGraphRunner {
+  readonly templateCode = SCREENING_TO_TIMING_TEMPLATE_CODE;
 
   private readonly nodeExecutors: Record<
-    WatchlistTimingCardsPipelineNodeKey,
+    ScreeningToTimingNodeKey,
     NodeExecutor
   >;
 
   constructor(
     private readonly deps: {
-      watchListRepository: PrismaWatchListRepository;
+      screeningSessionRepository: IScreeningSessionRepository;
+      presetRepository: PrismaTimingPresetRepository;
       timingDataClient: PythonTimingDataClient;
       analysisService: TimingAnalysisService;
-      presetRepository: PrismaTimingPresetRepository;
       signalSnapshotRepository: PrismaTimingSignalSnapshotRepository;
       analysisCardRepository: PrismaTimingAnalysisCardRepository;
+      reviewSchedulingService: TimingReviewSchedulingService;
     },
   ) {
     this.nodeExecutors = {
-      load_watchlist_context: async (state) => {
-        const [watchList, preset] = await Promise.all([
-          this.deps.watchListRepository.findById(state.timingInput.watchListId),
+      load_screening_results: async (state) => {
+        const [session, preset] = await Promise.all([
+          this.deps.screeningSessionRepository.findById(
+            state.timingInput.screeningSessionId,
+          ),
           state.timingInput.presetId
             ? this.deps.presetRepository.getByIdForUser(
                 state.userId,
@@ -94,34 +94,52 @@ export class WatchlistTimingCardsPipelineLangGraph
             : Promise.resolve(null),
         ]);
 
-        if (!watchList || watchList.userId !== state.userId) {
-          throw new Error("自选股列表不存在或无权访问");
+        if (!session || session.userId !== state.userId) {
+          throw new Error("筛选会话不存在或无权访问");
+        }
+
+        if (session.status !== ScreeningSessionStatus.SUCCEEDED) {
+          throw new Error("筛选会话尚未完成，无法联动择时");
         }
 
         return {
+          screeningSession: {
+            id: session.id,
+            strategyName: session.strategyName,
+            executedAt: session.executedAt.toISOString(),
+            completedAt: session.completedAt?.toISOString(),
+            matchedCount: session.countMatched(),
+          },
           preset: preset ?? undefined,
           presetConfig: resolveTimingPresetConfig(preset?.config),
-          watchlist: {
-            id: watchList.id,
-            name: watchList.name,
-            stockCount: watchList.stocks.length,
-          },
-          targets: watchList.stocks.map((stock) => ({
+          targets: session.topStocks.map((stock) => ({
             stockCode: stock.stockCode.value,
             stockName: stock.stockName,
           })),
         };
       },
-      fetch_signal_snapshots_batch: async (state) => {
-        if (state.targets.length === 0) {
+      select_top_candidates: async (state) => ({
+        selectedTargets: state.targets.slice(
+          0,
+          state.timingInput.candidateLimit ?? 20,
+        ),
+      }),
+      run_timing_pipeline: async (state) => {
+        if (state.selectedTargets.length === 0) {
           return {
             signalSnapshots: [],
+            technicalAssessments: [],
+            cards: [],
+            persistedSignalSnapshots: [],
+            persistedCards: [],
+            reviewRecords: [],
+            scheduledReminderIds: [],
             batchErrors: [],
           };
         }
 
         const response = await this.deps.timingDataClient.getSignalsBatch({
-          stockCodes: state.targets.map((target) => target.stockCode),
+          stockCodes: state.selectedTargets.map((target) => target.stockCode),
           asOfDate: state.timingInput.asOfDate,
         });
 
@@ -131,71 +149,70 @@ export class WatchlistTimingCardsPipelineLangGraph
           );
         }
 
-        return {
-          signalSnapshots: response.items,
-          batchErrors: response.errors,
-        };
-      },
-      technical_signal_agent: async (state) => ({
-        technicalAssessments:
+        const technicalAssessments =
           this.deps.analysisService.buildTechnicalAssessments(
-            state.signalSnapshots,
+            response.items,
             state.presetConfig,
-          ),
-      }),
-      timing_synthesis_agent: async (state) => ({
-        cards: this.deps.analysisService.buildCards({
+          );
+        const cards = this.deps.analysisService.buildCards({
           userId: state.userId,
           workflowRunId: state.runId,
-          sourceType: "watchlist",
-          sourceId: state.timingInput.watchListId,
-          watchListId: state.timingInput.watchListId,
+          sourceType: "screening",
+          sourceId: state.timingInput.screeningSessionId,
           presetId: state.preset?.id,
           presetConfig: state.presetConfig,
-          signalSnapshots: state.signalSnapshots,
-          technicalAssessments: state.technicalAssessments,
-        }),
-      }),
-      persist_cards: async (state) => {
+          signalSnapshots: response.items,
+          technicalAssessments,
+        });
         const persistedSignalSnapshots =
           await this.deps.signalSnapshotRepository.createMany({
             userId: state.userId,
             workflowRunId: state.runId,
-            sourceType: "watchlist",
-            sourceId: state.timingInput.watchListId,
-            items: state.signalSnapshots,
+            sourceType: "screening",
+            sourceId: state.timingInput.screeningSessionId,
+            items: response.items,
           });
-
         const snapshotByCode = new Map(
           persistedSignalSnapshots.map((snapshot) => [
             snapshot.stockCode,
             snapshot.id,
           ]),
         );
-
         const persistedCards =
           await this.deps.analysisCardRepository.createMany({
-            items: state.cards.map((card) => ({
+            items: cards.map((card) => ({
               ...card,
               signalSnapshotId: snapshotByCode.get(card.stockCode) ?? "",
             })),
           });
+        const reviewArtifacts =
+          await this.deps.reviewSchedulingService.scheduleForCards({
+            cards: persistedCards,
+            presetConfig: state.presetConfig,
+          });
 
         return {
+          signalSnapshots: response.items,
+          technicalAssessments,
+          cards,
           persistedSignalSnapshots,
           persistedCards,
+          reviewRecords: reviewArtifacts.records,
+          scheduledReminderIds: reviewArtifacts.reminderIds,
+          batchErrors: response.errors,
         };
       },
+      archive_results: async () => ({}),
     };
   }
 
   getNodeOrder() {
-    return [...WATCHLIST_TIMING_CARDS_PIPELINE_NODE_KEYS];
+    return [...SCREENING_TO_TIMING_NODE_KEYS];
   }
 
   buildInitialState(
     params: WorkflowGraphBuildInitialStateParams,
-  ): WatchlistTimingCardsPipelineGraphState {
+  ): ScreeningToTimingGraphState {
     return {
       runId: params.runId,
       userId: params.userId,
@@ -203,60 +220,65 @@ export class WatchlistTimingCardsPipelineLangGraph
       progressPercent: params.progressPercent,
       currentNodeKey: undefined,
       lastCompletedNodeKey: undefined,
-      timingInput: params.input as WatchlistTimingCardsPipelineInput,
+      timingInput: params.input as ScreeningToTimingPipelineInput,
+      screeningSession: undefined,
       preset: undefined,
       presetConfig: undefined,
-      watchlist: undefined,
       targets: [],
+      selectedTargets: [],
       signalSnapshots: [],
       technicalAssessments: [],
       cards: [],
       persistedSignalSnapshots: [],
       persistedCards: [],
+      reviewRecords: [],
+      scheduledReminderIds: [],
       batchErrors: [],
       errors: [],
     };
   }
 
   getNodeOutput(nodeKey: WorkflowNodeKey, state: WorkflowGraphState) {
-    const timingState = state as WatchlistTimingCardsPipelineGraphState;
+    const timingState = state as ScreeningToTimingGraphState;
 
     switch (nodeKey) {
-      case "load_watchlist_context":
+      case "load_screening_results":
         return {
-          watchlist: timingState.watchlist,
+          screeningSession: timingState.screeningSession,
           targets: timingState.targets,
         };
-      case "fetch_signal_snapshots_batch":
-        return {
-          signalSnapshots: timingState.signalSnapshots,
-          batchErrors: timingState.batchErrors,
-        };
-      case "technical_signal_agent":
-        return { technicalAssessments: timingState.technicalAssessments };
-      case "timing_synthesis_agent":
-        return { cards: timingState.cards };
-      default:
+      case "select_top_candidates":
+        return { selectedTargets: timingState.selectedTargets };
+      case "run_timing_pipeline":
         return {
           persistedSignalSnapshots: timingState.persistedSignalSnapshots,
           persistedCards: timingState.persistedCards,
+          reviewRecords: timingState.reviewRecords,
+          scheduledReminderIds: timingState.scheduledReminderIds,
+          batchErrors: timingState.batchErrors,
+        };
+      default:
+        return {
+          cardCount: timingState.persistedCards.length,
         };
     }
   }
 
   getNodeEventPayload(nodeKey: WorkflowNodeKey, state: WorkflowGraphState) {
-    const timingState = state as WatchlistTimingCardsPipelineGraphState;
+    const timingState = state as ScreeningToTimingGraphState;
 
-    if (nodeKey === "fetch_signal_snapshots_batch") {
+    if (nodeKey === "select_top_candidates") {
       return {
-        signalSnapshotCount: timingState.signalSnapshots.length,
-        batchErrorCount: timingState.batchErrors.length,
+        selectedCount: timingState.selectedTargets.length,
       };
     }
 
-    if (nodeKey === "persist_cards") {
+    if (nodeKey === "run_timing_pipeline") {
       return {
         cardCount: timingState.persistedCards.length,
+        reviewRecordCount: timingState.reviewRecords.length,
+        reminderCount: timingState.scheduledReminderIds.length,
+        batchErrorCount: timingState.batchErrors.length,
       };
     }
 
@@ -277,14 +299,16 @@ export class WatchlistTimingCardsPipelineLangGraph
   }
 
   getRunResult(state: WorkflowGraphState): Record<string, unknown> {
-    const timingState = state as WatchlistTimingCardsPipelineGraphState;
+    const timingState = state as ScreeningToTimingGraphState;
 
     return {
+      screeningSessionId: timingState.timingInput.screeningSessionId,
       signalSnapshotIds: timingState.persistedSignalSnapshots.map(
         (snapshot) => snapshot.id,
       ),
       cardIds: timingState.persistedCards.map((card) => card.id),
-      stockCount: timingState.persistedCards.length,
+      reviewRecordIds: timingState.reviewRecords.map((record) => record.id),
+      reminderIds: timingState.scheduledReminderIds,
       partialErrors: timingState.batchErrors,
     };
   }
@@ -295,7 +319,7 @@ export class WatchlistTimingCardsPipelineLangGraph
     hooks?: WorkflowGraphExecutionHooks;
   }) {
     let state = {
-      ...(params.initialState as WatchlistTimingCardsPipelineGraphState),
+      ...(params.initialState as ScreeningToTimingGraphState),
       errors: (params.initialState.errors ?? []) as string[],
     };
 
@@ -303,10 +327,10 @@ export class WatchlistTimingCardsPipelineLangGraph
 
     for (
       let index = startIndex;
-      index < WATCHLIST_TIMING_CARDS_PIPELINE_NODE_KEYS.length;
+      index < SCREENING_TO_TIMING_NODE_KEYS.length;
       index += 1
     ) {
-      const nodeKey = WATCHLIST_TIMING_CARDS_PIPELINE_NODE_KEYS[index];
+      const nodeKey = SCREENING_TO_TIMING_NODE_KEYS[index];
 
       if (!nodeKey) {
         continue;
@@ -328,11 +352,11 @@ export class WatchlistTimingCardsPipelineLangGraph
         state,
       )) as typeof WorkflowState.State;
       const progressPercent = Math.round(
-        ((index + 1) / WATCHLIST_TIMING_CARDS_PIPELINE_NODE_KEYS.length) * 100,
+        ((index + 1) / SCREENING_TO_TIMING_NODE_KEYS.length) * 100,
       );
 
       state = {
-        ...(result as WatchlistTimingCardsPipelineGraphState),
+        ...(result as ScreeningToTimingGraphState),
         currentNodeKey: nodeKey,
         progressPercent,
       };
@@ -343,12 +367,10 @@ export class WatchlistTimingCardsPipelineLangGraph
     return state;
   }
 
-  private buildSingleNodeGraph(nodeKey: WatchlistTimingCardsPipelineNodeKey) {
+  private buildSingleNodeGraph(nodeKey: ScreeningToTimingNodeKey) {
     return new StateGraph(WorkflowState)
       .addNode(nodeKey, (state) =>
-        this.nodeExecutors[nodeKey](
-          state as WatchlistTimingCardsPipelineGraphState,
-        ),
+        this.nodeExecutors[nodeKey](state as ScreeningToTimingGraphState),
       )
       .addEdge(START, nodeKey)
       .addEdge(nodeKey, END)

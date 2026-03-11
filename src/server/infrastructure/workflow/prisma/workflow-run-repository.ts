@@ -12,6 +12,10 @@ import {
   QUICK_RESEARCH_TEMPLATE_CODE,
   SCREENING_INSIGHT_PIPELINE_NODE_KEYS,
   SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
+  SCREENING_TO_TIMING_NODE_KEYS,
+  SCREENING_TO_TIMING_TEMPLATE_CODE,
+  TIMING_REVIEW_LOOP_NODE_KEYS,
+  TIMING_REVIEW_LOOP_TEMPLATE_CODE,
   TIMING_SIGNAL_PIPELINE_NODE_KEYS,
   TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE,
   WATCHLIST_TIMING_CARDS_PIPELINE_NODE_KEYS,
@@ -207,6 +211,9 @@ export class PrismaWorkflowRunRepository {
             asOfDate: {
               type: "string",
             },
+            presetId: {
+              type: "string",
+            },
           },
         },
         isActive: true,
@@ -242,6 +249,9 @@ export class PrismaWorkflowRunRepository {
               type: "string",
             },
             asOfDate: {
+              type: "string",
+            },
+            presetId: {
               type: "string",
             },
           },
@@ -284,6 +294,9 @@ export class PrismaWorkflowRunRepository {
             asOfDate: {
               type: "string",
             },
+            presetId: {
+              type: "string",
+            },
           },
         },
         isActive: true,
@@ -291,6 +304,85 @@ export class PrismaWorkflowRunRepository {
       update: {
         graphConfig: {
           nodes: WATCHLIST_TIMING_PIPELINE_NODE_KEYS,
+        },
+        isActive: true,
+      },
+    });
+  }
+
+  async ensureScreeningToTimingPipelineTemplate() {
+    return this.prisma.workflowTemplate.upsert({
+      where: {
+        code_version: {
+          code: SCREENING_TO_TIMING_TEMPLATE_CODE,
+          version: 1,
+        },
+      },
+      create: {
+        code: SCREENING_TO_TIMING_TEMPLATE_CODE,
+        version: 1,
+        graphConfig: {
+          nodes: SCREENING_TO_TIMING_NODE_KEYS,
+        },
+        inputSchema: {
+          type: "object",
+          required: ["screeningSessionId"],
+          properties: {
+            screeningSessionId: {
+              type: "string",
+            },
+            candidateLimit: {
+              type: "integer",
+            },
+            asOfDate: {
+              type: "string",
+            },
+            presetId: {
+              type: "string",
+            },
+          },
+        },
+        isActive: true,
+      },
+      update: {
+        graphConfig: {
+          nodes: SCREENING_TO_TIMING_NODE_KEYS,
+        },
+        isActive: true,
+      },
+    });
+  }
+
+  async ensureTimingReviewLoopTemplate() {
+    return this.prisma.workflowTemplate.upsert({
+      where: {
+        code_version: {
+          code: TIMING_REVIEW_LOOP_TEMPLATE_CODE,
+          version: 1,
+        },
+      },
+      create: {
+        code: TIMING_REVIEW_LOOP_TEMPLATE_CODE,
+        version: 1,
+        graphConfig: {
+          nodes: TIMING_REVIEW_LOOP_NODE_KEYS,
+        },
+        inputSchema: {
+          type: "object",
+          properties: {
+            date: {
+              type: "string",
+            },
+            limit: {
+              type: "integer",
+            },
+          },
+        },
+        isActive: true,
+      },
+      update: {
+        graphConfig: {
+          nodes: TIMING_REVIEW_LOOP_NODE_KEYS,
         },
         isActive: true,
       },

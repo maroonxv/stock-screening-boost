@@ -1,13 +1,14 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Children, isValidElement, type ReactNode } from "react";
 
 export function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
 
-type Tone = "neutral" | "info" | "success" | "warning" | "danger";
+export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
+
 type WorkspaceSection =
   | "home"
   | "screening"
@@ -18,62 +19,56 @@ type WorkspaceSection =
 const navItems: Array<{
   key: WorkspaceSection;
   href: string;
-  index: string;
   label: string;
   detail: string;
 }> = [
   {
     key: "home",
     href: "/",
-    index: "01",
-    label: "研究总览",
-    detail: "桌面与核心入口",
+    label: "今日看板",
+    detail: "优先事项、研究动态与组合语境",
   },
   {
     key: "screening",
     href: "/screening",
-    index: "02",
-    label: "策略筛选",
-    detail: "规则、执行与自选股",
+    label: "机会池",
+    detail: "筛选命中、自选清单与候选沉淀",
   },
   {
     key: "workflows",
     href: "/workflows",
-    index: "03",
-    label: "行业研究",
-    detail: "问题驱动工作流",
-  },
-  {
-    key: "timing",
-    href: "/timing",
-    index: "04",
-    label: "择时研究",
-    detail: "单股信号卡与自选股批量卡",
+    label: "行业判断",
+    detail: "赛道热度、机会验证与后续跟进",
   },
   {
     key: "companyResearch",
     href: "/company-research",
-    index: "05",
-    label: "公司研究",
-    detail: "概念解析与网页证据",
+    label: "公司判断",
+    detail: "证据、结论、风险与核验动作",
+  },
+  {
+    key: "timing",
+    href: "/timing",
+    label: "择时组合",
+    detail: "信号、仓位建议、复盘与预算",
   },
 ];
 
 const toneClassMap: Record<Tone, string> = {
   neutral:
-    "border-[rgba(130,145,164,0.26)] bg-[rgba(99,112,129,0.12)] text-[var(--app-text-muted)]",
-  info: "border-[rgba(102,193,255,0.32)] bg-[rgba(32,74,108,0.22)] text-[var(--app-accent-strong)]",
+    "border-[rgba(128,142,160,0.24)] bg-[rgba(78,89,104,0.12)] text-[var(--app-text-muted)]",
+  info: "border-[rgba(114,169,214,0.32)] bg-[rgba(25,55,82,0.24)] text-[var(--app-accent-strong)]",
   success:
-    "border-[rgba(110,211,173,0.34)] bg-[rgba(26,68,54,0.24)] text-[var(--app-success)]",
+    "border-[rgba(98,178,150,0.32)] bg-[rgba(24,58,49,0.24)] text-[var(--app-success)]",
   warning:
-    "border-[rgba(226,181,111,0.34)] bg-[rgba(86,60,23,0.24)] text-[var(--app-warning)]",
+    "border-[rgba(191,154,96,0.32)] bg-[rgba(77,58,27,0.22)] text-[var(--app-warning)]",
   danger:
-    "border-[rgba(239,142,157,0.34)] bg-[rgba(97,39,50,0.24)] text-[var(--app-danger)]",
+    "border-[rgba(201,119,132,0.32)] bg-[rgba(81,33,43,0.24)] text-[var(--app-danger)]",
 };
 
 function DeskMark() {
   return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--app-border-strong)] bg-[rgba(16,24,34,0.94)] text-[11px] font-semibold tracking-[0.24em] text-[var(--app-accent-strong)]">
+    <div className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-[rgba(103,129,155,0.45)] bg-[rgba(12,18,25,0.96)] text-xs font-semibold tracking-[0.28em] text-[var(--app-accent-strong)]">
       SSB
     </div>
   );
@@ -90,25 +85,24 @@ export function WorkspaceShell(props: {
 }) {
   const { section, eyebrow, title, description, actions, summary, children } =
     props;
+  const activeItem = navItems.find((item) => item.key === section);
 
   return (
     <main className="app-shell">
-      <div className="mx-auto grid min-h-screen w-full max-w-[1600px] lg:grid-cols-[248px_minmax(0,1fr)]">
-        <aside className="border-b border-[var(--app-border)] bg-[rgba(9,12,16,0.92)] lg:sticky lg:top-0 lg:h-screen lg:border-r lg:border-b-0">
+      <div className="mx-auto grid min-h-screen w-full max-w-[1680px] lg:grid-cols-[260px_minmax(0,1fr)]">
+        <aside className="border-b border-[var(--app-border)] bg-[rgba(7,10,14,0.94)] lg:sticky lg:top-0 lg:h-screen lg:border-r lg:border-b-0">
           <div className="flex h-full flex-col gap-6 px-4 py-5 sm:px-6 lg:px-5 lg:py-6">
             <div className="flex items-center gap-3">
               <DeskMark />
               <div>
-                <p className="text-[11px] uppercase tracking-[0.24em] text-[var(--app-text-soft)]">
-                  Stock Screening Boost
-                </p>
+                <p className="market-kicker">Stock Screening Boost</p>
                 <p className="app-display mt-1 text-lg leading-none text-[var(--app-text)]">
-                  鏆楄壊鎶曠爺妗岄潰
+                  投资决策终端
                 </p>
               </div>
             </div>
 
-            <nav className="grid gap-1">
+            <nav className="grid gap-1.5">
               {navItems.map((item) => {
                 const active = item.key === section;
 
@@ -117,22 +111,17 @@ export function WorkspaceShell(props: {
                     key={item.key}
                     href={item.href}
                     className={cn(
-                      "grid grid-cols-[40px_minmax(0,1fr)] items-center gap-3 rounded-[10px] border px-3 py-3 transition-colors",
+                      "rounded-[14px] border px-4 py-3 transition-colors",
                       active
-                        ? "border-[var(--app-border-strong)] bg-[rgba(18,27,38,0.92)] text-[var(--app-text)]"
-                        : "border-transparent text-[var(--app-text-muted)] hover:border-[var(--app-border)] hover:bg-[rgba(17,23,31,0.82)] hover:text-[var(--app-text)]",
+                        ? "border-[rgba(110,136,161,0.42)] bg-[rgba(17,23,31,0.92)] text-[var(--app-text)]"
+                        : "border-transparent text-[var(--app-text-muted)] hover:border-[var(--app-border)] hover:bg-[rgba(14,19,26,0.82)] hover:text-[var(--app-text)]",
                     )}
                   >
-                    <span className="app-data text-xs text-[var(--app-text-soft)]">
-                      {item.index}
+                    <span className="block text-sm font-medium">
+                      {item.label}
                     </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium">
-                        {item.label}
-                      </span>
-                      <span className="mt-1 block truncate text-xs text-[var(--app-text-soft)]">
-                        {item.detail}
-                      </span>
+                    <span className="mt-1 block text-xs leading-5 text-[var(--app-text-soft)]">
+                      {item.detail}
                     </span>
                   </Link>
                 );
@@ -140,29 +129,40 @@ export function WorkspaceShell(props: {
             </nav>
 
             <div className="mt-auto hidden lg:block">
-              <div className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.88)] p-4">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-[var(--app-text-soft)]">
-                  Workspace Notes
+              <div className="rounded-[16px] border border-[var(--app-border)] bg-[rgba(10,14,19,0.92)] p-4">
+                <p className="market-kicker">当前焦点</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--app-text)]">
+                  {activeItem?.label ?? "研究界面"}
                 </p>
-                <p className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
-                  鍏堢敤缁撴瀯鍖栫瓫閫夌缉灏忔牱鏈紝鍐嶇敤琛屼笟鍜屽叕鍙哥爺绌惰ˉ瓒冲垽鏂紝鏈€鍚庢妸楂樿川閲忔爣鐨勬矇娣€鍒伴暱鏈熻窡韪竻鍗曘€?{" "}
+                <p className="mt-2 text-xs leading-6 text-[var(--app-text-muted)]">
+                  {activeItem?.detail ??
+                    "只保留会影响投资判断的结论、风险与动作。"}
                 </p>
+                <div className="mt-4 grid gap-2 text-xs text-[var(--app-text-soft)]">
+                  <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(14,18,24,0.82)] px-3 py-2">
+                    结论优先
+                  </div>
+                  <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(14,18,24,0.82)] px-3 py-2">
+                    风险单独标注
+                  </div>
+                  <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(14,18,24,0.82)] px-3 py-2">
+                    调试信息退到次级
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </aside>
 
-        <section className="min-w-0 border-t border-[var(--app-border)] lg:border-t-0 lg:border-l-0">
-          <div className="mx-auto flex min-h-screen w-full max-w-[1240px] flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
-            <header className="grid gap-5 border-b border-[var(--app-border)] pb-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <section className="min-w-0 border-t border-[var(--app-border)] lg:border-t-0">
+          <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+            <header className="grid gap-5 border-b border-[var(--app-border)] pb-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.26em] text-[var(--app-text-soft)]">
-                  {eyebrow}
-                </p>
-                <h1 className="app-display mt-2 text-3xl tracking-[-0.03em] text-[var(--app-text)] sm:text-4xl">
+                <p className="market-kicker">{eyebrow}</p>
+                <h1 className="app-display mt-3 text-3xl tracking-[-0.03em] text-[var(--app-text)] sm:text-[40px]">
                   {title}
                 </h1>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-[var(--app-text-muted)] sm:text-[15px]">
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-[var(--app-text-muted)] sm:text-[15px]">
                   {description}
                 </p>
               </div>
@@ -202,7 +202,7 @@ export function Panel(props: {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             {title ? (
-              <h2 className="app-display text-xl tracking-[-0.02em] text-[var(--app-text)]">
+              <h2 className="app-display text-[22px] tracking-[-0.02em] text-[var(--app-text)]">
                 {title}
               </h2>
             ) : null}
@@ -233,19 +233,29 @@ export function KpiCard(props: {
   const { label, value, hint, tone = "neutral" } = props;
 
   return (
-    <article className="app-panel-muted rounded-[12px] p-4">
+    <article className="app-panel-muted rounded-[16px] p-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
           {label}
         </p>
         <span
           className={cn(
-            "inline-flex rounded-[8px] border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
+            "inline-flex min-h-6 min-w-6 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
             toneClassMap[tone],
           )}
-        />
+        >
+          {tone === "success"
+            ? "积极"
+            : tone === "warning"
+              ? "关注"
+              : tone === "danger"
+                ? "风险"
+                : tone === "info"
+                  ? "观察"
+                  : "概览"}
+        </span>
       </div>
-      <p className="app-data mt-3 text-2xl text-[var(--app-text)] sm:text-[28px]">
+      <p className="app-data mt-4 text-2xl text-[var(--app-text)] sm:text-[30px]">
         {value}
       </p>
       {hint ? (
@@ -267,7 +277,7 @@ export function StatusPill(props: {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-[8px] border px-2.5 py-1 text-[11px] font-medium",
+        "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium",
         toneClassMap[tone],
         className,
       )}
@@ -291,12 +301,12 @@ export function ProgressBar(props: {
         className={cn(
           "h-full transition-[width] duration-200",
           tone === "success"
-            ? "bg-[linear-gradient(90deg,var(--app-success),#9be7c5)]"
+            ? "bg-[linear-gradient(90deg,#5ab892,#8de0bb)]"
             : tone === "warning"
-              ? "bg-[linear-gradient(90deg,var(--app-warning),#f0d9a8)]"
+              ? "bg-[linear-gradient(90deg,#bf9a60,#e0c08d)]"
               : tone === "danger"
-                ? "bg-[linear-gradient(90deg,var(--app-danger),#f7b0bb)]"
-                : "bg-[linear-gradient(90deg,var(--app-accent),#a7e5ff)]",
+                ? "bg-[linear-gradient(90deg,#c26c7b,#e3a0ad)]"
+                : "bg-[linear-gradient(90deg,#6ca7d2,#9cc7e8)]",
         )}
         style={{ width: `${width}%` }}
       />
@@ -312,12 +322,87 @@ export function EmptyState(props: {
   const { title, description, actions } = props;
 
   return (
-    <div className="rounded-[12px] border border-dashed border-[var(--app-border)] bg-[rgba(14,18,24,0.7)] p-5 text-sm text-[var(--app-text-muted)]">
+    <div className="rounded-[16px] border border-dashed border-[var(--app-border)] bg-[rgba(12,16,22,0.82)] p-5 text-sm text-[var(--app-text-muted)]">
       <p className="text-[15px] font-medium text-[var(--app-text)]">{title}</p>
       <p className="mt-2 max-w-2xl leading-6">{description}</p>
       {actions ? (
         <div className="mt-4 flex flex-wrap gap-2">{actions}</div>
       ) : null}
+    </div>
+  );
+}
+
+export function KeyPointList(props: {
+  title: string;
+  items: ReactNode[];
+  emptyText?: string;
+  tone?: Tone;
+}) {
+  const { title, items, emptyText = "暂无内容", tone = "neutral" } = props;
+  const renderedItems = Children.toArray(items);
+
+  return (
+    <div className="rounded-[16px] border border-[var(--app-border)] bg-[rgba(12,16,22,0.9)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium text-[var(--app-text)]">{title}</p>
+        <StatusPill label={items.length} tone={tone} />
+      </div>
+      {renderedItems.length === 0 ? (
+        <p className="mt-3 text-sm leading-6 text-[var(--app-text-soft)]">
+          {emptyText}
+        </p>
+      ) : (
+        <ul className="mt-3 grid gap-2">
+          {renderedItems.map((item, index) => (
+            <li
+              key={
+                typeof item === "string" || typeof item === "number"
+                  ? `${title}-${String(item)}`
+                  : isValidElement(item) && item.key !== null
+                    ? String(item.key)
+                    : `${title}-${renderedItems.length}-${index}`
+              }
+              className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(16,21,29,0.84)] px-3 py-2 text-sm leading-6 text-[var(--app-text-muted)]"
+            >
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+export function ActionBanner(props: {
+  title: ReactNode;
+  description: ReactNode;
+  tone?: Tone;
+  actions?: ReactNode;
+}) {
+  const { title, description, tone = "info", actions } = props;
+
+  return (
+    <div
+      className={cn(
+        "rounded-[18px] border px-5 py-4",
+        tone === "success"
+          ? "border-[rgba(98,178,150,0.34)] bg-[rgba(18,45,38,0.72)]"
+          : tone === "warning"
+            ? "border-[rgba(191,154,96,0.34)] bg-[rgba(54,39,18,0.72)]"
+            : tone === "danger"
+              ? "border-[rgba(201,119,132,0.34)] bg-[rgba(56,24,31,0.74)]"
+              : "border-[rgba(114,169,214,0.34)] bg-[rgba(18,32,47,0.76)]",
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-lg font-medium text-[var(--app-text)]">{title}</p>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--app-text-muted)]">
+            {description}
+          </p>
+        </div>
+        {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
+      </div>
     </div>
   );
 }

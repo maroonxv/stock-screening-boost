@@ -73,6 +73,8 @@ model User {
     timingAnalysisCards TimingAnalysisCard[]
     portfolioSnapshots PortfolioSnapshot[]
     timingRecommendations TimingRecommendation[]
+    timingReviewRecords TimingReviewRecord[]
+    timingPresets     TimingPreset[]
     workflowRuns     WorkflowRun[]
 }
 
@@ -170,6 +172,11 @@ enum ResearchReminderType {
     REVIEW
 }
 
+enum ResearchReminderTargetType {
+    SCREENING_INSIGHT
+    TIMING_REVIEW
+}
+
 enum ResearchReminderStatus {
     PENDING
     TRIGGERED
@@ -223,23 +230,28 @@ model ScreeningInsightVersion {
 }
 
 model ResearchReminder {
-    id           String                 @id @default(cuid())
-    userId       String
-    insightId    String
-    stockCode    String
-    reminderType ResearchReminderType
-    scheduledAt  DateTime
-    status       ResearchReminderStatus @default(PENDING)
-    payload      Json
-    triggeredAt  DateTime?
-    createdAt    DateTime               @default(now())
-    updatedAt    DateTime               @updatedAt
-    user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-    insight      ScreeningInsight       @relation(fields: [insightId], references: [id], onDelete: Cascade)
+    id                   String                     @id @default(cuid())
+    userId               String
+    screeningInsightId   String?
+    timingReviewRecordId String?
+    stockCode            String
+    reminderType         ResearchReminderType
+    targetType           ResearchReminderTargetType
+    scheduledAt          DateTime
+    status               ResearchReminderStatus     @default(PENDING)
+    payload              Json
+    triggeredAt          DateTime?
+    createdAt            DateTime                   @default(now())
+    updatedAt            DateTime                   @updatedAt
+    user                 User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+    screeningInsight     ScreeningInsight?          @relation(fields: [screeningInsightId], references: [id], onDelete: Cascade)
+    timingReviewRecord   TimingReviewRecord?        @relation(fields: [timingReviewRecordId], references: [id], onDelete: Cascade)
 
-    @@unique([insightId, reminderType, scheduledAt])
-    @@index([userId, status, scheduledAt])
-    @@index([insightId])
+    @@unique([screeningInsightId, reminderType, scheduledAt])
+    @@unique([timingReviewRecordId, reminderType, scheduledAt])
+    @@index([userId, targetType, status, scheduledAt])
+    @@index([screeningInsightId])
+    @@index([timingReviewRecordId])
 }
 
 model TimingSignalSnapshot {
@@ -272,6 +284,7 @@ model TimingAnalysisCard {
     userId            String
     workflowRunId     String?
     watchListId       String?
+    presetId          String?
     stockCode         String
     stockName         String
     sourceType        String
@@ -291,11 +304,14 @@ model TimingAnalysisCard {
     user             User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
     workflowRun      WorkflowRun?         @relation(fields: [workflowRunId], references: [id], onDelete: SetNull)
     watchList        WatchList?           @relation(fields: [watchListId], references: [id], onDelete: SetNull)
+    preset           TimingPreset?        @relation(fields: [presetId], references: [id], onDelete: SetNull)
     signalSnapshot   TimingSignalSnapshot @relation(fields: [signalSnapshotId], references: [id], onDelete: Cascade)
+    reviewRecords    TimingReviewRecord[]
 
     @@index([userId, createdAt])
     @@index([workflowRunId])
     @@index([watchListId, createdAt])
+    @@index([presetId])
     @@index([signalSnapshotId])
     @@index([userId, stockCode, createdAt])
     @@index([sourceType, sourceId])
@@ -326,6 +342,7 @@ model TimingRecommendation {
     workflowRunId       String?
     portfolioSnapshotId String
     watchListId         String
+    presetId            String?
     stockCode           String
     stockName           String
     action              String
@@ -344,12 +361,69 @@ model TimingRecommendation {
     workflowRun       WorkflowRun?      @relation(fields: [workflowRunId], references: [id], onDelete: SetNull)
     portfolioSnapshot PortfolioSnapshot @relation(fields: [portfolioSnapshotId], references: [id], onDelete: Cascade)
     watchList         WatchList         @relation(fields: [watchListId], references: [id], onDelete: Cascade)
+    preset            TimingPreset?     @relation(fields: [presetId], references: [id], onDelete: SetNull)
+    reviewRecords     TimingReviewRecord[]
 
     @@index([userId, createdAt])
     @@index([workflowRunId])
     @@index([portfolioSnapshotId, createdAt])
     @@index([watchListId, createdAt])
+    @@index([presetId])
     @@index([userId, stockCode, createdAt])
+}
+
+enum TimingReviewHorizon {
+    T5
+    T10
+    T20
+}
+
+model TimingReviewRecord {
+    id                        String               @id @default(cuid())
+    userId                    String
+    analysisCardId            String?
+    recommendationId          String?
+    stockCode                 String
+    stockName                 String
+    sourceAsOfDate            DateTime
+    reviewHorizon             TimingReviewHorizon
+    scheduledAt               DateTime
+    completedAt               DateTime?
+    expectedAction            String
+    actualReturnPct           Float?
+    maxFavorableExcursionPct  Float?
+    maxAdverseExcursionPct    Float?
+    verdict                   String?
+    reviewSummary             String?
+    createdAt                 DateTime             @default(now())
+    updatedAt                 DateTime             @updatedAt
+
+    user                      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+    analysisCard              TimingAnalysisCard?  @relation(fields: [analysisCardId], references: [id], onDelete: Cascade)
+    recommendation            TimingRecommendation? @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+    reminders                 ResearchReminder[]
+
+    @@index([userId, scheduledAt, completedAt])
+    @@index([analysisCardId])
+    @@index([recommendationId])
+    @@index([stockCode, scheduledAt])
+}
+
+model TimingPreset {
+    id                    String                 @id @default(cuid())
+    userId                String
+    name                  String
+    description           String?
+    config                Json
+    createdAt             DateTime               @default(now())
+    updatedAt             DateTime               @updatedAt
+
+    user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    timingAnalysisCards   TimingAnalysisCard[]
+    timingRecommendations TimingRecommendation[]
+
+    @@index([userId, updatedAt])
+    @@unique([userId, name])
 }
 
 enum WorkflowRunStatus {

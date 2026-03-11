@@ -11,6 +11,8 @@ import {
 import {
   QUICK_RESEARCH_TEMPLATE_CODE,
   SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
+  SCREENING_TO_TIMING_TEMPLATE_CODE,
+  TIMING_REVIEW_LOOP_TEMPLATE_CODE,
   TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE,
   WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE,
   WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE,
@@ -55,6 +57,36 @@ function mapWorkflowError(error: unknown): TRPCError {
   return new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "未知错误" });
 }
 
+async function assertTimingPresetExists(params: {
+  db: typeof import("~/server/db").db;
+  userId: string;
+  presetId?: string;
+}) {
+  if (!params.presetId) {
+    return null;
+  }
+
+  const preset = await params.db.timingPreset.findFirst({
+    where: {
+      id: params.presetId,
+      userId: params.userId,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (!preset) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "Timing preset 不存在",
+    });
+  }
+
+  return preset;
+}
+
 const startQuickResearchInput = z.object({
   query: z.string().min(1, "query 不能为空"),
   templateCode: z.string().default(QUICK_RESEARCH_TEMPLATE_CODE),
@@ -88,6 +120,7 @@ const startTimingSignalPipelineInput = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
+  presetId: z.string().cuid().optional(),
   templateCode: z.string().default(TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE),
   templateVersion: z.number().int().positive().optional(),
   idempotencyKey: z.string().min(8).max(128).optional(),
@@ -99,6 +132,7 @@ const startWatchlistTimingCardsPipelineInput = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
+  presetId: z.string().cuid().optional(),
   templateCode: z
     .string()
     .default(WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE),
@@ -113,7 +147,32 @@ const startWatchlistTimingPipelineInput = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
+  presetId: z.string().cuid().optional(),
   templateCode: z.string().default(WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE),
+  templateVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).max(128).optional(),
+});
+
+const startScreeningToTimingPipelineInput = z.object({
+  screeningSessionId: z.string().cuid(),
+  candidateLimit: z.number().int().min(1).max(50).optional(),
+  asOfDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  presetId: z.string().cuid().optional(),
+  templateCode: z.string().default(SCREENING_TO_TIMING_TEMPLATE_CODE),
+  templateVersion: z.number().int().positive().optional(),
+  idempotencyKey: z.string().min(8).max(128).optional(),
+});
+
+const startTimingReviewLoopInput = z.object({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  limit: z.number().int().min(1).max(500).optional(),
+  templateCode: z.string().default(TIMING_REVIEW_LOOP_TEMPLATE_CODE),
   templateVersion: z.number().int().positive().optional(),
   idempotencyKey: z.string().min(8).max(128).optional(),
 });
@@ -222,6 +281,12 @@ export const workflowRouter = createTRPCRouter({
     .input(startTimingSignalPipelineInput)
     .mutation(async ({ ctx, input }) => {
       try {
+        await assertTimingPresetExists({
+          db: ctx.db,
+          userId: ctx.session.user.id,
+          presetId: input.presetId,
+        });
+
         const repository = new PrismaWorkflowRunRepository(ctx.db);
         const commandService = new WorkflowCommandService(repository);
 
@@ -229,6 +294,7 @@ export const workflowRouter = createTRPCRouter({
           userId: ctx.session.user.id,
           stockCode: input.stockCode,
           asOfDate: input.asOfDate,
+          presetId: input.presetId,
           templateVersion: input.templateVersion,
           idempotencyKey: input.idempotencyKey,
         });
@@ -241,16 +307,23 @@ export const workflowRouter = createTRPCRouter({
     .input(startWatchlistTimingCardsPipelineInput)
     .mutation(async ({ ctx, input }) => {
       try {
-        const watchList = await ctx.db.watchList.findFirst({
-          where: {
-            id: input.watchListId,
+        const [watchList] = await Promise.all([
+          ctx.db.watchList.findFirst({
+            where: {
+              id: input.watchListId,
+              userId: ctx.session.user.id,
+            },
+            select: {
+              id: true,
+              name: true,
+            },
+          }),
+          assertTimingPresetExists({
+            db: ctx.db,
             userId: ctx.session.user.id,
-          },
-          select: {
-            id: true,
-            name: true,
-          },
-        });
+            presetId: input.presetId,
+          }),
+        ]);
 
         if (!watchList) {
           throw new TRPCError({
@@ -266,6 +339,7 @@ export const workflowRouter = createTRPCRouter({
           userId: ctx.session.user.id,
           watchListId: input.watchListId,
           asOfDate: input.asOfDate,
+          presetId: input.presetId,
           watchListName: watchList.name,
           templateVersion: input.templateVersion,
           idempotencyKey: input.idempotencyKey,
@@ -304,6 +378,11 @@ export const workflowRouter = createTRPCRouter({
               name: true,
             },
           }),
+          assertTimingPresetExists({
+            db: ctx.db,
+            userId: ctx.session.user.id,
+            presetId: input.presetId,
+          }),
         ]);
 
         if (!watchList) {
@@ -328,6 +407,7 @@ export const workflowRouter = createTRPCRouter({
           watchListId: input.watchListId,
           portfolioSnapshotId: input.portfolioSnapshotId,
           asOfDate: input.asOfDate,
+          presetId: input.presetId,
           watchListName: watchList.name,
           portfolioSnapshotName: portfolioSnapshot.name,
           templateVersion: input.templateVersion,
@@ -338,6 +418,76 @@ export const workflowRouter = createTRPCRouter({
           throw error;
         }
 
+        throw mapWorkflowError(error);
+      }
+    }),
+
+  startScreeningToTimingPipeline: protectedProcedure
+    .input(startScreeningToTimingPipelineInput)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const [screeningSession] = await Promise.all([
+          ctx.db.screeningSession.findFirst({
+            where: {
+              id: input.screeningSessionId,
+              userId: ctx.session.user.id,
+            },
+            select: {
+              id: true,
+              strategyName: true,
+            },
+          }),
+          assertTimingPresetExists({
+            db: ctx.db,
+            userId: ctx.session.user.id,
+            presetId: input.presetId,
+          }),
+        ]);
+
+        if (!screeningSession) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "筛选会话不存在",
+          });
+        }
+
+        const repository = new PrismaWorkflowRunRepository(ctx.db);
+        const commandService = new WorkflowCommandService(repository);
+
+        return await commandService.startScreeningToTimingPipeline({
+          userId: ctx.session.user.id,
+          screeningSessionId: input.screeningSessionId,
+          strategyName: screeningSession.strategyName,
+          candidateLimit: input.candidateLimit,
+          asOfDate: input.asOfDate,
+          presetId: input.presetId,
+          templateVersion: input.templateVersion,
+          idempotencyKey: input.idempotencyKey,
+        });
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+
+        throw mapWorkflowError(error);
+      }
+    }),
+
+  startTimingReviewLoop: protectedProcedure
+    .input(startTimingReviewLoopInput)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const repository = new PrismaWorkflowRunRepository(ctx.db);
+        const commandService = new WorkflowCommandService(repository);
+
+        return await commandService.startTimingReviewLoop({
+          userId: ctx.session.user.id,
+          date: input.date,
+          limit: input.limit,
+          templateVersion: input.templateVersion,
+          idempotencyKey: input.idempotencyKey,
+        });
+      } catch (error) {
         throw mapWorkflowError(error);
       }
     }),

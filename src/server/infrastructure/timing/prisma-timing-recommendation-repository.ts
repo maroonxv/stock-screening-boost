@@ -15,6 +15,7 @@ function mapRecord(record: {
   workflowRunId: string | null;
   portfolioSnapshotId: string;
   watchListId: string;
+  presetId: string | null;
   stockCode: string;
   stockName: string;
   action: string;
@@ -35,6 +36,7 @@ function mapRecord(record: {
     workflowRunId: record.workflowRunId,
     portfolioSnapshotId: record.portfolioSnapshotId,
     watchListId: record.watchListId,
+    presetId: record.presetId,
     stockCode: record.stockCode,
     stockName: record.stockName,
     action: record.action as TimingRecommendationRecord["action"],
@@ -64,6 +66,7 @@ export class PrismaTimingRecommendationRepository {
             workflowRunId: item.workflowRunId,
             portfolioSnapshotId: item.portfolioSnapshotId,
             watchListId: item.watchListId,
+            presetId: item.presetId,
             stockCode: item.stockCode,
             stockName: item.stockName,
             action: item.action,

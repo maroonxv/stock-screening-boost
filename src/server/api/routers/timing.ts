@@ -3,7 +3,9 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { PrismaPortfolioSnapshotRepository } from "~/server/infrastructure/timing/prisma-portfolio-snapshot-repository";
 import { PrismaTimingAnalysisCardRepository } from "~/server/infrastructure/timing/prisma-timing-analysis-card-repository";
+import { PrismaTimingPresetRepository } from "~/server/infrastructure/timing/prisma-timing-preset-repository";
 import { PrismaTimingRecommendationRepository } from "~/server/infrastructure/timing/prisma-timing-recommendation-repository";
+import { PrismaTimingReviewRecordRepository } from "~/server/infrastructure/timing/prisma-timing-review-record-repository";
 
 const portfolioPositionInput = z.object({
   stockCode: z.string().regex(/^\d{6}$/, "stockCode must be 6 digits"),
@@ -67,6 +69,71 @@ const listRecommendationsInput = z.object({
   watchListId: z.string().cuid().optional(),
   portfolioSnapshotId: z.string().cuid().optional(),
   workflowRunId: z.string().cuid().optional(),
+});
+
+const listReviewRecordsInput = z.object({
+  limit: z.number().int().min(1).max(100).default(24),
+  stockCode: z
+    .string()
+    .regex(/^\d{6}$/)
+    .optional(),
+  completedOnly: z.boolean().default(false),
+});
+
+const timingPresetConfigInput = z.object({
+  factorWeights: z
+    .object({
+      trend: z.number().positive().max(3).optional(),
+      macd: z.number().positive().max(3).optional(),
+      rsi: z.number().positive().max(3).optional(),
+      bollinger: z.number().positive().max(3).optional(),
+      volume: z.number().positive().max(3).optional(),
+      obv: z.number().positive().max(3).optional(),
+      volatility: z.number().positive().max(3).optional(),
+    })
+    .optional(),
+  agentWeights: z
+    .object({
+      technicalSignal: z.number().positive().max(3).optional(),
+    })
+    .optional(),
+  confidenceThresholds: z
+    .object({
+      signalStrengthWeight: z.number().positive().max(1).optional(),
+      alignmentWeight: z.number().positive().max(100).optional(),
+      riskPenaltyPerFlag: z.number().min(0).max(20).optional(),
+      neutralPenalty: z.number().min(0).max(20).optional(),
+      minConfidence: z.number().min(0).max(100).optional(),
+      maxConfidence: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
+  actionThresholds: z
+    .object({
+      addConfidence: z.number().min(0).max(100).optional(),
+      addSignalStrength: z.number().min(0).max(100).optional(),
+      probeConfidence: z.number().min(0).max(100).optional(),
+      probeSignalStrength: z.number().min(0).max(100).optional(),
+      holdConfidence: z.number().min(0).max(100).optional(),
+      trimConfidence: z.number().min(0).max(100).optional(),
+      exitConfidence: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
+  reviewSchedule: z
+    .object({
+      horizons: z
+        .array(z.enum(["T5", "T10", "T20"]))
+        .min(1)
+        .max(3)
+        .optional(),
+    })
+    .optional(),
+});
+
+const saveTimingPresetInput = z.object({
+  id: z.string().cuid().optional(),
+  name: z.string().trim().min(1).max(64),
+  description: z.string().trim().max(240).optional(),
+  config: timingPresetConfigInput,
 });
 
 export const timingRouter = createTRPCRouter({
@@ -156,6 +223,53 @@ export const timingRouter = createTRPCRouter({
         watchListId: input.watchListId,
         portfolioSnapshotId: input.portfolioSnapshotId,
         workflowRunId: input.workflowRunId,
+      });
+    }),
+
+  listReviewRecords: protectedProcedure
+    .input(listReviewRecordsInput)
+    .query(async ({ ctx, input }) => {
+      const repository = new PrismaTimingReviewRecordRepository(ctx.db);
+      return repository.listForUser({
+        userId: ctx.session.user.id,
+        limit: input.limit,
+        stockCode: input.stockCode,
+        completedOnly: input.completedOnly,
+      });
+    }),
+
+  listTimingPresets: protectedProcedure.query(async ({ ctx }) => {
+    const repository = new PrismaTimingPresetRepository(ctx.db);
+    return repository.listForUser(ctx.session.user.id);
+  }),
+
+  saveTimingPreset: protectedProcedure
+    .input(saveTimingPresetInput)
+    .mutation(async ({ ctx, input }) => {
+      const repository = new PrismaTimingPresetRepository(ctx.db);
+
+      if (input.id) {
+        const preset = await repository.update(input.id, ctx.session.user.id, {
+          name: input.name,
+          description: input.description,
+          config: input.config,
+        });
+
+        if (!preset) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Timing preset not found",
+          });
+        }
+
+        return preset;
+      }
+
+      return repository.create({
+        userId: ctx.session.user.id,
+        name: input.name,
+        description: input.description,
+        config: input.config,
       });
     }),
 });

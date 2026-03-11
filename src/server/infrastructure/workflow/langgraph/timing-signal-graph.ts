@@ -1,5 +1,6 @@
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import type { TimingAnalysisService } from "~/server/application/timing/timing-analysis-service";
+import { resolveTimingPresetConfig } from "~/server/domain/timing/preset";
 import type {
   TimingSignalPipelineGraphState,
   TimingSignalPipelineInput,
@@ -12,6 +13,7 @@ import {
   TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE,
 } from "~/server/domain/workflow/types";
 import type { PrismaTimingAnalysisCardRepository } from "~/server/infrastructure/timing/prisma-timing-analysis-card-repository";
+import type { PrismaTimingPresetRepository } from "~/server/infrastructure/timing/prisma-timing-preset-repository";
 import type { PrismaTimingSignalSnapshotRepository } from "~/server/infrastructure/timing/prisma-timing-signal-snapshot-repository";
 import type { PythonTimingDataClient } from "~/server/infrastructure/timing/python-timing-data-client";
 import type {
@@ -27,6 +29,8 @@ const WorkflowState = Annotation.Root({
   progressPercent: Annotation<number>,
   currentNodeKey: Annotation<TimingSignalPipelineNodeKey | undefined>,
   timingInput: Annotation<TimingSignalPipelineInput>,
+  preset: Annotation<TimingSignalPipelineGraphState["preset"]>,
+  presetConfig: Annotation<TimingSignalPipelineGraphState["presetConfig"]>,
   targets: Annotation<TimingSignalPipelineGraphState["targets"]>,
   signalSnapshots: Annotation<
     TimingSignalPipelineGraphState["signalSnapshots"]
@@ -62,18 +66,30 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
     private readonly deps: {
       timingDataClient: PythonTimingDataClient;
       analysisService: TimingAnalysisService;
+      presetRepository: PrismaTimingPresetRepository;
       signalSnapshotRepository: PrismaTimingSignalSnapshotRepository;
       analysisCardRepository: PrismaTimingAnalysisCardRepository;
     },
   ) {
     this.nodeExecutors = {
-      load_targets: async (state) => ({
-        targets: [
-          {
-            stockCode: state.timingInput.stockCode,
-          },
-        ],
-      }),
+      load_targets: async (state) => {
+        const preset = state.timingInput.presetId
+          ? await this.deps.presetRepository.getByIdForUser(
+              state.userId,
+              state.timingInput.presetId,
+            )
+          : null;
+
+        return {
+          preset: preset ?? undefined,
+          presetConfig: resolveTimingPresetConfig(preset?.config),
+          targets: [
+            {
+              stockCode: state.timingInput.stockCode,
+            },
+          ],
+        };
+      },
       fetch_signal_snapshots: async (state) => {
         const snapshot = await this.deps.timingDataClient.getSignal({
           stockCode: state.timingInput.stockCode,
@@ -89,6 +105,7 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
         technicalAssessments:
           this.deps.analysisService.buildTechnicalAssessments(
             state.signalSnapshots,
+            state.presetConfig,
           ),
       }),
       timing_synthesis_agent: async (state) => ({
@@ -97,6 +114,8 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
           workflowRunId: state.runId,
           sourceType: "single",
           sourceId: state.timingInput.stockCode,
+          presetId: state.preset?.id,
+          presetConfig: state.presetConfig,
           signalSnapshots: state.signalSnapshots,
           technicalAssessments: state.technicalAssessments,
         }),
@@ -149,6 +168,8 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
       currentNodeKey: undefined,
       lastCompletedNodeKey: undefined,
       timingInput: params.input as TimingSignalPipelineInput,
+      preset: undefined,
+      presetConfig: undefined,
       targets: [],
       signalSnapshots: [],
       technicalAssessments: [],

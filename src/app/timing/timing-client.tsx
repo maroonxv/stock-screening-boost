@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -80,6 +80,60 @@ const marketRegimeToneMap: Record<
   RISK_OFF: "warning",
 };
 
+const reviewVerdictLabelMap: Record<string, string> = {
+  SUCCESS: "验证通过",
+  MIXED: "表现一般",
+  FAILURE: "验证失败",
+};
+
+const reviewVerdictToneMap: Record<
+  string,
+  "neutral" | "info" | "success" | "warning"
+> = {
+  SUCCESS: "success",
+  MIXED: "info",
+  FAILURE: "warning",
+};
+
+const defaultPresetConfigJson = JSON.stringify(
+  {
+    factorWeights: {
+      trend: 1,
+      macd: 1,
+      rsi: 1,
+      bollinger: 1,
+      volume: 1,
+      obv: 1,
+      volatility: 1,
+    },
+    agentWeights: {
+      technicalSignal: 1,
+    },
+    confidenceThresholds: {
+      signalStrengthWeight: 0.55,
+      alignmentWeight: 35,
+      riskPenaltyPerFlag: 4,
+      neutralPenalty: 8,
+      minConfidence: 25,
+      maxConfidence: 95,
+    },
+    actionThresholds: {
+      addConfidence: 74,
+      addSignalStrength: 68,
+      probeConfidence: 56,
+      probeSignalStrength: 52,
+      holdConfidence: 60,
+      trimConfidence: 68,
+      exitConfidence: 82,
+    },
+    reviewSchedule: {
+      horizons: ["T5", "T10", "T20"],
+    },
+  },
+  null,
+  2,
+);
+
 export function TimingClient() {
   const router = useRouter();
   const utils = api.useUtils();
@@ -104,6 +158,16 @@ export function TimingClient() {
   const [filterSourceType, setFilterSourceType] = useState<
     "all" | "single" | "watchlist" | "screening"
   >("all");
+  const [selectedPresetId, setSelectedPresetId] = useState("");
+  const [presetDraftId, setPresetDraftId] = useState("");
+  const [presetName, setPresetName] = useState("稳健日频预设");
+  const [presetDescription, setPresetDescription] = useState(
+    "默认日频权重与三阶段复查窗。",
+  );
+  const [presetConfigJson, setPresetConfigJson] = useState(
+    defaultPresetConfigJson,
+  );
+  const [presetFormError, setPresetFormError] = useState<string | null>(null);
 
   const watchListsQuery = api.watchlist.list.useQuery({
     limit: 50,
@@ -122,6 +186,11 @@ export function TimingClient() {
     watchListId: watchListId || undefined,
     portfolioSnapshotId: selectedPortfolioId || undefined,
   });
+  const reviewRecordsQuery = api.timing.listReviewRecords.useQuery({
+    limit: 36,
+    completedOnly: false,
+  });
+  const presetsQuery = api.timing.listTimingPresets.useQuery();
 
   const startSingleMutation =
     api.workflow.startTimingSignalPipeline.useMutation({
@@ -137,6 +206,12 @@ export function TimingClient() {
     });
   const startWatchlistTimingMutation =
     api.workflow.startWatchlistTimingPipeline.useMutation({
+      onSuccess: (result) => {
+        router.push(`/workflows/${result.runId}`);
+      },
+    });
+  const startTimingReviewLoopMutation =
+    api.workflow.startTimingReviewLoop.useMutation({
       onSuccess: (result) => {
         router.push(`/workflows/${result.runId}`);
       },
@@ -160,6 +235,14 @@ export function TimingClient() {
         ]);
       },
     });
+  const saveTimingPresetMutation = api.timing.saveTimingPreset.useMutation({
+    onSuccess: async (preset) => {
+      setSelectedPresetId(preset.id);
+      setPresetDraftId(preset.id);
+      setPresetFormError(null);
+      await utils.timing.listTimingPresets.invalidate();
+    },
+  });
 
   useEffect(() => {
     if (!watchListId && watchListsQuery.data?.[0]?.id) {
@@ -172,6 +255,12 @@ export function TimingClient() {
       setSelectedPortfolioId(portfolioSnapshotsQuery.data[0].id);
     }
   }, [portfolioSnapshotsQuery.data, selectedPortfolioId]);
+
+  useEffect(() => {
+    if (!selectedPresetId && presetsQuery.data?.[0]?.id) {
+      setSelectedPresetId(presetsQuery.data[0].id);
+    }
+  }, [presetsQuery.data, selectedPresetId]);
 
   const cards = cardsQuery.data ?? [];
   const recommendations = recommendationsQuery.data ?? [];
@@ -186,6 +275,8 @@ export function TimingClient() {
       (snapshot) => snapshot.id === selectedPortfolioId,
     ) ?? null;
   const recommendationContext = latestRecommendations[0]?.reasoning;
+  const reviewRecords = reviewRecordsQuery.data ?? [];
+  const presets = presetsQuery.data ?? [];
 
   useEffect(() => {
     if (!selectedSnapshot) {
@@ -211,6 +302,22 @@ export function TimingClient() {
     );
     setPortfolioFormError(null);
   }, [selectedSnapshot]);
+
+  useEffect(() => {
+    if (!presetDraftId) {
+      return;
+    }
+
+    const preset = presets.find((item) => item.id === presetDraftId);
+    if (!preset) {
+      return;
+    }
+
+    setPresetName(preset.name);
+    setPresetDescription(preset.description ?? "");
+    setPresetConfigJson(JSON.stringify(preset.config, null, 2));
+    setPresetFormError(null);
+  }, [presetDraftId, presets]);
 
   const summary = useMemo(() => {
     const addCount = cards.filter((card) => card.actionBias === "ADD").length;
@@ -261,6 +368,7 @@ export function TimingClient() {
 
     await startSingleMutation.mutateAsync({
       stockCode: stockCode.trim(),
+      presetId: selectedPresetId || undefined,
     });
   };
 
@@ -271,6 +379,7 @@ export function TimingClient() {
 
     await startWatchlistCardsMutation.mutateAsync({
       watchListId,
+      presetId: selectedPresetId || undefined,
     });
   };
 
@@ -307,29 +416,50 @@ export function TimingClient() {
     await startWatchlistTimingMutation.mutateAsync({
       watchListId,
       portfolioSnapshotId: selectedPortfolioId,
+      presetId: selectedPresetId || undefined,
     });
+  };
+
+  const handleStartTimingReviewLoop = async () => {
+    await startTimingReviewLoopMutation.mutateAsync({});
+  };
+
+  const handleSavePreset = async () => {
+    try {
+      const config = JSON.parse(presetConfigJson) as Record<string, unknown>;
+      setPresetFormError(null);
+
+      await saveTimingPresetMutation.mutateAsync({
+        id: presetDraftId || undefined,
+        name: presetName.trim(),
+        description: presetDescription.trim() || undefined,
+        config,
+      });
+    } catch {
+      setPresetFormError("预设配置 JSON 解析失败，请检查格式。");
+    }
   };
 
   return (
     <WorkspaceShell
       section="timing"
-      eyebrow="Timing Context"
-      title="择时研究台"
-      description="阶段二将单股择时卡升级为带组合语境的自选股建议中心：先生成 timing cards，再叠加市场状态、风险预算与组合建议。"
+      eyebrow="Portfolio Decisions"
+      title="择时组合"
+      description="先看最新建议与风险预算，再决定是否生成或刷新信号。把组合语境放在技术信号之前，避免动作脱离仓位现实。"
       actions={
         <>
           <Link href="/workflows" className="app-button">
-            查看运行记录
+            查看研究详情
           </Link>
           <Link href="/screening" className="app-button app-button-success">
-            返回筛选台
+            返回机会池
           </Link>
         </>
       }
       summary={
         <>
           <KpiCard
-            label="已落库卡片"
+            label="信号总数"
             value={summary.totalCards}
             hint={`覆盖 ${summary.distinctStocks} 只股票`}
             tone="info"
@@ -337,13 +467,13 @@ export function TimingClient() {
           <KpiCard
             label="加仓候选"
             value={summary.addCount}
-            hint="阶段一卡片中偏向 ADD 的数量"
+            hint="当前信号中偏向加仓的数量"
             tone="success"
           />
           <KpiCard
             label="组合建议"
             value={summary.recommendationCount}
-            hint="当前筛选条件下最新一组 recommendations"
+            hint="当前筛选条件下最新一组建议"
             tone="warning"
           />
           <KpiCard
@@ -355,18 +485,134 @@ export function TimingClient() {
             }
             hint={
               summary.riskBudgetPct === null
-                ? "最近卡片写入时间"
-                : "阶段二给出的总预算上限"
+                ? "最近信号写入时间"
+                : "当前建议给出的总预算上限"
             }
             tone="neutral"
           />
         </>
       }
     >
+      <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+        <Panel
+          title="最新建议"
+          description="优先阅读当前最新一组已落库建议，先回答现在该观察、试仓还是加仓。"
+          actions={
+            <button
+              type="button"
+              onClick={() => void recommendationsQuery.refetch()}
+              className="app-button"
+            >
+              刷新建议
+            </button>
+          }
+        >
+          {latestRecommendations.length === 0 ? (
+            <EmptyState
+              title="还没有新的组合建议"
+              description="先保存组合快照，再运行自选股建议流程。完成后这里会优先显示最新一组动作建议。"
+            />
+          ) : (
+            <div className="grid gap-3">
+              {latestRecommendations.slice(0, 3).map((recommendation) => (
+                <article
+                  key={recommendation.id}
+                  className="rounded-[14px] border border-[var(--app-border)] bg-[rgba(14,18,24,0.88)] p-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusPill
+                      label={
+                        actionLabelMap[recommendation.action] ??
+                        recommendation.action
+                      }
+                      tone={actionToneMap[recommendation.action] ?? "neutral"}
+                    />
+                    <StatusPill
+                      label={`P${recommendation.priority}`}
+                      tone="warning"
+                    />
+                    <StatusPill
+                      label={`预算 ${formatPct(recommendation.riskBudgetPct)}`}
+                      tone="neutral"
+                    />
+                  </div>
+                  <p className="mt-3 text-base font-medium text-[var(--app-text)]">
+                    {recommendation.stockName} · {recommendation.stockCode}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--app-text-muted)]">
+                    {recommendation.reasoning.actionRationale}
+                  </p>
+                </article>
+              ))}
+            </div>
+          )}
+        </Panel>
+
+        <Panel
+          title="风险预算 / 组合语境"
+          description="把市场状态、预算上限与组合快照放在一起看，先约束动作，再决定是否继续生成新信号。"
+        >
+          <div className="grid gap-3">
+            {latestRecommendations.length > 0 && recommendationContext ? (
+              <article className="rounded-[14px] border border-[var(--app-border)] bg-[rgba(14,18,24,0.88)] p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusPill
+                    label={latestRecommendations[0]?.marketRegime ?? "NEUTRAL"}
+                    tone={
+                      marketRegimeToneMap[
+                        latestRecommendations[0]?.marketRegime ?? "NEUTRAL"
+                      ]
+                    }
+                  />
+                  <StatusPill
+                    label={`预算 ${formatPct(latestRecommendations[0]?.riskBudgetPct)}`}
+                    tone="warning"
+                  />
+                  <StatusPill
+                    label={`单票上限 ${formatPct(recommendationContext.riskPlan.maxSingleNamePct)}`}
+                    tone="neutral"
+                  />
+                </div>
+                <p className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
+                  {recommendationContext.marketRegimeSummary}
+                </p>
+              </article>
+            ) : (
+              <EmptyState
+                title="还没有可用的预算语境"
+                description="组合建议生成后，这里会回填市场状态、预算上限与关键约束。"
+              />
+            )}
+
+            {selectedSnapshot ? (
+              <article className="rounded-[14px] border border-[var(--app-border)] bg-[rgba(14,18,24,0.88)] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-base font-medium text-[var(--app-text)]">
+                      {selectedSnapshot.name}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--app-text-muted)]">
+                      现金 {selectedSnapshot.cash.toFixed(2)}{" "}
+                      {selectedSnapshot.baseCurrency} · 总资金{" "}
+                      {selectedSnapshot.totalCapital.toFixed(2)}{" "}
+                      {selectedSnapshot.baseCurrency}
+                    </p>
+                  </div>
+                  <StatusPill
+                    label={`预算上限 ${formatPct(selectedSnapshot.riskPreferences.maxPortfolioRiskBudgetPct)}`}
+                    tone="info"
+                  />
+                </div>
+              </article>
+            ) : null}
+          </div>
+        </Panel>
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <Panel
-          title="单股择时卡"
-          description="保留阶段一入口，快速生成某只股票的规则化技术信号卡。"
+          title="单股信号"
+          description="快速生成某只股票的规则化技术信号，用于单票观察与验证。"
         >
           <div className="grid gap-4">
             <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
@@ -391,20 +637,18 @@ export function TimingClient() {
                   startSingleMutation.isPending || stockCode.length !== 6
                 }
               >
-                {startSingleMutation.isPending
-                  ? "启动中..."
-                  : "启动单股 pipeline"}
+                {startSingleMutation.isPending ? "启动中..." : "生成单股信号"}
               </button>
               <span className="text-xs text-[var(--app-text-soft)]">
-                输出 `TimingAnalysisCard` 并跳转到 workflow run。
+                生成信号后，可继续进入组合建议或查看研究详情。
               </span>
             </div>
           </div>
         </Panel>
 
         <Panel
-          title="自选股批量卡"
-          description="先跑阶段一批量 cards，适合只看技术面排序、不引入组合语境的场景。"
+          title="批量信号"
+          description="先批量刷新自选股信号，适合在进入组合建议前快速看技术面排序。"
         >
           <div className="grid gap-4">
             <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
@@ -430,20 +674,162 @@ export function TimingClient() {
               >
                 {startWatchlistCardsMutation.isPending
                   ? "启动中..."
-                  : "启动批量 cards"}
+                  : "生成批量信号"}
               </button>
               <span className="text-xs text-[var(--app-text-soft)]">
-                适合在进入组合建议前，先看 watchlist 的技术面排序。
+                适合在进入组合建议前，先判断 watchlist 的信号强弱。
               </span>
             </div>
           </div>
         </Panel>
       </div>
 
+      <Panel
+        title="信号参数与复盘设定"
+        description="通过参数预设调整权重与阈值，并在合适时机触发复盘流程，验证建议是否兑现。"
+        actions={
+          <button
+            type="button"
+            onClick={() => void handleStartTimingReviewLoop()}
+            className="app-button app-button-success"
+            disabled={startTimingReviewLoopMutation.isPending}
+          >
+            {startTimingReviewLoopMutation.isPending
+              ? "启动中..."
+              : "运行今日复盘"}
+          </button>
+        }
+      >
+        <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid gap-4 rounded-[12px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.76)] p-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusPill
+                label={
+                  selectedPresetId ? "已绑定自定义参数" : "使用内置默认参数"
+                }
+                tone={selectedPresetId ? "success" : "info"}
+              />
+              <StatusPill
+                label={`${reviewRecords.filter((item) => !item.completedAt).length} 条待复查`}
+                tone="warning"
+              />
+            </div>
+            <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
+              当前使用的参数预设
+              <select
+                value={selectedPresetId}
+                onChange={(event) => setSelectedPresetId(event.target.value)}
+                className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.9)] px-3 py-2 text-sm text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-border-strong)]"
+              >
+                <option value="">内置默认参数</option>
+                {presets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="text-xs leading-6 text-[var(--app-text-soft)]">
+              这个选择会影响后续单股信号、批量信号与组合建议的权重/阈值，以及复盘周期的创建策略。
+            </div>
+            <div className="grid gap-2">
+              {presets.length === 0 ? (
+                <EmptyState
+                  title="还没有自定义参数预设"
+                  description="先在右侧保存一个参数预设，之后就能复用。"
+                />
+              ) : (
+                presets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setPresetDraftId(preset.id)}
+                    className="flex items-center justify-between rounded-[10px] border border-[var(--app-border)] bg-[rgba(10,13,18,0.9)] px-4 py-3 text-left text-sm text-[var(--app-text)] transition-colors hover:border-[var(--app-border-strong)]"
+                  >
+                    <span>{preset.name}</span>
+                    <span className="text-xs text-[var(--app-text-soft)]">
+                      {formatDate(preset.updatedAt)}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-4 rounded-[12px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.76)] p-4">
+            <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+              <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
+                编辑已有参数预设
+                <select
+                  value={presetDraftId}
+                  onChange={(event) => setPresetDraftId(event.target.value)}
+                  className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.9)] px-3 py-2 text-sm text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-border-strong)]"
+                >
+                  <option value="">新建参数预设</option>
+                  {presets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
+                预设名称
+                <input
+                  value={presetName}
+                  onChange={(event) => setPresetName(event.target.value)}
+                  className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.9)] px-3 py-2 text-sm text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-border-strong)]"
+                />
+              </label>
+            </div>
+            <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
+              说明
+              <input
+                value={presetDescription}
+                onChange={(event) => setPresetDescription(event.target.value)}
+                className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.9)] px-3 py-2 text-sm text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-border-strong)]"
+              />
+            </label>
+            <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
+              配置 JSON
+              <textarea
+                value={presetConfigJson}
+                onChange={(event) => setPresetConfigJson(event.target.value)}
+                rows={14}
+                className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(10,13,18,0.96)] px-4 py-3 font-mono text-xs leading-6 text-[var(--app-text)] outline-none transition-colors focus:border-[var(--app-border-strong)]"
+              />
+            </label>
+            {presetFormError ? (
+              <div className="rounded-[10px] border border-[rgba(239,142,157,0.34)] bg-[rgba(97,39,50,0.2)] px-4 py-3 text-sm text-[var(--app-danger)]">
+                {presetFormError}
+              </div>
+            ) : null}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => void handleSavePreset()}
+                className="app-button app-button-primary"
+                disabled={
+                  saveTimingPresetMutation.isPending || !presetName.trim()
+                }
+              >
+                {saveTimingPresetMutation.isPending
+                  ? "保存中..."
+                  : "保存参数预设"}
+              </button>
+              <span className="text-xs text-[var(--app-text-soft)]">
+                v1 只影响技术因子权重、动作阈值与复查
+                horizon，不改基础指标公式。
+              </span>
+            </div>
+          </div>
+        </div>
+      </Panel>
+
       <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
         <Panel
-          title="组合快照管理"
-          description="阶段二输入改为 watchlist + portfolio snapshot。这里维护现金、持仓和风险偏好。"
+          title="组合快照"
+          description="这里维护现金、持仓和风险偏好，让组合建议始终基于真实仓位语境。"
           actions={
             <>
               <button
@@ -592,8 +978,8 @@ export function TimingClient() {
         </Panel>
 
         <Panel
-          title="阶段二建议 pipeline"
-          description="固定顺序是：watchlist cards → market regime → risk plan → portfolio recommendations。"
+          title="组合语境解读"
+          description="固定顺序是：批量信号 → 市场状态 → 风险计划 → 仓位建议；这里保留约束逻辑与背景说明。"
           actions={
             <button
               type="button"
@@ -606,8 +992,8 @@ export function TimingClient() {
               }
             >
               {startWatchlistTimingMutation.isPending
-                ? "启动中..."
-                : "启动建议 pipeline"}
+                ? "生成中..."
+                : "生成组合建议"}
             </button>
           }
         >
@@ -618,7 +1004,7 @@ export function TimingClient() {
                   label={
                     watchListsQuery.data?.find(
                       (item) => item.id === watchListId,
-                    )?.name ?? "未选择 watchlist"
+                    )?.name ?? "未选择自选清单"
                   }
                   tone="info"
                 />
@@ -626,14 +1012,10 @@ export function TimingClient() {
                   label={selectedSnapshot?.name ?? "未选择组合快照"}
                   tone="neutral"
                 />
-                <StatusPill
-                  label="watchlist_timing_pipeline_v1"
-                  tone="success"
-                />
+                <StatusPill label="组合建议流程" tone="success" />
               </div>
               <p className="text-sm leading-6 text-[var(--app-text-muted)]">
-                阶段二允许在存在组合上下文时给出 HOLD / TRIM /
-                EXIT，但仓位区间仍然必须受规则与风险预算共同约束。
+                在存在组合上下文时，系统可以给出持有、减仓或退出建议，但仓位区间仍然必须受规则与风险预算共同约束。
               </p>
             </div>
 
@@ -663,8 +1045,8 @@ export function TimingClient() {
               </div>
             ) : (
               <EmptyState
-                title="还没有阶段二建议结果"
-                description="先维护一个 PortfolioSnapshot，再启动建议 pipeline。完成后这里会展示市场状态、风险预算和动作排序。"
+                title="还没有组合建议结果"
+                description="先维护一份组合快照，再生成组合建议。完成后这里会展示市场状态、风险预算和动作排序。"
               />
             )}
           </div>
@@ -672,8 +1054,8 @@ export function TimingClient() {
       </div>
 
       <Panel
-        title="组合建议表"
-        description="所有 recommendations 都来自持久化结果表，不依赖运行态回传。默认展示当前筛选下最新一组建议。"
+        title="建议明细"
+        description="所有建议都来自持久化结果表，不依赖运行态回传。默认展示当前筛选下最新一组动作建议。"
         actions={
           <button
             type="button"
@@ -686,8 +1068,8 @@ export function TimingClient() {
       >
         {latestRecommendations.length === 0 ? (
           <EmptyState
-            title="暂无 recommendations"
-            description="建议 pipeline 成功落库后，这里会按 priority 排序展示 action、建议仓位区间、风险标签和解释。"
+            title="暂无组合建议"
+            description="组合建议成功落库后，这里会按优先级展示动作、建议仓位区间、风险标签和解释。"
           />
         ) : (
           <div className="grid gap-4">
@@ -729,7 +1111,7 @@ export function TimingClient() {
                         href={`/workflows/${recommendation.workflowRunId}`}
                         className="mt-2 inline-flex text-[var(--app-accent-strong)] hover:text-[var(--app-text)]"
                       >
-                        查看 run
+                        查看研究详情
                       </Link>
                     ) : null}
                   </div>
@@ -747,7 +1129,7 @@ export function TimingClient() {
                   </div>
                   <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.78)] px-4 py-3">
                     <div className="text-xs text-[var(--app-text-soft)]">
-                      Confidence
+                      置信度
                     </div>
                     <div className="mt-2 text-xl text-[var(--app-text)]">
                       {recommendation.confidence}
@@ -828,8 +1210,112 @@ export function TimingClient() {
       </Panel>
 
       <Panel
-        title="已落库择时卡"
-        description="这里保留阶段一结果面板，便于对比 cards 和 recommendations 的差异。"
+        title="复盘记录"
+        description="复盘只读取持久化的 `TimingReviewRecord`，用于回看建议是否兑现、逆风区间有多大。"
+        actions={
+          <button
+            type="button"
+            onClick={() => void reviewRecordsQuery.refetch()}
+            className="app-button"
+          >
+            刷新复查
+          </button>
+        }
+      >
+        {reviewRecords.length === 0 ? (
+          <EmptyState
+            title="暂无复盘记录"
+            description="筛选联动或组合建议会创建复盘任务，到期后运行复盘流程即可回填结果。"
+          />
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {reviewRecords.map((record) => (
+              <article
+                key={record.id}
+                className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(14,18,24,0.88)] p-5"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-semibold text-[var(--app-text)]">
+                        {record.stockName}
+                      </h3>
+                      <span className="text-sm text-[var(--app-text-soft)]">
+                        {record.stockCode}
+                      </span>
+                      <StatusPill label={record.reviewHorizon} tone="info" />
+                      <StatusPill
+                        label={
+                          actionLabelMap[record.expectedAction] ??
+                          record.expectedAction
+                        }
+                        tone={actionToneMap[record.expectedAction] ?? "neutral"}
+                      />
+                      <StatusPill
+                        label={
+                          record.completedAt
+                            ? (reviewVerdictLabelMap[
+                                record.verdict ?? "MIXED"
+                              ] ??
+                              record.verdict ??
+                              "已完成")
+                            : "待复查"
+                        }
+                        tone={
+                          record.completedAt
+                            ? (reviewVerdictToneMap[
+                                record.verdict ?? "MIXED"
+                              ] ?? "info")
+                            : "warning"
+                        }
+                      />
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
+                      {record.reviewSummary ??
+                        `计划于 ${formatDate(record.scheduledAt)} 复查，基准信号日 ${record.sourceAsOfDate}。`}
+                    </p>
+                  </div>
+                  <div className="text-right text-xs text-[var(--app-text-soft)]">
+                    <p>计划复查 {formatDate(record.scheduledAt)}</p>
+                    <p>完成时间 {formatDate(record.completedAt)}</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.78)] px-4 py-3">
+                    <div className="text-xs text-[var(--app-text-soft)]">
+                      区间收益
+                    </div>
+                    <div className="mt-2 text-xl text-[var(--app-text)]">
+                      {formatPct(record.actualReturnPct)}
+                    </div>
+                  </div>
+                  <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.78)] px-4 py-3">
+                    <div className="text-xs text-[var(--app-text-soft)]">
+                      最大顺行
+                    </div>
+                    <div className="mt-2 text-xl text-[var(--app-text)]">
+                      {formatPct(record.maxFavorableExcursionPct)}
+                    </div>
+                  </div>
+                  <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.78)] px-4 py-3">
+                    <div className="text-xs text-[var(--app-text-soft)]">
+                      最大逆行
+                    </div>
+                    <div className="mt-2 text-xl text-[var(--app-text)]">
+                      {formatPct(record.maxAdverseExcursionPct)}
+                    </div>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </Panel>
+
+      <Panel
+        title="信号库"
+        description="这里保留已落库信号，便于对比基础信号与最终组合建议的差异。"
         actions={
           <button
             type="button"
@@ -864,20 +1350,20 @@ export function TimingClient() {
             <option value="screening">筛选联动</option>
           </select>
           <div className="text-xs leading-6 text-[var(--app-text-soft)]">
-            阶段一默认只会产出 WATCH / PROBE / ADD；阶段二建议流程中才允许 HOLD
+            基础信号默认只会产出 WATCH / PROBE / ADD；进入组合建议后才允许 HOLD
             / TRIM / EXIT 出现。
           </div>
         </div>
 
         {cardsQuery.isLoading ? (
           <EmptyState
-            title="正在加载择时卡"
+            title="正在加载信号库"
             description="持久化结果读取完成后会在这里展示。"
           />
         ) : cards.length === 0 ? (
           <EmptyState
-            title="还没有择时卡结果"
-            description="先运行单股或 watchlist cards pipeline，完成后这里会自动出现卡片。"
+            title="还没有信号结果"
+            description="先运行单股信号或批量信号，完成后这里会自动出现卡片。"
           />
         ) : (
           <div className="grid gap-4">
@@ -924,7 +1410,7 @@ export function TimingClient() {
                   <div className="mt-4 grid gap-3 md:grid-cols-4">
                     <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.78)] px-4 py-3">
                       <div className="text-xs text-[var(--app-text-soft)]">
-                        Confidence
+                        置信度
                       </div>
                       <div className="mt-2 text-xl text-[var(--app-text)]">
                         {card.confidence}

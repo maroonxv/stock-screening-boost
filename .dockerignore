@@ -1,6 +1,10 @@
 .git
 .next
 .runlogs
+.cache
+.codex
+.kiro
+temp
 node_modules
 npm-debug.log*
 

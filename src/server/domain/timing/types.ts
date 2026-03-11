@@ -39,6 +39,40 @@ export type TimingMarketRegime = (typeof TIMING_MARKET_REGIMES)[number];
 export type TimingDirection = "bullish" | "neutral" | "bearish";
 export type TimingTimeframe = "DAILY";
 export type TimingFactorStatus = "positive" | "neutral" | "negative";
+export type TimingReviewHorizon = "T5" | "T10" | "T20";
+export type TimingReviewVerdict = "SUCCESS" | "MIXED" | "FAILURE";
+
+export type TimingPresetConfig = {
+  factorWeights?: Partial<
+    Record<
+      "trend" | "macd" | "rsi" | "bollinger" | "volume" | "obv" | "volatility",
+      number
+    >
+  >;
+  agentWeights?: {
+    technicalSignal?: number;
+  };
+  confidenceThresholds?: {
+    signalStrengthWeight?: number;
+    alignmentWeight?: number;
+    riskPenaltyPerFlag?: number;
+    neutralPenalty?: number;
+    minConfidence?: number;
+    maxConfidence?: number;
+  };
+  actionThresholds?: {
+    addConfidence?: number;
+    addSignalStrength?: number;
+    probeConfidence?: number;
+    probeSignalStrength?: number;
+    holdConfidence?: number;
+    trimConfidence?: number;
+    exitConfidence?: number;
+  };
+  reviewSchedule?: {
+    horizons?: TimingReviewHorizon[];
+  };
+};
 
 export type TimingBar = {
   tradeDate: string;
@@ -173,6 +207,7 @@ export type TimingAnalysisCardRecord = {
   userId: string;
   workflowRunId?: string | null;
   watchListId?: string | null;
+  presetId?: string | null;
   stockCode: string;
   stockName: string;
   sourceType: TimingSourceType;
@@ -195,6 +230,7 @@ export type TimingCardDraft = {
   userId: string;
   workflowRunId?: string;
   watchListId?: string;
+  presetId?: string;
   stockCode: string;
   stockName: string;
   sourceType: TimingSourceType;
@@ -333,6 +369,7 @@ export type TimingRecommendationRecord = {
   workflowRunId?: string | null;
   portfolioSnapshotId: string;
   watchListId: string;
+  presetId?: string | null;
   stockCode: string;
   stockName: string;
   action: TimingAction;
@@ -353,6 +390,7 @@ export type TimingRecommendationDraft = {
   workflowRunId?: string;
   portfolioSnapshotId: string;
   watchListId: string;
+  presetId?: string;
   stockCode: string;
   stockName: string;
   action: TimingAction;
@@ -364,4 +402,66 @@ export type TimingRecommendationDraft = {
   marketRegime: TimingMarketRegime;
   riskFlags: TimingRiskFlag[];
   reasoning: TimingRecommendationReasoning;
+};
+
+export type TimingReviewRecord = {
+  id: string;
+  userId: string;
+  analysisCardId?: string | null;
+  recommendationId?: string | null;
+  stockCode: string;
+  stockName: string;
+  sourceAsOfDate: string;
+  reviewHorizon: TimingReviewHorizon;
+  scheduledAt: Date;
+  completedAt?: Date | null;
+  expectedAction: TimingAction;
+  actualReturnPct?: number | null;
+  maxFavorableExcursionPct?: number | null;
+  maxAdverseExcursionPct?: number | null;
+  verdict?: TimingReviewVerdict | null;
+  reviewSummary?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  analysisCard?: TimingAnalysisCardRecord;
+  recommendation?: TimingRecommendationRecord;
+};
+
+export type TimingReviewDraft = {
+  userId: string;
+  analysisCardId?: string;
+  recommendationId?: string;
+  stockCode: string;
+  stockName: string;
+  sourceAsOfDate: string;
+  reviewHorizon: TimingReviewHorizon;
+  scheduledAt: Date;
+  expectedAction: TimingAction;
+};
+
+export type TimingReviewCompletionDraft = {
+  id: string;
+  actualReturnPct: number;
+  maxFavorableExcursionPct: number;
+  maxAdverseExcursionPct: number;
+  verdict: TimingReviewVerdict;
+  reviewSummary: string;
+  completedAt?: Date;
+};
+
+export type TimingPresetRecord = {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string | null;
+  config: TimingPresetConfig;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type TimingPresetDraft = {
+  userId: string;
+  name: string;
+  description?: string;
+  config: TimingPresetConfig;
 };

@@ -2,137 +2,159 @@
 @source "..";
 
 @theme {
-  --font-sans: var(--font-body, "Inter"), "Noto Sans SC", "PingFang SC",
-    "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-body, "Noto Sans SC"), "PingFang SC",
+    "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-mono: var(--font-data, "IBM Plex Mono"), "JetBrains Mono", ui-monospace,
+    "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
     monospace;
 }
 
 :root {
-  /* 基础色彩：纯粹中性灰 Zinc 系列 */
-  --app-bg: #09090b;           /* Zinc 950 */
-  --app-bg-soft: #18181b;      /* Zinc 900 */
-  --app-bg-elevated: #27272a;  /* Zinc 800 */
-  --app-panel: #121215;
-  --app-panel-muted: #18181b;
-  
-  /* 边框与阴影：更细致、低对比 */
-  --app-border: #27272a;        /* Zinc 800 */
-  --app-border-strong: #3f3f46; /* Zinc 700 */
-  --app-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  
-  /* 文字层级 */
-  --app-text: #fafafa;         /* Zinc 50 */
-  --app-text-muted: #a1a1aa;   /* Zinc 400 */
-  --app-text-soft: #71717a;    /* Zinc 500 */
-  
-  /* 语义色彩：专业且高对比 */
-  --app-accent: #3b82f6;       /* Blue 500 */
-  --app-accent-strong: #60a5fa;
-  --app-success: #10b981;      /* Emerald 500 - 涨 */
-  --app-warning: #f59e0b;      /* Amber 500 */
-  --app-danger: #ef4444;       /* Red 500 - 跌 */
-  
-  /* 圆角收敛：遵循 Uncodixify (Max 12px) */
-  --radius-lg: 12px;
-  --radius-md: 8px;
-  --radius-sm: 4px;
+  --app-bg: #06080b;
+  --app-bg-soft: #0b1015;
+  --app-bg-elevated: #10161d;
+  --app-panel: rgba(12, 17, 23, 0.94);
+  --app-panel-muted: rgba(13, 18, 24, 0.9);
+  --app-border: rgba(106, 120, 137, 0.2);
+  --app-border-strong: rgba(130, 149, 170, 0.36);
+  --app-text: #eef3f8;
+  --app-text-muted: #a3b0bf;
+  --app-text-soft: #6f7d8c;
+  --app-accent: #6ca7d2;
+  --app-accent-strong: #c3ddf0;
+  --app-success: #6cc2a1;
+  --app-warning: #c39b62;
+  --app-danger: #cc7886;
+  --app-shadow: 0 28px 56px -36px rgba(0, 0, 0, 0.78);
 }
 
 html,
 body {
   min-height: 100%;
-  background-color: var(--app-bg);
-  color: var(--app-text);
 }
 
 body {
   margin: 0;
-  /* 移除复杂的 radial-gradient 装饰 */
-  background: var(--app-bg);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  background:
+    radial-gradient(circle at top left, rgba(88, 117, 146, 0.08), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(92, 112, 84, 0.05), transparent 24%),
+    var(--app-bg);
+  color: var(--app-text);
+  font-family: var(--font-body, "Noto Sans SC"), "PingFang SC", "Microsoft YaHei",
+    sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
-/* 移除 body::before 的网格背景装饰 */
 body::before {
-  display: none;
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at center, black 52%, transparent 92%);
 }
 
 a {
   color: inherit;
-  transition: color 160ms ease;
+  text-decoration: none;
 }
 
-a:hover {
-  color: var(--app-accent);
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 ::selection {
-  background: rgba(59, 130, 246, 0.3);
-  color: #ffffff;
+  background: rgba(108, 167, 210, 0.24);
+  color: #f8fbff;
 }
 
 .app-shell {
   min-height: 100vh;
 }
 
-/* 基础组件优化 */
+.app-display {
+  font-family: var(--font-display, "Noto Serif SC"), "Songti SC", serif;
+}
+
+.app-data,
+.market-data {
+  font-family: var(--font-data, "IBM Plex Mono"), "JetBrains Mono", ui-monospace,
+    "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+}
+
+.market-kicker {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--app-text-soft);
+}
 
 .app-panel,
 .market-panel {
   border: 1px solid var(--app-border);
-  background: var(--app-panel);
-  border-radius: var(--radius-md); /* 从 18px 降至 8px */
+  background:
+    linear-gradient(180deg, rgba(15, 20, 27, 0.98), rgba(10, 14, 19, 0.98)),
+    var(--app-panel);
+  border-radius: 18px;
+  box-shadow: var(--app-shadow);
 }
 
 .app-panel-muted,
 .market-soft-panel {
   border: 1px solid var(--app-border);
   background: var(--app-panel-muted);
-  border-radius: var(--radius-md);
+  border-radius: 16px;
 }
 
 .app-progress {
-  height: 6px;
+  height: 8px;
   width: 100%;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--app-bg-soft);
+  background: rgba(7, 11, 15, 0.96);
 }
 
-/* 输入框：更硬朗的边框和聚焦状态 */
 .app-input,
 .app-select,
 .app-textarea {
   width: 100%;
   border: 1px solid var(--app-border);
-  background: #09090b;
-  border-radius: var(--radius-sm); /* 从 12px 降至 4px */
+  background: rgba(10, 15, 20, 0.96);
+  border-radius: 12px;
   color: var(--app-text);
-  font-size: 14px;
   outline: none;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .app-input,
 .app-select {
-  min-height: 38px;
-  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  padding: 0.72rem 0.9rem;
 }
 
 .app-textarea {
-  min-height: 100px;
-  padding: 0.75rem;
+  min-height: 120px;
+  padding: 0.9rem;
   resize: vertical;
 }
 
 .app-input:focus,
 .app-select:focus,
 .app-textarea:focus {
-  border-color: var(--app-accent);
-  box-shadow: 0 0 0 1px var(--app-accent); /* 极细聚焦环 */
+  border-color: rgba(108, 167, 210, 0.52);
+  box-shadow: 0 0 0 3px rgba(108, 167, 210, 0.12);
 }
 
 .app-input::placeholder,
@@ -140,101 +162,91 @@ a:hover {
   color: var(--app-text-soft);
 }
 
-/* 按钮：扁平化、纯色填充 */
 .app-button {
   display: inline-flex;
-  min-height: 36px;
+  min-height: 42px;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--app-border);
-  border-radius: var(--radius-sm);
-  padding: 0 16px;
-  font-size: 13px;
+  border-radius: 12px;
+  padding: 0 1rem;
+  font-size: 0.92rem;
   font-weight: 500;
   color: var(--app-text);
-  background: var(--app-bg-soft);
-  cursor: pointer;
-  transition: background 160ms ease, border-color 160ms ease;
+  background: rgba(11, 15, 21, 0.94);
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
 }
 
 .app-button:hover {
-  background: var(--app-bg-elevated);
   border-color: var(--app-border-strong);
+  background: rgba(15, 20, 28, 0.98);
 }
 
 .app-button:disabled {
   cursor: not-allowed;
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 .app-button-primary,
 .market-button-primary {
-  background: var(--app-accent);
-  border-color: var(--app-accent);
-  color: #ffffff;
+  border-color: rgba(108, 167, 210, 0.32);
+  background: rgba(20, 41, 58, 0.96);
+  color: #eef6fc;
 }
 
 .app-button-primary:hover,
 .market-button-primary:hover {
-  background: var(--app-accent-strong);
-  border-color: var(--app-accent-strong);
+  background: rgba(26, 52, 74, 0.98);
 }
 
 .app-button-success,
 .market-button-positive {
-  background: var(--app-success);
-  border-color: var(--app-success);
-  color: #ffffff;
+  border-color: rgba(108, 194, 161, 0.32);
+  background: rgba(17, 43, 37, 0.96);
+  color: #ecfff8;
+}
+
+.app-button-success:hover,
+.market-button-positive:hover {
+  background: rgba(22, 56, 48, 0.98);
 }
 
 .app-button-danger,
 .market-button-danger {
-  background: var(--app-danger);
-  border-color: var(--app-danger);
-  color: #ffffff;
+  border-color: rgba(204, 120, 134, 0.34);
+  background: rgba(68, 27, 35, 0.96);
+  color: #ffe9ee;
 }
 
-/* 表格：清晰、紧凑 */
+.app-button-danger:hover,
+.market-button-danger:hover {
+  background: rgba(84, 34, 43, 0.98);
+}
+
 .app-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
 }
 
 .app-table th,
 .app-table td {
   border-bottom: 1px solid var(--app-border);
-  padding: 10px 12px;
+  padding: 0.85rem 1rem;
   text-align: left;
 }
 
 .app-table th {
-  font-weight: 600;
-  color: var(--app-text-muted);
-  background: #0c0c0e;
-  text-transform: none; /* 移除全大写 */
-  letter-spacing: normal;
+  font-size: 0.73rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--app-text-soft);
 }
 
 .app-table td {
+  font-size: 0.92rem;
   color: var(--app-text-muted);
-}
-
-.app-table tr:hover td {
-  background: rgba(255, 255, 255, 0.02);
-  color: var(--app-text);
-}
-
-/* 数据展示 */
-.app-data,
-.market-data {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
-.market-kicker {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--app-text-soft);
-  text-transform: uppercase;
 }

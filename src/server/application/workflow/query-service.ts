@@ -1,4 +1,4 @@
-import type { WorkflowRunStatus } from "~/generated/prisma";
+import type { WorkflowRunStatus } from "@prisma/client";
 import {
   WORKFLOW_ERROR_CODES,
   WorkflowDomainError,

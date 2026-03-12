@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import type { PrismaClient } from "~/generated/prisma";
+import type { PrismaClient } from "@prisma/client";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { ConfidenceAnalysisService } from "~/server/application/intelligence/confidence-analysis-service";
 import { InsightArchiveService } from "~/server/application/intelligence/insight-archive-service";

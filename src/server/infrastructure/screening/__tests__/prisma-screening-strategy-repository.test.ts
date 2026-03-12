@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { PrismaClient } from "~/generated/prisma/index";
+import type { PrismaClient } from "@prisma/client";
 import { PrismaScreeningStrategyRepository } from "../prisma-screening-strategy-repository";
 import { ScreeningStrategy } from "../../../domain/screening/aggregates/screening-strategy";
 import { FilterGroup } from "../../../domain/screening/entities/filter-group";

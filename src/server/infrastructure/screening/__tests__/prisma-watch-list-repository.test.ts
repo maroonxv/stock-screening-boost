@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { PrismaClient } from "~/generated/prisma/index";
+import type { PrismaClient } from "@prisma/client";
 import { PrismaWatchListRepository } from "../prisma-watch-list-repository";
 import { WatchList } from "../../../domain/screening/aggregates/watch-list";
 import { StockCode } from "../../../domain/screening/value-objects/stock-code";

@@ -4,15 +4,16 @@ import {
   WorkflowEventType,
   WorkflowNodeRunStatus,
   WorkflowRunStatus,
-} from "~/generated/prisma";
+} from "@prisma/client";
+import { DEFAULT_RESEARCH_RUNTIME_CONFIG } from "~/server/domain/workflow/research";
 import {
   COMPANY_RESEARCH_NODE_KEYS,
   COMPANY_RESEARCH_TEMPLATE_CODE,
-  COMPANY_RESEARCH_V3_NODE_KEYS,
   COMPANY_RESEARCH_V1_NODE_KEYS,
+  COMPANY_RESEARCH_V3_NODE_KEYS,
   QUICK_RESEARCH_NODE_KEYS,
-  QUICK_RESEARCH_V2_NODE_KEYS,
   QUICK_RESEARCH_TEMPLATE_CODE,
+  QUICK_RESEARCH_V2_NODE_KEYS,
   SCREENING_INSIGHT_PIPELINE_NODE_KEYS,
   SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
   SCREENING_TO_TIMING_NODE_KEYS,
@@ -26,7 +27,6 @@ import {
   WATCHLIST_TIMING_PIPELINE_NODE_KEYS,
   WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE,
 } from "~/server/domain/workflow/types";
-import { DEFAULT_RESEARCH_RUNTIME_CONFIG } from "~/server/domain/workflow/research";
 
 const toJson = (value: unknown): Prisma.InputJsonValue =>
   value as Prisma.InputJsonValue;

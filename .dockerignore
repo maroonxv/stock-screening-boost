@@ -18,5 +18,6 @@ python_services/.venv_wsl
 python_services/venv
 python_services/.pytest_cache
 python_services/__pycache__
+src/generated
 **/__pycache__
 **/.pytest_cache

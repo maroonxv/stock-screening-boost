@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { PrismaClient } from "~/generated/prisma/index";
+import { PrismaClient } from "@prisma/client";
 import { PrismaScreeningSessionRepository } from "../prisma-screening-session-repository";
 import { ScreeningSession } from "../../../domain/screening/aggregates/screening-session";
 import { ScreeningResult } from "../../../domain/screening/value-objects/screening-result";
@@ -16,7 +16,22 @@ import { IndicatorField } from "../../../domain/screening/enums/indicator-field"
 import { ComparisonOperator } from "../../../domain/screening/enums/comparison-operator";
 import { LogicalOperator } from "../../../domain/screening/enums/logical-operator";
 
-describe("PrismaScreeningSessionRepository", () => {
+async function canConnectToDatabase(): Promise<boolean> {
+  const prisma = new PrismaClient();
+
+  try {
+    await prisma.$queryRawUnsafe("SELECT 1");
+    return true;
+  } catch {
+    return false;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+const describeDatabase = (await canConnectToDatabase()) ? describe : describe.skip;
+
+describeDatabase("PrismaScreeningSessionRepository", () => {
   let prisma: PrismaClient;
   let repository: PrismaScreeningSessionRepository;
   let testUserId: string;

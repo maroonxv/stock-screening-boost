@@ -1,4 +1,4 @@
-import { WorkflowEventType, WorkflowNodeRunStatus } from "~/generated/prisma";
+import { WorkflowEventType, WorkflowNodeRunStatus } from "@prisma/client";
 import { CompanyResearchAgentService } from "~/server/application/intelligence/company-research-agent-service";
 import { CompanyResearchWorkflowService } from "~/server/application/intelligence/company-research-workflow-service";
 import { ConfidenceAnalysisService } from "~/server/application/intelligence/confidence-analysis-service";

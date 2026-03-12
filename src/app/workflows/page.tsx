@@ -1,5 +1,11 @@
+import { Suspense } from "react";
+
 import { WorkflowsClient } from "~/app/workflows/workflows-client";
 
 export default function WorkflowsPage() {
-  return <WorkflowsClient />;
+  return (
+    <Suspense fallback={null}>
+      <WorkflowsClient />
+    </Suspense>
+  );
 }

@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { WorkflowRunStatus } from "~/generated/prisma";
+import { WorkflowRunStatus } from "@prisma/client";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { WorkflowCommandService } from "~/server/application/workflow/command-service";
 import { WorkflowQueryService } from "~/server/application/workflow/query-service";

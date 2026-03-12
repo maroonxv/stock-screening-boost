@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from "~/generated/prisma";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { ResearchReminder } from "~/server/domain/intelligence/entities/research-reminder";
 import type { IReminderRepository } from "~/server/domain/intelligence/repositories/reminder-repository";
 

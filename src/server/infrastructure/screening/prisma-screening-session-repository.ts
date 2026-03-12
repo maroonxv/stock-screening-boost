@@ -2,7 +2,7 @@
  * PrismaScreeningSessionRepository 实现
  */
 
-import type { PrismaClient } from "~/generated/prisma";
+import type { PrismaClient } from "@prisma/client";
 import { ScreeningSession } from "~/server/domain/screening/aggregates/screening-session";
 import { FilterGroup } from "~/server/domain/screening/entities/filter-group";
 import { ScreeningSessionStatus } from "~/server/domain/screening/enums/screening-session-status";

@@ -13,7 +13,7 @@
  * Requirements: 5.1
  */
 
-import type { PrismaClient } from "~/generated/prisma";
+import type { PrismaClient } from "@prisma/client";
 import type {
   IWatchListRepository,
   WatchListQueryOptions,

@@ -3,7 +3,7 @@ import {
   WorkflowEventType,
   WorkflowNodeRunStatus,
   WorkflowRunStatus,
-} from "~/generated/prisma";
+} from "@prisma/client";
 import { WorkflowCommandService } from "~/server/application/workflow/command-service";
 import { WorkflowExecutionService } from "~/server/application/workflow/execution-service";
 import { WorkflowPauseError } from "~/server/domain/workflow/errors";

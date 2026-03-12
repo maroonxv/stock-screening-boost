@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from "~/generated/prisma";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { ScreeningInsight } from "~/server/domain/intelligence/aggregates/screening-insight";
 import type { ConfidenceAnalysis } from "~/server/domain/intelligence/confidence";
 import { EvidenceReference } from "~/server/domain/intelligence/entities/evidence-reference";

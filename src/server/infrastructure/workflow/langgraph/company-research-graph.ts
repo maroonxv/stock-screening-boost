@@ -1,4 +1,4 @@
-import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
+import { Annotation, StateGraph } from "@langchain/langgraph";
 import type { CompanyResearchAgentService } from "~/server/application/intelligence/company-research-agent-service";
 import type {
   CompanyResearchGraphState,
@@ -11,17 +11,20 @@ import {
   COMPANY_RESEARCH_NODE_KEYS,
   COMPANY_RESEARCH_TEMPLATE_CODE,
 } from "~/server/domain/workflow/types";
-import type {
-  WorkflowGraphBuildInitialStateParams,
-  WorkflowGraphExecutionHooks,
-  WorkflowGraphRunner,
-} from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import type { WorkflowGraphBuildInitialStateParams } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import { BaseWorkflowLangGraph } from "~/server/infrastructure/workflow/langgraph/workflow-graph-base";
+import {
+  addResumeStart,
+  addSequentialEdges,
+  addWorkflowNodes,
+} from "~/server/infrastructure/workflow/langgraph/workflow-graph-builder";
 
 const WorkflowState = Annotation.Root({
   runId: Annotation<string>,
   userId: Annotation<string>,
   query: Annotation<string>,
   progressPercent: Annotation<number>,
+  resumeFromNodeKey: Annotation<WorkflowNodeKey | undefined>,
   currentNodeKey: Annotation<CompanyResearchNodeKey | undefined>,
   researchInput: Annotation<CompanyResearchInput>,
   brief: Annotation<CompanyResearchGraphState["brief"]>,
@@ -87,18 +90,16 @@ function createFallbackBrief(state: CompanyResearchGraphState) {
   };
 }
 
-export class CompanyResearchLangGraph implements WorkflowGraphRunner {
+export class CompanyResearchLangGraph extends BaseWorkflowLangGraph<
+  CompanyResearchGraphState,
+  CompanyResearchNodeKey
+> {
   readonly templateCode = COMPANY_RESEARCH_TEMPLATE_CODE;
 
-  private readonly companyResearchService: CompanyResearchAgentService;
-
-  private readonly nodeExecutors: Record<CompanyResearchNodeKey, NodeExecutor>;
-
   constructor(companyResearchService: CompanyResearchAgentService) {
-    this.companyResearchService = companyResearchService;
-    this.nodeExecutors = {
+    const nodeExecutors: Record<CompanyResearchNodeKey, NodeExecutor> = {
       agent1_company_briefing: async (state) => {
-        const brief = await this.companyResearchService.buildResearchBrief(
+        const brief = await companyResearchService.buildResearchBrief(
           state.researchInput,
         );
 
@@ -107,28 +108,26 @@ export class CompanyResearchLangGraph implements WorkflowGraphRunner {
         };
       },
       agent2_concept_mapping: async (state) => {
-        const conceptInsights =
-          await this.companyResearchService.mapConceptInsights(
-            state.brief ?? createFallbackBrief(state),
-          );
+        const conceptInsights = await companyResearchService.mapConceptInsights(
+          state.brief ?? createFallbackBrief(state),
+        );
 
         return {
           conceptInsights,
         };
       },
       agent3_question_design: async (state) => {
-        const deepQuestions =
-          await this.companyResearchService.designDeepQuestions({
-            brief: state.brief ?? createFallbackBrief(state),
-            conceptInsights: state.conceptInsights ?? [],
-          });
+        const deepQuestions = await companyResearchService.designDeepQuestions({
+          brief: state.brief ?? createFallbackBrief(state),
+          conceptInsights: state.conceptInsights ?? [],
+        });
 
         return {
           deepQuestions,
         };
       },
       agent4_evidence_collection: async (state) => {
-        const collected = await this.companyResearchService.collectEvidence({
+        const collected = await companyResearchService.collectEvidence({
           brief: state.brief ?? createFallbackBrief(state),
           questions: state.deepQuestions ?? [],
         });
@@ -140,24 +139,24 @@ export class CompanyResearchLangGraph implements WorkflowGraphRunner {
       },
       agent5_investment_synthesis: async (state) => {
         const brief = state.brief ?? createFallbackBrief(state);
-        const findings = await this.companyResearchService.answerQuestions({
+        const findings = await companyResearchService.answerQuestions({
           brief,
           questions: state.deepQuestions ?? [],
           evidence: state.evidence ?? [],
         });
-        const verdict = await this.companyResearchService.buildVerdict({
+        const verdict = await companyResearchService.buildVerdict({
           brief,
           conceptInsights: state.conceptInsights ?? [],
           findings,
         });
         const confidenceAnalysis =
-          await this.companyResearchService.analyzeConfidence({
+          await companyResearchService.analyzeConfidence({
             brief,
             findings,
             verdict,
             evidence: state.evidence ?? [],
           });
-        const finalReport = this.companyResearchService.buildFinalReport({
+        const finalReport = companyResearchService.buildFinalReport({
           brief,
           conceptInsights: state.conceptInsights ?? [],
           deepQuestions: state.deepQuestions ?? [],
@@ -179,10 +178,21 @@ export class CompanyResearchLangGraph implements WorkflowGraphRunner {
         };
       },
     };
-  }
 
-  getNodeOrder() {
-    return [...COMPANY_RESEARCH_NODE_KEYS];
+    const graphBuilder = new StateGraph(WorkflowState) as StateGraph<
+      unknown,
+      CompanyResearchGraphState,
+      Partial<CompanyResearchGraphState>,
+      string
+    >;
+    addWorkflowNodes(graphBuilder, COMPANY_RESEARCH_NODE_KEYS, nodeExecutors);
+    addResumeStart(graphBuilder, COMPANY_RESEARCH_NODE_KEYS);
+    addSequentialEdges(graphBuilder, COMPANY_RESEARCH_NODE_KEYS);
+
+    super({
+      graph: graphBuilder.compile(),
+      nodeOrder: COMPANY_RESEARCH_NODE_KEYS,
+    });
   }
 
   buildInitialState(
@@ -193,6 +203,7 @@ export class CompanyResearchLangGraph implements WorkflowGraphRunner {
       userId: params.userId,
       query: params.query,
       progressPercent: params.progressPercent,
+      resumeFromNodeKey: undefined,
       currentNodeKey: undefined,
       researchInput: toResearchInput(params.input),
       errors: [],
@@ -278,69 +289,5 @@ export class CompanyResearchLangGraph implements WorkflowGraphRunner {
     return (companyState.finalReport ?? {
       generatedAt: new Date().toISOString(),
     }) as Record<string, unknown>;
-  }
-
-  async execute(params: {
-    initialState: WorkflowGraphState;
-    startNodeIndex?: number;
-    hooks?: WorkflowGraphExecutionHooks;
-  }) {
-    let state = {
-      ...(params.initialState as CompanyResearchGraphState),
-      errors: (params.initialState.errors ?? []) as string[],
-    };
-
-    const startIndex = params.startNodeIndex ?? 0;
-
-    for (
-      let index = startIndex;
-      index < COMPANY_RESEARCH_NODE_KEYS.length;
-      index += 1
-    ) {
-      const nodeKey = COMPANY_RESEARCH_NODE_KEYS[index];
-
-      if (!nodeKey) {
-        continue;
-      }
-
-      const nodeGraph = this.buildSingleNodeGraph(nodeKey);
-
-      await params.hooks?.onNodeStarted?.(nodeKey);
-      await params.hooks?.onNodeProgress?.(nodeKey, {
-        message: "Node is running",
-      });
-
-      state = {
-        ...state,
-        currentNodeKey: nodeKey,
-      };
-
-      const result = (await nodeGraph.invoke(
-        state,
-      )) as typeof WorkflowState.State;
-      const progressPercent = Math.round(
-        ((index + 1) / COMPANY_RESEARCH_NODE_KEYS.length) * 100,
-      );
-
-      state = {
-        ...(result as CompanyResearchGraphState),
-        currentNodeKey: nodeKey,
-        progressPercent,
-      };
-
-      await params.hooks?.onNodeSucceeded?.(nodeKey, state);
-    }
-
-    return state;
-  }
-
-  private buildSingleNodeGraph(nodeKey: CompanyResearchNodeKey) {
-    return new StateGraph(WorkflowState)
-      .addNode(nodeKey, (state) =>
-        this.nodeExecutors[nodeKey](state as CompanyResearchGraphState),
-      )
-      .addEdge(START, nodeKey)
-      .addEdge(nodeKey, END)
-      .compile();
   }
 }

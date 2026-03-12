@@ -1,4 +1,4 @@
-import { WorkflowRunStatus } from "~/generated/prisma";
+import { WorkflowEventType, WorkflowRunStatus } from "~/generated/prisma";
 import {
   WORKFLOW_ERROR_CODES,
   WorkflowDomainError,
@@ -13,8 +13,11 @@ import {
   TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE,
   WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE,
   WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE,
+  type WorkflowEventStreamType,
+  type WorkflowGraphState,
 } from "~/server/domain/workflow/types";
 import type { PrismaWorkflowRunRepository } from "~/server/infrastructure/workflow/prisma/workflow-run-repository";
+import { RedisWorkflowRuntimeStore } from "~/server/infrastructure/workflow/redis/redis-workflow-runtime-store";
 
 export type StartQuickResearchCommand = {
   userId: string;
@@ -95,6 +98,11 @@ export type StartTimingReviewLoopCommand = {
   idempotencyKey?: string;
 };
 
+export type ApproveScreeningInsightsCommand = {
+  userId: string;
+  runId: string;
+};
+
 type StartWorkflowCommand = {
   userId: string;
   query: string;
@@ -121,8 +129,40 @@ function buildCompanyResearchQuery(command: StartCompanyResearchCommand) {
     : command.companyName;
 }
 
+function mapEventType(
+  eventType: WorkflowEventType,
+): WorkflowEventStreamType | null {
+  switch (eventType) {
+    case WorkflowEventType.RUN_STARTED:
+      return "RUN_STARTED";
+    case WorkflowEventType.RUN_PAUSED:
+      return "RUN_PAUSED";
+    case WorkflowEventType.RUN_RESUMED:
+      return "RUN_RESUMED";
+    case WorkflowEventType.RUN_SUCCEEDED:
+      return "RUN_SUCCEEDED";
+    case WorkflowEventType.RUN_FAILED:
+      return "RUN_FAILED";
+    case WorkflowEventType.RUN_CANCELLED:
+      return "RUN_CANCELLED";
+    case WorkflowEventType.NODE_STARTED:
+      return "NODE_STARTED";
+    case WorkflowEventType.NODE_PROGRESS:
+      return "NODE_PROGRESS";
+    case WorkflowEventType.NODE_SUCCEEDED:
+      return "NODE_SUCCEEDED";
+    case WorkflowEventType.NODE_FAILED:
+      return "NODE_FAILED";
+    default:
+      return null;
+  }
+}
+
 export class WorkflowCommandService {
-  constructor(private readonly repository: PrismaWorkflowRunRepository) {}
+  constructor(
+    private readonly repository: PrismaWorkflowRunRepository,
+    private readonly runtimeStore = new RedisWorkflowRuntimeStore(),
+  ) {}
 
   async startQuickResearch(command: StartQuickResearchCommand) {
     return this.startWorkflow({
@@ -220,8 +260,8 @@ export class WorkflowCommandService {
       userId: command.userId,
       query:
         command.watchListName && command.portfolioSnapshotName
-          ? `自选股建议 - ${command.watchListName} / ${command.portfolioSnapshotName}`
-          : `自选股建议 - ${command.watchListId}`,
+          ? `自选股组合建议 - ${command.watchListName} / ${command.portfolioSnapshotName}`
+          : `自选股组合建议 - ${command.watchListId}`,
       templateCode: WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE,
       templateVersion: command.templateVersion,
       input: {
@@ -261,7 +301,7 @@ export class WorkflowCommandService {
   async startTimingReviewLoop(command: StartTimingReviewLoopCommand) {
     return this.startWorkflow({
       userId: command.userId,
-      query: `择时复查 - ${command.date ?? "today"}`,
+      query: `择时复盘 - ${command.date ?? "today"}`,
       templateCode: TIMING_REVIEW_LOOP_TEMPLATE_CODE,
       templateVersion: command.templateVersion,
       input: {
@@ -272,6 +312,105 @@ export class WorkflowCommandService {
         command.idempotencyKey ??
         `timing-review:${command.date ?? new Date().toISOString().slice(0, 10)}`,
     });
+  }
+
+  async cancelRun(userId: string, runId: string) {
+    const run = await this.repository.requestCancellation(runId, userId);
+
+    if (!run) {
+      throw new WorkflowDomainError(
+        WORKFLOW_ERROR_CODES.WORKFLOW_RUN_NOT_FOUND,
+        `工作流运行不存在: ${runId}`,
+      );
+    }
+
+    if (
+      run.status !== WorkflowRunStatus.PENDING &&
+      run.status !== WorkflowRunStatus.RUNNING &&
+      run.status !== WorkflowRunStatus.PAUSED &&
+      run.status !== WorkflowRunStatus.CANCELLED
+    ) {
+      throw new WorkflowDomainError(
+        WORKFLOW_ERROR_CODES.WORKFLOW_CANCEL_NOT_ALLOWED,
+        `当前状态不可取消: ${run.status}`,
+      );
+    }
+
+    return {
+      success: true,
+    };
+  }
+
+  async approveScreeningInsights(command: ApproveScreeningInsightsCommand) {
+    const run = await this.repository.getRunById(command.runId);
+
+    if (!run) {
+      throw new WorkflowDomainError(
+        WORKFLOW_ERROR_CODES.WORKFLOW_RUN_NOT_FOUND,
+        `工作流运行不存在: ${command.runId}`,
+      );
+    }
+
+    if (run.userId !== command.userId) {
+      throw new WorkflowDomainError(
+        WORKFLOW_ERROR_CODES.WORKFLOW_RUN_FORBIDDEN,
+        `无权审批该工作流运行: ${command.runId}`,
+      );
+    }
+
+    if (run.template.code !== SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE) {
+      throw new WorkflowDomainError(
+        WORKFLOW_ERROR_CODES.WORKFLOW_INVALID_STATUS_TRANSITION,
+        `当前工作流不支持审批恢复: ${run.template.code}`,
+      );
+    }
+
+    if (run.status !== WorkflowRunStatus.PAUSED) {
+      throw new WorkflowDomainError(
+        WORKFLOW_ERROR_CODES.WORKFLOW_INVALID_STATUS_TRANSITION,
+        `当前状态不可恢复: ${run.status}`,
+      );
+    }
+
+    const checkpoint = await this.runtimeStore.loadCheckpoint(run.id);
+
+    if (!checkpoint) {
+      throw new WorkflowDomainError(
+        WORKFLOW_ERROR_CODES.WORKFLOW_INVALID_STATUS_TRANSITION,
+        `缺少可恢复的 checkpoint: ${run.id}`,
+      );
+    }
+
+    const resumedState: WorkflowGraphState = {
+      ...checkpoint,
+      reviewApproved: true,
+    };
+    const currentNodeKey =
+      typeof resumedState.currentNodeKey === "string"
+        ? resumedState.currentNodeKey
+        : (run.currentNodeKey ?? undefined);
+    const progressPercent =
+      typeof resumedState.progressPercent === "number"
+        ? resumedState.progressPercent
+        : run.progressPercent;
+
+    resumedState.currentNodeKey = currentNodeKey;
+    resumedState.progressPercent = progressPercent;
+
+    await this.runtimeStore.saveCheckpoint(run.id, resumedState);
+    await this.repository.markRunResumed({
+      runId: run.id,
+      currentNodeKey,
+      progressPercent,
+      eventPayload: {
+        reviewApproved: true,
+      },
+    });
+    await this.publishLatestEvent(run.id, progressPercent, currentNodeKey);
+
+    return {
+      success: true,
+    };
   }
 
   private async startWorkflow(command: StartWorkflowCommand) {
@@ -379,29 +518,35 @@ export class WorkflowCommandService {
     };
   }
 
-  async cancelRun(userId: string, runId: string) {
-    const run = await this.repository.requestCancellation(runId, userId);
+  private async publishLatestEvent(
+    runId: string,
+    progressPercent: number,
+    nodeKey?: string,
+  ) {
+    const latestEvent = await this.repository.getLatestEvent(runId);
 
-    if (!run) {
-      throw new WorkflowDomainError(
-        WORKFLOW_ERROR_CODES.WORKFLOW_RUN_NOT_FOUND,
-        `工作流运行不存在: ${runId}`,
-      );
+    if (!latestEvent) {
+      return;
     }
 
-    if (
-      run.status !== WorkflowRunStatus.PENDING &&
-      run.status !== WorkflowRunStatus.RUNNING &&
-      run.status !== WorkflowRunStatus.CANCELLED
-    ) {
-      throw new WorkflowDomainError(
-        WORKFLOW_ERROR_CODES.WORKFLOW_CANCEL_NOT_ALLOWED,
-        `当前状态不可取消: ${run.status}`,
-      );
+    const eventType = mapEventType(latestEvent.eventType);
+
+    if (!eventType) {
+      return;
     }
 
-    return {
-      success: true,
-    };
+    const payload = (latestEvent.payload ?? {}) as Record<string, unknown>;
+    const payloadNodeKey =
+      typeof payload.nodeKey === "string" ? payload.nodeKey : nodeKey;
+
+    await this.runtimeStore.publishEvent({
+      runId,
+      sequence: latestEvent.sequence,
+      type: eventType,
+      nodeKey: payloadNodeKey,
+      progressPercent,
+      timestamp: latestEvent.occurredAt.toISOString(),
+      payload,
+    });
   }
 }

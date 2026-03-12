@@ -28,3 +28,21 @@ export function isWorkflowDomainError(
 ): error is WorkflowDomainError {
   return error instanceof WorkflowDomainError;
 }
+
+export class WorkflowPauseError extends Error {
+  readonly reason: string;
+  readonly state?: Record<string, unknown>;
+
+  constructor(message: string, reason: string, state?: Record<string, unknown>) {
+    super(message);
+    this.name = "WorkflowPauseError";
+    this.reason = reason;
+    this.state = state;
+  }
+}
+
+export function isWorkflowPauseError(
+  error: unknown,
+): error is WorkflowPauseError {
+  return error instanceof WorkflowPauseError;
+}

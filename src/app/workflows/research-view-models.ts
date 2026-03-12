@@ -265,6 +265,29 @@ function buildGenericDigest(params: {
     };
   }
 
+  if (params.status === "PAUSED") {
+    return {
+      templateLabel,
+      verdictLabel: "Awaiting approval",
+      verdictTone: "warning",
+      headline: firstSentence(params.query),
+      summary:
+        params.currentNodeKey && params.currentNodeKey.length > 0
+          ? `Run paused at ${params.currentNodeKey}. Resume after manual approval.`
+          : "Run paused and waiting for manual approval.",
+      bullPoints: [],
+      bearPoints: [],
+      evidence: [],
+      gaps: [
+        "Approve the paused run to continue the remaining workflow nodes.",
+      ],
+      nextActions: ["Approve & Resume"],
+      metrics: [
+        { label: "Current Progress", value: `${params.progressPercent ?? 0}%` },
+      ],
+    };
+  }
+
   if (params.status === "FAILED") {
     return {
       templateLabel,

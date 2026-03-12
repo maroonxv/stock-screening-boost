@@ -401,6 +401,8 @@ export function statusTone(status: string | undefined): Tone {
       return "success";
     case "FAILED":
       return "danger";
+    case "PAUSED":
+      return "warning";
     case "RUNNING":
       return "info";
     case "PENDING":

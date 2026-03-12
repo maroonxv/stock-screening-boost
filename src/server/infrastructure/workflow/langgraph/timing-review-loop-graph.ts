@@ -1,4 +1,4 @@
-import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
+import { Annotation, StateGraph } from "@langchain/langgraph";
 import type { TimingReviewPolicy } from "~/server/domain/timing/services/timing-review-policy";
 import type {
   TimingReviewLoopGraphState,
@@ -14,17 +14,20 @@ import {
 import type { PrismaResearchReminderRepository } from "~/server/infrastructure/intelligence/prisma-research-reminder-repository";
 import type { PrismaTimingReviewRecordRepository } from "~/server/infrastructure/timing/prisma-timing-review-record-repository";
 import type { PythonTimingDataClient } from "~/server/infrastructure/timing/python-timing-data-client";
-import type {
-  WorkflowGraphBuildInitialStateParams,
-  WorkflowGraphExecutionHooks,
-  WorkflowGraphRunner,
-} from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import type { WorkflowGraphBuildInitialStateParams } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import { BaseWorkflowLangGraph } from "~/server/infrastructure/workflow/langgraph/workflow-graph-base";
+import {
+  addResumeStart,
+  addSequentialEdges,
+  addWorkflowNodes,
+} from "~/server/infrastructure/workflow/langgraph/workflow-graph-builder";
 
 const WorkflowState = Annotation.Root({
   runId: Annotation<string>,
   userId: Annotation<string>,
   query: Annotation<string>,
   progressPercent: Annotation<number>,
+  resumeFromNodeKey: Annotation<WorkflowNodeKey | undefined>,
   currentNodeKey: Annotation<TimingReviewLoopNodeKey | undefined>,
   timingInput: Annotation<TimingReviewLoopInput>,
   dueReviews: Annotation<TimingReviewLoopGraphState["dueReviews"]>,
@@ -43,27 +46,26 @@ type NodeExecutor = (
   state: TimingReviewLoopGraphState,
 ) => Promise<Partial<TimingReviewLoopGraphState>>;
 
-export class TimingReviewLoopLangGraph implements WorkflowGraphRunner {
+export class TimingReviewLoopLangGraph extends BaseWorkflowLangGraph<
+  TimingReviewLoopGraphState,
+  TimingReviewLoopNodeKey
+> {
   readonly templateCode = TIMING_REVIEW_LOOP_TEMPLATE_CODE;
 
-  private readonly nodeExecutors: Record<TimingReviewLoopNodeKey, NodeExecutor>;
-
-  constructor(
-    private readonly deps: {
-      timingDataClient: PythonTimingDataClient;
-      reviewRecordRepository: PrismaTimingReviewRecordRepository;
-      reminderRepository: PrismaResearchReminderRepository;
-      reviewPolicy: TimingReviewPolicy;
-    },
-  ) {
-    this.nodeExecutors = {
+  constructor(deps: {
+    timingDataClient: PythonTimingDataClient;
+    reviewRecordRepository: PrismaTimingReviewRecordRepository;
+    reminderRepository: PrismaResearchReminderRepository;
+    reviewPolicy: TimingReviewPolicy;
+  }) {
+    const nodeExecutors: Record<TimingReviewLoopNodeKey, NodeExecutor> = {
       load_due_reviews: async (state) => {
         const targetDate = state.timingInput.date
           ? new Date(`${state.timingInput.date}T23:59:59.999Z`)
           : new Date();
 
         return {
-          dueReviews: await this.deps.reviewRecordRepository.listDuePending({
+          dueReviews: await deps.reviewRecordRepository.listDuePending({
             userId: state.userId,
             targetDate,
             limit: state.timingInput.limit ?? 100,
@@ -77,14 +79,15 @@ export class TimingReviewLoopLangGraph implements WorkflowGraphRunner {
         const targetDateText = targetDate.toISOString().slice(0, 10);
 
         const evaluatedReviews = [];
+
         for (const review of state.dueReviews) {
-          const bars = await this.deps.timingDataClient.getBars({
+          const bars = await deps.timingDataClient.getBars({
             stockCode: review.stockCode,
             start: review.sourceAsOfDate,
             end: targetDateText,
           });
 
-          const completion = this.deps.reviewPolicy.evaluate({
+          const completion = deps.reviewPolicy.evaluate({
             reviewRecord: review,
             bars: bars.bars.map((bar) => ({
               close: bar.close,
@@ -108,7 +111,7 @@ export class TimingReviewLoopLangGraph implements WorkflowGraphRunner {
         evaluatedReviews: state.evaluatedReviews,
       }),
       persist_reviews: async (state) => ({
-        persistedReviews: await this.deps.reviewRecordRepository.completeMany({
+        persistedReviews: await deps.reviewRecordRepository.completeMany({
           items: state.evaluatedReviews,
         }),
       }),
@@ -117,9 +120,7 @@ export class TimingReviewLoopLangGraph implements WorkflowGraphRunner {
 
         for (const review of state.persistedReviews) {
           const reminders =
-            await this.deps.reminderRepository.findByTimingReviewRecordId(
-              review.id,
-            );
+            await deps.reminderRepository.findByTimingReviewRecordId(review.id);
 
           for (const reminder of reminders) {
             if (reminder.status !== "PENDING") {
@@ -127,7 +128,7 @@ export class TimingReviewLoopLangGraph implements WorkflowGraphRunner {
             }
 
             reminder.markTriggered(review.completedAt ?? new Date());
-            await this.deps.reminderRepository.save(reminder);
+            await deps.reminderRepository.save(reminder);
             consumedReminderIds.push(reminder.id);
           }
         }
@@ -135,10 +136,21 @@ export class TimingReviewLoopLangGraph implements WorkflowGraphRunner {
         return { consumedReminderIds };
       },
     };
-  }
 
-  getNodeOrder() {
-    return [...TIMING_REVIEW_LOOP_NODE_KEYS];
+    const graphBuilder = new StateGraph(WorkflowState) as StateGraph<
+      unknown,
+      TimingReviewLoopGraphState,
+      Partial<TimingReviewLoopGraphState>,
+      string
+    >;
+    addWorkflowNodes(graphBuilder, TIMING_REVIEW_LOOP_NODE_KEYS, nodeExecutors);
+    addResumeStart(graphBuilder, TIMING_REVIEW_LOOP_NODE_KEYS);
+    addSequentialEdges(graphBuilder, TIMING_REVIEW_LOOP_NODE_KEYS);
+
+    super({
+      graph: graphBuilder.compile(),
+      nodeOrder: TIMING_REVIEW_LOOP_NODE_KEYS,
+    });
   }
 
   buildInitialState(
@@ -149,6 +161,7 @@ export class TimingReviewLoopLangGraph implements WorkflowGraphRunner {
       userId: params.userId,
       query: params.query,
       progressPercent: params.progressPercent,
+      resumeFromNodeKey: undefined,
       currentNodeKey: undefined,
       lastCompletedNodeKey: undefined,
       timingInput: params.input as TimingReviewLoopInput,
@@ -215,69 +228,5 @@ export class TimingReviewLoopLangGraph implements WorkflowGraphRunner {
       reviewIds: reviewState.persistedReviews.map((review) => review.id),
       consumedReminderIds: reviewState.consumedReminderIds,
     };
-  }
-
-  async execute(params: {
-    initialState: WorkflowGraphState;
-    startNodeIndex?: number;
-    hooks?: WorkflowGraphExecutionHooks;
-  }) {
-    let state = {
-      ...(params.initialState as TimingReviewLoopGraphState),
-      errors: (params.initialState.errors ?? []) as string[],
-    };
-
-    const startIndex = params.startNodeIndex ?? 0;
-
-    for (
-      let index = startIndex;
-      index < TIMING_REVIEW_LOOP_NODE_KEYS.length;
-      index += 1
-    ) {
-      const nodeKey = TIMING_REVIEW_LOOP_NODE_KEYS[index];
-
-      if (!nodeKey) {
-        continue;
-      }
-
-      const nodeGraph = this.buildSingleNodeGraph(nodeKey);
-
-      await params.hooks?.onNodeStarted?.(nodeKey);
-      await params.hooks?.onNodeProgress?.(nodeKey, {
-        message: "节点执行中",
-      });
-
-      state = {
-        ...state,
-        currentNodeKey: nodeKey,
-      };
-
-      const result = (await nodeGraph.invoke(
-        state,
-      )) as typeof WorkflowState.State;
-      const progressPercent = Math.round(
-        ((index + 1) / TIMING_REVIEW_LOOP_NODE_KEYS.length) * 100,
-      );
-
-      state = {
-        ...(result as TimingReviewLoopGraphState),
-        currentNodeKey: nodeKey,
-        progressPercent,
-      };
-
-      await params.hooks?.onNodeSucceeded?.(nodeKey, state);
-    }
-
-    return state;
-  }
-
-  private buildSingleNodeGraph(nodeKey: TimingReviewLoopNodeKey) {
-    return new StateGraph(WorkflowState)
-      .addNode(nodeKey, (state) =>
-        this.nodeExecutors[nodeKey](state as TimingReviewLoopGraphState),
-      )
-      .addEdge(START, nodeKey)
-      .addEdge(nodeKey, END)
-      .compile();
   }
 }

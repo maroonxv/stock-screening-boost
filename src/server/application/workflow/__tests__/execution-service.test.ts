@@ -1,7 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
-import { WorkflowNodeRunStatus } from "~/generated/prisma";
+import {
+  WorkflowEventType,
+  WorkflowNodeRunStatus,
+  WorkflowRunStatus,
+} from "~/generated/prisma";
+import { WorkflowCommandService } from "~/server/application/workflow/command-service";
 import { WorkflowExecutionService } from "~/server/application/workflow/execution-service";
-import type { WorkflowGraphState } from "~/server/domain/workflow/types";
+import { WorkflowPauseError } from "~/server/domain/workflow/errors";
+import {
+  SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
+  type WorkflowGraphState,
+} from "~/server/domain/workflow/types";
 import type { WorkflowGraphRunner } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
 import type { PrismaWorkflowRunRepository } from "~/server/infrastructure/workflow/prisma/workflow-run-repository";
 import type { RedisWorkflowRuntimeStore } from "~/server/infrastructure/workflow/redis/redis-workflow-runtime-store";
@@ -13,6 +22,11 @@ type RecoverableState = WorkflowGraphState & {
     emptyResultArchived: boolean;
   };
   scheduledReminderIds: string[];
+};
+
+type ReviewPauseState = WorkflowGraphState & {
+  reviewApproved: boolean;
+  archived: boolean;
 };
 
 class RecoverableGraph implements WorkflowGraphRunner {
@@ -111,8 +125,487 @@ class RecoverableGraph implements WorkflowGraphRunner {
   }
 }
 
+class ReviewPauseGraph implements WorkflowGraphRunner {
+  readonly templateCode = SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE;
+
+  getNodeOrder() {
+    return ["validate_insights", "review_gate", "archive_insights"];
+  }
+
+  buildInitialState(): ReviewPauseState {
+    return {
+      runId: "run_1",
+      userId: "user_1",
+      query: "screening insight",
+      progressPercent: 0,
+      currentNodeKey: undefined,
+      lastCompletedNodeKey: undefined,
+      errors: [],
+      reviewApproved: false,
+      archived: false,
+    };
+  }
+
+  getNodeOutput(nodeKey: string, state: WorkflowGraphState) {
+    const reviewState = state as ReviewPauseState;
+
+    if (nodeKey === "review_gate") {
+      return {
+        reviewApproved: reviewState.reviewApproved,
+      };
+    }
+
+    if (nodeKey === "archive_insights") {
+      return {
+        archived: reviewState.archived,
+      };
+    }
+
+    return {};
+  }
+
+  getNodeEventPayload(nodeKey: string, state: WorkflowGraphState) {
+    if (nodeKey !== "review_gate") {
+      return {};
+    }
+
+    const reviewState = state as ReviewPauseState;
+
+    return {
+      needsReviewCount: 1,
+      reviewApproved: reviewState.reviewApproved,
+    };
+  }
+
+  mergeNodeOutput(
+    state: WorkflowGraphState,
+    nodeKey: string,
+    output: Record<string, unknown>,
+  ) {
+    return {
+      ...state,
+      ...output,
+      currentNodeKey: nodeKey,
+      lastCompletedNodeKey: nodeKey,
+    };
+  }
+
+  getRunResult(state: WorkflowGraphState) {
+    return {
+      archived: (state as ReviewPauseState).archived,
+    };
+  }
+
+  async execute(params: {
+    initialState: WorkflowGraphState;
+    startNodeIndex?: number;
+    hooks?: {
+      onNodeStarted?: (nodeKey: string) => Promise<void> | void;
+      onNodeProgress?: (
+        nodeKey: string,
+        payload: Record<string, unknown>,
+      ) => Promise<void> | void;
+      onNodeSucceeded?: (
+        nodeKey: string,
+        updatedState: WorkflowGraphState,
+      ) => Promise<void> | void;
+    };
+  }) {
+    let state = params.initialState as ReviewPauseState;
+
+    for (const nodeKey of this.getNodeOrder().slice(
+      params.startNodeIndex ?? 0,
+    )) {
+      await params.hooks?.onNodeStarted?.(nodeKey);
+      await params.hooks?.onNodeProgress?.(nodeKey, {
+        message: `processing_${nodeKey}`,
+      });
+
+      if (nodeKey === "validate_insights") {
+        state = {
+          ...state,
+          currentNodeKey: nodeKey,
+          lastCompletedNodeKey: nodeKey,
+          progressPercent: 33,
+        };
+        await params.hooks?.onNodeSucceeded?.(nodeKey, state);
+        continue;
+      }
+
+      if (nodeKey === "review_gate") {
+        state = {
+          ...state,
+          currentNodeKey: nodeKey,
+          progressPercent: 67,
+        };
+
+        if (!state.reviewApproved) {
+          throw new WorkflowPauseError(
+            "insights_need_review",
+            "review_required",
+            state,
+          );
+        }
+
+        state = {
+          ...state,
+          reviewApproved: true,
+          lastCompletedNodeKey: nodeKey,
+        };
+        await params.hooks?.onNodeSucceeded?.(nodeKey, state);
+        continue;
+      }
+
+      state = {
+        ...state,
+        archived: true,
+        currentNodeKey: nodeKey,
+        lastCompletedNodeKey: nodeKey,
+        progressPercent: 100,
+      };
+      await params.hooks?.onNodeSucceeded?.(nodeKey, state);
+    }
+
+    return state;
+  }
+}
+
+type MutableRunState = {
+  id: string;
+  userId: string;
+  query: string;
+  input: Record<string, unknown>;
+  progressPercent: number;
+  currentNodeKey: string | null;
+  status: WorkflowRunStatus;
+  result: Record<string, unknown> | null;
+  template: {
+    code: string;
+  };
+  nodeRuns: Array<{
+    id: string;
+    nodeKey: string;
+    agentName: string;
+    attempt: number;
+    status: WorkflowNodeRunStatus;
+    output: unknown;
+    input?: Record<string, unknown>;
+  }>;
+};
+
+function createRepositoryHarness(params: {
+  graph: WorkflowGraphRunner;
+  status: WorkflowRunStatus;
+  progressPercent?: number;
+  currentNodeKey?: string | null;
+  query?: string;
+  nodeRuns?: Array<{
+    id?: string;
+    nodeKey: string;
+    status: WorkflowNodeRunStatus;
+    output?: unknown;
+  }>;
+}) {
+  const run: MutableRunState = {
+    id: "run_1",
+    userId: "user_1",
+    query: params.query ?? "workflow",
+    input: {},
+    progressPercent: params.progressPercent ?? 0,
+    currentNodeKey: params.currentNodeKey ?? null,
+    status: params.status,
+    result: null,
+    template: {
+      code: params.graph.templateCode,
+    },
+    nodeRuns:
+      params.nodeRuns?.map((nodeRun) => ({
+        id: nodeRun.id ?? `node_${nodeRun.nodeKey}`,
+        nodeKey: nodeRun.nodeKey,
+        agentName: nodeRun.nodeKey,
+        attempt: 1,
+        status: nodeRun.status,
+        output: nodeRun.output ?? null,
+      })) ??
+      params.graph.getNodeOrder().map((nodeKey) => ({
+        id: `node_${nodeKey}`,
+        nodeKey,
+        agentName: nodeKey,
+        attempt: 1,
+        status: WorkflowNodeRunStatus.PENDING,
+        output: null,
+      })),
+  };
+
+  let sequence = 0;
+  let latestEvent: {
+    sequence: number;
+    eventType: WorkflowEventType;
+    payload: Record<string, unknown>;
+    occurredAt: Date;
+  } | null = null;
+
+  const recordEvent = (
+    eventType: WorkflowEventType,
+    payload: Record<string, unknown>,
+  ) => {
+    sequence += 1;
+    latestEvent = {
+      sequence,
+      eventType,
+      payload,
+      occurredAt: new Date(sequence * 1000),
+    };
+  };
+
+  const findNodeRun = (nodeKey: string) =>
+    run.nodeRuns.find((nodeRun) => nodeRun.nodeKey === nodeKey);
+
+  const repository = {
+    listRunningRuns: vi.fn(async () =>
+      run.status === WorkflowRunStatus.RUNNING
+        ? [
+            {
+              id: run.id,
+              progressPercent: run.progressPercent,
+              currentNodeKey: run.currentNodeKey,
+              template: run.template,
+            },
+          ]
+        : [],
+    ),
+    claimNextPendingRun: vi.fn(async (workerId: string) => {
+      if (run.status !== WorkflowRunStatus.PENDING) {
+        return null;
+      }
+
+      run.status = WorkflowRunStatus.RUNNING;
+      recordEvent(WorkflowEventType.RUN_STARTED, { workerId });
+
+      return {
+        id: run.id,
+        progressPercent: run.progressPercent,
+        currentNodeKey: run.currentNodeKey,
+        template: run.template,
+      };
+    }),
+    getRunById: vi.fn(async () => ({
+      ...run,
+      template: run.template,
+      nodeRuns: run.nodeRuns.map((nodeRun) => ({ ...nodeRun })),
+    })),
+    isCancellationRequested: vi.fn(async () => false),
+    markNodeStarted: vi.fn(
+      async (params: {
+        nodeKey: string;
+        agentName: string;
+        attempt: number;
+        input: Record<string, unknown>;
+      }) => {
+        let nodeRun = findNodeRun(params.nodeKey);
+
+        if (!nodeRun) {
+          nodeRun = {
+            id: `node_${params.nodeKey}`,
+            nodeKey: params.nodeKey,
+            agentName: params.agentName,
+            attempt: params.attempt,
+            status: WorkflowNodeRunStatus.PENDING,
+            output: null,
+          };
+          run.nodeRuns.push(nodeRun);
+        }
+
+        nodeRun.agentName = params.agentName;
+        nodeRun.attempt = params.attempt;
+        nodeRun.status = WorkflowNodeRunStatus.RUNNING;
+        nodeRun.input = params.input;
+        recordEvent(WorkflowEventType.NODE_STARTED, {
+          nodeKey: params.nodeKey,
+        });
+
+        return {
+          id: nodeRun.id,
+        };
+      },
+    ),
+    updateRunProgress: vi.fn(
+      async (params: { currentNodeKey?: string; progressPercent: number }) => {
+        run.currentNodeKey = params.currentNodeKey ?? null;
+        run.progressPercent = params.progressPercent;
+      },
+    ),
+    addNodeProgressEvent: vi.fn(
+      async (params: { nodeKey: string; payload: Record<string, unknown> }) => {
+        recordEvent(WorkflowEventType.NODE_PROGRESS, {
+          nodeKey: params.nodeKey,
+          ...params.payload,
+        });
+      },
+    ),
+    markNodeSucceeded: vi.fn(
+      async (params: {
+        nodeKey: string;
+        output: Record<string, unknown>;
+        durationMs: number;
+        eventPayload?: Record<string, unknown>;
+      }) => {
+        const nodeRun = findNodeRun(params.nodeKey);
+
+        if (nodeRun) {
+          nodeRun.status = WorkflowNodeRunStatus.SUCCEEDED;
+          nodeRun.output = params.output;
+        }
+
+        recordEvent(WorkflowEventType.NODE_SUCCEEDED, {
+          nodeKey: params.nodeKey,
+          durationMs: params.durationMs,
+          ...(params.eventPayload ?? {}),
+        });
+      },
+    ),
+    markNodeSkipped: vi.fn(
+      async (params: {
+        nodeKey: string;
+        output: Record<string, unknown>;
+        durationMs: number;
+        reason: string;
+        eventPayload?: Record<string, unknown>;
+      }) => {
+        const nodeRun = findNodeRun(params.nodeKey);
+
+        if (nodeRun) {
+          nodeRun.status = WorkflowNodeRunStatus.SKIPPED;
+          nodeRun.output = params.output;
+        }
+
+        recordEvent(WorkflowEventType.NODE_SUCCEEDED, {
+          nodeKey: params.nodeKey,
+          durationMs: params.durationMs,
+          skipped: true,
+          reason: params.reason,
+          ...(params.eventPayload ?? {}),
+        });
+      },
+    ),
+    markNodeFailed: vi.fn(
+      async (params: {
+        nodeKey: string;
+        errorCode: string;
+        errorMessage: string;
+      }) => {
+        const nodeRun = findNodeRun(params.nodeKey);
+
+        if (nodeRun) {
+          nodeRun.status = WorkflowNodeRunStatus.FAILED;
+        }
+
+        recordEvent(WorkflowEventType.NODE_FAILED, {
+          nodeKey: params.nodeKey,
+          errorCode: params.errorCode,
+          errorMessage: params.errorMessage,
+        });
+      },
+    ),
+    markRunSucceeded: vi.fn(
+      async (params: { result: Record<string, unknown> }) => {
+        run.status = WorkflowRunStatus.SUCCEEDED;
+        run.progressPercent = 100;
+        run.result = params.result;
+        recordEvent(WorkflowEventType.RUN_SUCCEEDED, {
+          completedAt: new Date().toISOString(),
+        });
+      },
+    ),
+    markRunFailed: vi.fn(
+      async (params: { errorCode: string; errorMessage: string }) => {
+        run.status = WorkflowRunStatus.FAILED;
+        recordEvent(WorkflowEventType.RUN_FAILED, {
+          errorCode: params.errorCode,
+          errorMessage: params.errorMessage,
+        });
+      },
+    ),
+    markRunCancelled: vi.fn(async (params: { reason: string }) => {
+      run.status = WorkflowRunStatus.CANCELLED;
+      recordEvent(WorkflowEventType.RUN_CANCELLED, {
+        reason: params.reason,
+      });
+    }),
+    markRunPaused: vi.fn(
+      async (params: {
+        currentNodeKey?: string;
+        progressPercent: number;
+        reason: string;
+        eventPayload?: Record<string, unknown>;
+      }) => {
+        run.status = WorkflowRunStatus.PAUSED;
+        run.currentNodeKey = params.currentNodeKey ?? null;
+        run.progressPercent = params.progressPercent;
+        recordEvent(WorkflowEventType.RUN_PAUSED, {
+          reason: params.reason,
+          nodeKey: params.currentNodeKey,
+          ...(params.eventPayload ?? {}),
+        });
+      },
+    ),
+    markRunResumed: vi.fn(
+      async (params: {
+        currentNodeKey?: string;
+        progressPercent: number;
+        reason?: string;
+        eventPayload?: Record<string, unknown>;
+      }) => {
+        run.status = WorkflowRunStatus.RUNNING;
+        run.currentNodeKey = params.currentNodeKey ?? null;
+        run.progressPercent = params.progressPercent;
+        recordEvent(WorkflowEventType.RUN_RESUMED, {
+          reason: params.reason ?? "user_resumed",
+          nodeKey: params.currentNodeKey,
+          ...(params.eventPayload ?? {}),
+        });
+      },
+    ),
+    getLatestEvent: vi.fn(async () => latestEvent),
+    findNodeRun: vi.fn(async (_runId: string, nodeKey: string) =>
+      findNodeRun(nodeKey),
+    ),
+  } as unknown as PrismaWorkflowRunRepository;
+
+  return { repository, run };
+}
+
+function createRuntimeStoreHarness(checkpoint: WorkflowGraphState | null) {
+  let currentCheckpoint = checkpoint;
+  const publishedEvents: Array<{
+    type: string;
+    payload: Record<string, unknown>;
+  }> = [];
+
+  const runtimeStore = {
+    loadCheckpoint: vi.fn(async () => currentCheckpoint),
+    saveCheckpoint: vi.fn(async (_runId: string, state: WorkflowGraphState) => {
+      currentCheckpoint = state;
+    }),
+    clearCheckpoint: vi.fn(async () => {
+      currentCheckpoint = null;
+    }),
+    publishEvent: vi.fn(
+      async (event: { type: string; payload: Record<string, unknown> }) => {
+        publishedEvents.push(event);
+      },
+    ),
+  } as unknown as RedisWorkflowRuntimeStore;
+
+  return {
+    runtimeStore,
+    getCheckpoint: () => currentCheckpoint,
+    publishedEvents,
+  };
+}
+
 describe("WorkflowExecutionService", () => {
-  it("恢复运行时会从已成功节点之后继续执行", async () => {
+  it("鎭㈠杩愯鏃朵細浠庡凡鎴愬姛鑺傜偣涔嬪悗缁х画鎵ц", async () => {
     const graph = new RecoverableGraph();
     const repository = {
       listRunningRuns: vi.fn().mockResolvedValue([
@@ -186,5 +679,105 @@ describe("WorkflowExecutionService", () => {
     expect(repository.markNodeStarted).toHaveBeenCalledTimes(1);
     expect(repository.markRunSucceeded).toHaveBeenCalledTimes(1);
     expect(runtimeStore.saveCheckpoint).toHaveBeenCalled();
+  });
+
+  it("marks the run as paused when review approval is required", async () => {
+    const graph = new ReviewPauseGraph();
+    const { repository, run } = createRepositoryHarness({
+      graph,
+      status: WorkflowRunStatus.PENDING,
+      nodeRuns: graph.getNodeOrder().map((nodeKey) => ({
+        nodeKey,
+        status: WorkflowNodeRunStatus.PENDING,
+      })),
+    });
+    const runtimeStoreHarness = createRuntimeStoreHarness(null);
+
+    const service = new WorkflowExecutionService({
+      repository,
+      runtimeStore: runtimeStoreHarness.runtimeStore,
+      graphs: [graph],
+    });
+
+    const picked = await service.executeNextPendingRun("worker_1");
+
+    expect(picked).toBe(true);
+    expect(run.status).toBe(WorkflowRunStatus.PAUSED);
+    expect(repository.markRunPaused).toHaveBeenCalledTimes(1);
+    expect(repository.markRunFailed).not.toHaveBeenCalled();
+    expect(repository.markNodeFailed).not.toHaveBeenCalled();
+    expect(runtimeStoreHarness.getCheckpoint()).toMatchObject({
+      currentNodeKey: "review_gate",
+      lastCompletedNodeKey: "validate_insights",
+      reviewApproved: false,
+    });
+    expect(runtimeStoreHarness.publishedEvents.at(-1)?.type).toBe("RUN_PAUSED");
+  });
+
+  it("approves a paused screening run and lets the worker finish it", async () => {
+    const graph = new ReviewPauseGraph();
+    const { repository, run } = createRepositoryHarness({
+      graph,
+      status: WorkflowRunStatus.PAUSED,
+      progressPercent: 67,
+      currentNodeKey: "review_gate",
+      nodeRuns: [
+        {
+          nodeKey: "validate_insights",
+          status: WorkflowNodeRunStatus.SUCCEEDED,
+          output: {},
+        },
+        {
+          nodeKey: "review_gate",
+          status: WorkflowNodeRunStatus.RUNNING,
+        },
+        {
+          nodeKey: "archive_insights",
+          status: WorkflowNodeRunStatus.PENDING,
+        },
+      ],
+    });
+    const runtimeStoreHarness = createRuntimeStoreHarness({
+      runId: "run_1",
+      userId: "user_1",
+      query: "screening insight",
+      progressPercent: 67,
+      currentNodeKey: "review_gate",
+      lastCompletedNodeKey: "validate_insights",
+      errors: [],
+      reviewApproved: false,
+      archived: false,
+    } as ReviewPauseState);
+
+    const commandService = new WorkflowCommandService(
+      repository,
+      runtimeStoreHarness.runtimeStore,
+    );
+
+    await commandService.approveScreeningInsights({
+      userId: "user_1",
+      runId: "run_1",
+    });
+
+    expect(run.status).toBe(WorkflowRunStatus.RUNNING);
+    expect(runtimeStoreHarness.getCheckpoint()).toMatchObject({
+      reviewApproved: true,
+    });
+    expect(repository.markRunResumed).toHaveBeenCalledTimes(1);
+    expect(runtimeStoreHarness.publishedEvents.length).toBeGreaterThan(0);
+
+    const executionService = new WorkflowExecutionService({
+      repository,
+      runtimeStore: runtimeStoreHarness.runtimeStore,
+      graphs: [graph],
+    });
+
+    const recovered =
+      await executionService.executeRecoverableRunningRun("worker_1");
+
+    expect(recovered).toBe(true);
+    expect(run.status).toBe(WorkflowRunStatus.SUCCEEDED);
+    expect(repository.markRunSucceeded).toHaveBeenCalledTimes(1);
+    expect(runtimeStoreHarness.getCheckpoint()).toBeNull();
   });
 });

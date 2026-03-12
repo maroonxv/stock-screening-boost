@@ -1,4 +1,4 @@
-import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
+import { Annotation, StateGraph } from "@langchain/langgraph";
 import type {
   CandidateCredibilityResult,
   IntelligenceAgentService,
@@ -13,17 +13,20 @@ import {
   QUICK_RESEARCH_NODE_KEYS,
   QUICK_RESEARCH_TEMPLATE_CODE,
 } from "~/server/domain/workflow/types";
-import type {
-  WorkflowGraphBuildInitialStateParams,
-  WorkflowGraphExecutionHooks,
-  WorkflowGraphRunner,
-} from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import type { WorkflowGraphBuildInitialStateParams } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import { BaseWorkflowLangGraph } from "~/server/infrastructure/workflow/langgraph/workflow-graph-base";
+import {
+  addResumeStart,
+  addSequentialEdges,
+  addWorkflowNodes,
+} from "~/server/infrastructure/workflow/langgraph/workflow-graph-builder";
 
 const WorkflowState = Annotation.Root({
   runId: Annotation<string>,
   userId: Annotation<string>,
   query: Annotation<string>,
   progressPercent: Annotation<number>,
+  resumeFromNodeKey: Annotation<WorkflowNodeKey | undefined>,
   currentNodeKey: Annotation<QuickResearchNodeKey | undefined>,
   intent: Annotation<string | undefined>,
   industryOverview: Annotation<string | undefined>,
@@ -44,19 +47,17 @@ type NodeExecutor = (
   state: QuickResearchGraphState,
 ) => Promise<Partial<QuickResearchGraphState>>;
 
-export class QuickResearchLangGraph implements WorkflowGraphRunner {
+export class QuickResearchLangGraph extends BaseWorkflowLangGraph<
+  QuickResearchGraphState,
+  QuickResearchNodeKey
+> {
   readonly templateCode = QUICK_RESEARCH_TEMPLATE_CODE;
 
-  private readonly intelligenceService: IntelligenceAgentService;
-
-  private readonly nodeExecutors: Record<QuickResearchNodeKey, NodeExecutor>;
-
   constructor(intelligenceService: IntelligenceAgentService) {
-    this.intelligenceService = intelligenceService;
-    this.nodeExecutors = {
+    const nodeExecutors: Record<QuickResearchNodeKey, NodeExecutor> = {
       agent1_industry_overview: async (state) => {
         const { overview, news } =
-          await this.intelligenceService.generateIndustryOverview(state.query);
+          await intelligenceService.generateIndustryOverview(state.query);
 
         return {
           intent: state.query,
@@ -65,7 +66,7 @@ export class QuickResearchLangGraph implements WorkflowGraphRunner {
         };
       },
       agent2_market_heat: async (state) => {
-        const heatAnalysis = await this.intelligenceService.analyzeMarketHeat(
+        const heatAnalysis = await intelligenceService.analyzeMarketHeat(
           state.query,
           state.news,
         );
@@ -80,7 +81,7 @@ export class QuickResearchLangGraph implements WorkflowGraphRunner {
       },
       agent3_candidate_screening: async (state) => {
         const heatScore = state.heatAnalysis?.heatScore ?? 50;
-        const candidates = await this.intelligenceService.screenCandidates(
+        const candidates = await intelligenceService.screenCandidates(
           state.query,
           heatScore,
         );
@@ -92,7 +93,7 @@ export class QuickResearchLangGraph implements WorkflowGraphRunner {
       agent4_credibility_batch: async (state) => {
         const candidates = state.candidates ?? [];
         const result: CandidateCredibilityResult =
-          await this.intelligenceService.evaluateCredibility(
+          await intelligenceService.evaluateCredibility(
             state.query,
             candidates,
           );
@@ -104,14 +105,14 @@ export class QuickResearchLangGraph implements WorkflowGraphRunner {
       },
       agent5_competition_summary: async (state) => {
         const competitionSummary =
-          await this.intelligenceService.summarizeCompetition({
+          await intelligenceService.summarizeCompetition({
             query: state.query,
             candidates: state.candidates ?? [],
             credibility: state.credibility ?? [],
           });
 
         const confidenceAnalysis =
-          await this.intelligenceService.analyzeQuickResearchOverall({
+          await intelligenceService.analyzeQuickResearchOverall({
             query: state.query,
             overview: state.industryOverview ?? "No overview",
             heatConclusion:
@@ -123,7 +124,7 @@ export class QuickResearchLangGraph implements WorkflowGraphRunner {
             evidenceList: state.evidenceList ?? [],
           });
 
-        const finalReport = this.intelligenceService.buildFinalReport({
+        const finalReport = intelligenceService.buildFinalReport({
           overview: state.industryOverview ?? "No overview",
           heatScore: state.heatAnalysis?.heatScore ?? 50,
           heatConclusion:
@@ -140,10 +141,21 @@ export class QuickResearchLangGraph implements WorkflowGraphRunner {
         };
       },
     };
-  }
 
-  getNodeOrder() {
-    return [...QUICK_RESEARCH_NODE_KEYS];
+    const graphBuilder = new StateGraph(WorkflowState) as StateGraph<
+      unknown,
+      QuickResearchGraphState,
+      Partial<QuickResearchGraphState>,
+      string
+    >;
+    addWorkflowNodes(graphBuilder, QUICK_RESEARCH_NODE_KEYS, nodeExecutors);
+    addResumeStart(graphBuilder, QUICK_RESEARCH_NODE_KEYS);
+    addSequentialEdges(graphBuilder, QUICK_RESEARCH_NODE_KEYS);
+
+    super({
+      graph: graphBuilder.compile(),
+      nodeOrder: QUICK_RESEARCH_NODE_KEYS,
+    });
   }
 
   buildInitialState(
@@ -154,6 +166,7 @@ export class QuickResearchLangGraph implements WorkflowGraphRunner {
       userId: params.userId,
       query: params.query,
       progressPercent: params.progressPercent,
+      resumeFromNodeKey: undefined,
       currentNodeKey: undefined,
       errors: [],
     };
@@ -239,69 +252,5 @@ export class QuickResearchLangGraph implements WorkflowGraphRunner {
     return (quickState.finalReport ?? {
       generatedAt: new Date().toISOString(),
     }) as Record<string, unknown>;
-  }
-
-  async execute(params: {
-    initialState: WorkflowGraphState;
-    startNodeIndex?: number;
-    hooks?: WorkflowGraphExecutionHooks;
-  }) {
-    let state = {
-      ...(params.initialState as QuickResearchGraphState),
-      errors: (params.initialState.errors ?? []) as string[],
-    };
-
-    const startIndex = params.startNodeIndex ?? 0;
-
-    for (
-      let index = startIndex;
-      index < QUICK_RESEARCH_NODE_KEYS.length;
-      index += 1
-    ) {
-      const nodeKey = QUICK_RESEARCH_NODE_KEYS[index];
-
-      if (!nodeKey) {
-        continue;
-      }
-
-      const nodeGraph = this.buildSingleNodeGraph(nodeKey);
-
-      await params.hooks?.onNodeStarted?.(nodeKey);
-      await params.hooks?.onNodeProgress?.(nodeKey, {
-        message: "Node is running",
-      });
-
-      state = {
-        ...state,
-        currentNodeKey: nodeKey,
-      };
-
-      const result = (await nodeGraph.invoke(
-        state,
-      )) as typeof WorkflowState.State;
-      const progressPercent = Math.round(
-        ((index + 1) / QUICK_RESEARCH_NODE_KEYS.length) * 100,
-      );
-
-      state = {
-        ...(result as QuickResearchGraphState),
-        currentNodeKey: nodeKey,
-        progressPercent,
-      };
-
-      await params.hooks?.onNodeSucceeded?.(nodeKey, state);
-    }
-
-    return state;
-  }
-
-  private buildSingleNodeGraph(nodeKey: QuickResearchNodeKey) {
-    return new StateGraph(WorkflowState)
-      .addNode(nodeKey, (state) =>
-        this.nodeExecutors[nodeKey](state as QuickResearchGraphState),
-      )
-      .addEdge(START, nodeKey)
-      .addEdge(nodeKey, END)
-      .compile();
   }
 }

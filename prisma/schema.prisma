@@ -436,6 +436,7 @@ model TimingPreset {
 enum WorkflowRunStatus {
     PENDING
     RUNNING
+    PAUSED
     SUCCEEDED
     FAILED
     CANCELLED
@@ -452,6 +453,8 @@ enum WorkflowNodeRunStatus {
 enum WorkflowEventType {
     RUN_CREATED
     RUN_STARTED
+    RUN_PAUSED
+    RUN_RESUMED
     RUN_CANCEL_REQUESTED
     RUN_CANCELLED
     RUN_SUCCEEDED

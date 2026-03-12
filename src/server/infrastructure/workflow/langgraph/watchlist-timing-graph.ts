@@ -1,4 +1,4 @@
-import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
+import { Annotation, StateGraph } from "@langchain/langgraph";
 import type { MarketRegimeService } from "~/server/application/timing/market-regime-service";
 import type { TimingAnalysisService } from "~/server/application/timing/timing-analysis-service";
 import type { TimingReviewSchedulingService } from "~/server/application/timing/timing-review-scheduling-service";
@@ -21,17 +21,20 @@ import type { PrismaPortfolioSnapshotRepository } from "~/server/infrastructure/
 import type { PrismaTimingPresetRepository } from "~/server/infrastructure/timing/prisma-timing-preset-repository";
 import type { PrismaTimingRecommendationRepository } from "~/server/infrastructure/timing/prisma-timing-recommendation-repository";
 import type { PythonTimingDataClient } from "~/server/infrastructure/timing/python-timing-data-client";
-import type {
-  WorkflowGraphBuildInitialStateParams,
-  WorkflowGraphExecutionHooks,
-  WorkflowGraphRunner,
-} from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import type { WorkflowGraphBuildInitialStateParams } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import { BaseWorkflowLangGraph } from "~/server/infrastructure/workflow/langgraph/workflow-graph-base";
+import {
+  addResumeStart,
+  addSequentialEdges,
+  addWorkflowNodes,
+} from "~/server/infrastructure/workflow/langgraph/workflow-graph-builder";
 
 const WorkflowState = Annotation.Root({
   runId: Annotation<string>,
   userId: Annotation<string>,
   query: Annotation<string>,
   progressPercent: Annotation<number>,
+  resumeFromNodeKey: Annotation<WorkflowNodeKey | undefined>,
   currentNodeKey: Annotation<WatchlistTimingPipelineNodeKey | undefined>,
   timingInput: Annotation<WatchlistTimingPipelineInput>,
   preset: Annotation<WatchlistTimingPipelineGraphState["preset"]>,
@@ -76,192 +79,203 @@ type NodeExecutor = (
   state: WatchlistTimingPipelineGraphState,
 ) => Promise<Partial<WatchlistTimingPipelineGraphState>>;
 
-export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
+export class WatchlistTimingPipelineLangGraph extends BaseWorkflowLangGraph<
+  WatchlistTimingPipelineGraphState,
+  WatchlistTimingPipelineNodeKey
+> {
   readonly templateCode = WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE;
 
-  private readonly nodeExecutors: Record<
-    WatchlistTimingPipelineNodeKey,
-    NodeExecutor
-  >;
+  constructor(deps: {
+    watchListRepository: PrismaWatchListRepository;
+    portfolioSnapshotRepository: PrismaPortfolioSnapshotRepository;
+    timingDataClient: PythonTimingDataClient;
+    analysisService: TimingAnalysisService;
+    presetRepository: PrismaTimingPresetRepository;
+    marketRegimeService: MarketRegimeService;
+    riskManagerService: WatchlistRiskManagerService;
+    portfolioManagerService: WatchlistPortfolioManagerService;
+    recommendationRepository: PrismaTimingRecommendationRepository;
+    reviewSchedulingService: TimingReviewSchedulingService;
+  }) {
+    const nodeExecutors: Record<WatchlistTimingPipelineNodeKey, NodeExecutor> =
+      {
+        load_watchlist_context: async (state) => {
+          const [watchList, portfolioSnapshot, preset] = await Promise.all([
+            deps.watchListRepository.findById(state.timingInput.watchListId),
+            deps.portfolioSnapshotRepository.getByIdForUser(
+              state.userId,
+              state.timingInput.portfolioSnapshotId,
+            ),
+            state.timingInput.presetId
+              ? deps.presetRepository.getByIdForUser(
+                  state.userId,
+                  state.timingInput.presetId,
+                )
+              : Promise.resolve(null),
+          ]);
 
-  constructor(
-    private readonly deps: {
-      watchListRepository: PrismaWatchListRepository;
-      portfolioSnapshotRepository: PrismaPortfolioSnapshotRepository;
-      timingDataClient: PythonTimingDataClient;
-      analysisService: TimingAnalysisService;
-      presetRepository: PrismaTimingPresetRepository;
-      marketRegimeService: MarketRegimeService;
-      riskManagerService: WatchlistRiskManagerService;
-      portfolioManagerService: WatchlistPortfolioManagerService;
-      recommendationRepository: PrismaTimingRecommendationRepository;
-      reviewSchedulingService: TimingReviewSchedulingService;
-    },
-  ) {
-    this.nodeExecutors = {
-      load_watchlist_context: async (state) => {
-        const [watchList, portfolioSnapshot, preset] = await Promise.all([
-          this.deps.watchListRepository.findById(state.timingInput.watchListId),
-          this.deps.portfolioSnapshotRepository.getByIdForUser(
-            state.userId,
-            state.timingInput.portfolioSnapshotId,
-          ),
-          state.timingInput.presetId
-            ? this.deps.presetRepository.getByIdForUser(
-                state.userId,
-                state.timingInput.presetId,
-              )
-            : Promise.resolve(null),
-        ]);
+          if (!watchList || watchList.userId !== state.userId) {
+            throw new Error("Watchlist not found or access denied");
+          }
 
-        if (!watchList || watchList.userId !== state.userId) {
-          throw new Error("Watchlist not found or access denied");
-        }
+          if (!portfolioSnapshot) {
+            throw new Error("Portfolio snapshot not found or access denied");
+          }
 
-        if (!portfolioSnapshot) {
-          throw new Error("Portfolio snapshot not found or access denied");
-        }
-
-        return {
-          preset: preset ?? undefined,
-          presetConfig: resolveTimingPresetConfig(preset?.config),
-          watchlist: {
-            id: watchList.id,
-            name: watchList.name,
-            stockCount: watchList.stocks.length,
-          },
-          portfolioSnapshot,
-          targets: watchList.stocks.map((stock) => ({
-            stockCode: stock.stockCode.value,
-            stockName: stock.stockName,
-          })),
-        };
-      },
-      fetch_signal_snapshots_batch: async (state) => {
-        if (state.targets.length === 0) {
           return {
-            signalSnapshots: [],
-            batchErrors: [],
+            preset: preset ?? undefined,
+            presetConfig: resolveTimingPresetConfig(preset?.config),
+            watchlist: {
+              id: watchList.id,
+              name: watchList.name,
+              stockCount: watchList.stocks.length,
+            },
+            portfolioSnapshot,
+            targets: watchList.stocks.map((stock) => ({
+              stockCode: stock.stockCode.value,
+              stockName: stock.stockName,
+            })),
           };
-        }
+        },
+        fetch_signal_snapshots_batch: async (state) => {
+          if (state.targets.length === 0) {
+            return {
+              signalSnapshots: [],
+              batchErrors: [],
+            };
+          }
 
-        const response = await this.deps.timingDataClient.getSignalsBatch({
-          stockCodes: state.targets.map((target) => target.stockCode),
-          asOfDate: state.timingInput.asOfDate,
-        });
-
-        if (response.items.length === 0 && response.errors.length > 0) {
-          throw new Error(
-            response.errors.map((error) => error.message).join(", "),
-          );
-        }
-
-        return {
-          signalSnapshots: response.items,
-          batchErrors: response.errors,
-        };
-      },
-      technical_signal_agent: async (state) => ({
-        technicalAssessments:
-          this.deps.analysisService.buildTechnicalAssessments(
-            state.signalSnapshots,
-            state.presetConfig,
-          ),
-      }),
-      timing_synthesis_agent: async (state) => ({
-        cards: this.deps.analysisService.buildCards({
-          userId: state.userId,
-          workflowRunId: state.runId,
-          sourceType: "watchlist",
-          sourceId: state.timingInput.watchListId,
-          watchListId: state.timingInput.watchListId,
-          presetId: state.preset?.id,
-          presetConfig: state.presetConfig,
-          signalSnapshots: state.signalSnapshots,
-          technicalAssessments: state.technicalAssessments,
-          hasPortfolioContext: true,
-        }),
-      }),
-      market_regime_agent: async (state) => {
-        const marketRegimeSnapshot =
-          await this.deps.timingDataClient.getMarketRegimeSnapshot({
+          const response = await deps.timingDataClient.getSignalsBatch({
+            stockCodes: state.targets.map((target) => target.stockCode),
             asOfDate: state.timingInput.asOfDate,
           });
 
-        return {
-          marketRegimeSnapshot,
-          marketRegimeAnalysis:
-            this.deps.marketRegimeService.analyze(marketRegimeSnapshot),
-        };
-      },
-      watchlist_risk_manager: async (state) => {
-        if (!state.portfolioSnapshot || !state.marketRegimeAnalysis) {
-          throw new Error("Portfolio snapshot or market regime missing");
-        }
+          if (response.items.length === 0 && response.errors.length > 0) {
+            throw new Error(
+              response.errors.map((error) => error.message).join(", "),
+            );
+          }
 
-        return {
-          riskPlan: this.deps.riskManagerService.buildRiskPlan({
-            portfolioSnapshot: state.portfolioSnapshot,
-            timingCards: state.cards,
-            marketRegimeAnalysis: state.marketRegimeAnalysis,
+          return {
+            signalSnapshots: response.items,
+            batchErrors: response.errors,
+          };
+        },
+        technical_signal_agent: async (state) => ({
+          technicalAssessments: deps.analysisService.buildTechnicalAssessments(
+            state.signalSnapshots,
+            state.presetConfig,
+          ),
+        }),
+        timing_synthesis_agent: async (state) => ({
+          cards: deps.analysisService.buildCards({
+            userId: state.userId,
+            workflowRunId: state.runId,
+            sourceType: "watchlist",
+            sourceId: state.timingInput.watchListId,
+            watchListId: state.timingInput.watchListId,
+            presetId: state.preset?.id,
+            presetConfig: state.presetConfig,
+            signalSnapshots: state.signalSnapshots,
+            technicalAssessments: state.technicalAssessments,
+            hasPortfolioContext: true,
           }),
-        };
-      },
-      watchlist_portfolio_manager: async (state) => {
-        if (
-          !state.watchlist ||
-          !state.portfolioSnapshot ||
-          !state.marketRegimeAnalysis ||
-          !state.riskPlan
-        ) {
-          throw new Error("Recommendation inputs are incomplete");
-        }
+        }),
+        market_regime_agent: async (state) => {
+          const marketRegimeSnapshot =
+            await deps.timingDataClient.getMarketRegimeSnapshot({
+              asOfDate: state.timingInput.asOfDate,
+            });
 
-        return {
-          recommendations: this.deps.portfolioManagerService
-            .buildRecommendations({
-              userId: state.userId,
-              workflowRunId: state.runId,
-              watchListId: state.watchlist.id,
+          return {
+            marketRegimeSnapshot,
+            marketRegimeAnalysis:
+              deps.marketRegimeService.analyze(marketRegimeSnapshot),
+          };
+        },
+        watchlist_risk_manager: async (state) => {
+          if (!state.portfolioSnapshot || !state.marketRegimeAnalysis) {
+            throw new Error("Portfolio snapshot or market regime missing");
+          }
+
+          return {
+            riskPlan: deps.riskManagerService.buildRiskPlan({
               portfolioSnapshot: state.portfolioSnapshot,
               timingCards: state.cards,
-              riskPlan: state.riskPlan,
               marketRegimeAnalysis: state.marketRegimeAnalysis,
-            })
-            .map((recommendation) => ({
-              ...recommendation,
-              presetId: state.preset?.id,
-            })),
-        };
-      },
-      persist_recommendations: async (state) => {
-        const persistedRecommendations =
-          await this.deps.recommendationRepository.createMany({
-            items: state.recommendations,
-          });
-        const reviewArtifacts =
-          await this.deps.reviewSchedulingService.scheduleForRecommendations({
-            recommendations: persistedRecommendations,
-            sourceAsOfDateByStockCode: new Map(
-              state.signalSnapshots.map((snapshot) => [
-                snapshot.stockCode,
-                snapshot.asOfDate,
-              ]),
-            ),
-            presetConfig: state.presetConfig,
-          });
+            }),
+          };
+        },
+        watchlist_portfolio_manager: async (state) => {
+          if (
+            !state.watchlist ||
+            !state.portfolioSnapshot ||
+            !state.marketRegimeAnalysis ||
+            !state.riskPlan
+          ) {
+            throw new Error("Recommendation inputs are incomplete");
+          }
 
-        return {
-          persistedRecommendations,
-          reviewRecords: reviewArtifacts.records,
-          scheduledReminderIds: reviewArtifacts.reminderIds,
-        };
-      },
-    };
-  }
+          return {
+            recommendations: deps.portfolioManagerService
+              .buildRecommendations({
+                userId: state.userId,
+                workflowRunId: state.runId,
+                watchListId: state.watchlist.id,
+                portfolioSnapshot: state.portfolioSnapshot,
+                timingCards: state.cards,
+                riskPlan: state.riskPlan,
+                marketRegimeAnalysis: state.marketRegimeAnalysis,
+              })
+              .map((recommendation) => ({
+                ...recommendation,
+                presetId: state.preset?.id,
+              })),
+          };
+        },
+        persist_recommendations: async (state) => {
+          const persistedRecommendations =
+            await deps.recommendationRepository.createMany({
+              items: state.recommendations,
+            });
+          const reviewArtifacts =
+            await deps.reviewSchedulingService.scheduleForRecommendations({
+              recommendations: persistedRecommendations,
+              sourceAsOfDateByStockCode: new Map(
+                state.signalSnapshots.map((snapshot) => [
+                  snapshot.stockCode,
+                  snapshot.asOfDate,
+                ]),
+              ),
+              presetConfig: state.presetConfig,
+            });
 
-  getNodeOrder() {
-    return [...WATCHLIST_TIMING_PIPELINE_NODE_KEYS];
+          return {
+            persistedRecommendations,
+            reviewRecords: reviewArtifacts.records,
+            scheduledReminderIds: reviewArtifacts.reminderIds,
+          };
+        },
+      };
+
+    const graphBuilder = new StateGraph(WorkflowState) as StateGraph<
+      unknown,
+      WatchlistTimingPipelineGraphState,
+      Partial<WatchlistTimingPipelineGraphState>,
+      string
+    >;
+    addWorkflowNodes(
+      graphBuilder,
+      WATCHLIST_TIMING_PIPELINE_NODE_KEYS,
+      nodeExecutors,
+    );
+    addResumeStart(graphBuilder, WATCHLIST_TIMING_PIPELINE_NODE_KEYS);
+    addSequentialEdges(graphBuilder, WATCHLIST_TIMING_PIPELINE_NODE_KEYS);
+
+    super({
+      graph: graphBuilder.compile(),
+      nodeOrder: WATCHLIST_TIMING_PIPELINE_NODE_KEYS,
+    });
   }
 
   buildInitialState(
@@ -272,6 +286,7 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
       userId: params.userId,
       query: params.query,
       progressPercent: params.progressPercent,
+      resumeFromNodeKey: undefined,
       currentNodeKey: undefined,
       lastCompletedNodeKey: undefined,
       timingInput: params.input as WatchlistTimingPipelineInput,
@@ -385,69 +400,5 @@ export class WatchlistTimingPipelineLangGraph implements WorkflowGraphRunner {
       reviewRecordIds: timingState.reviewRecords.map((record) => record.id),
       reminderIds: timingState.scheduledReminderIds,
     };
-  }
-
-  async execute(params: {
-    initialState: WorkflowGraphState;
-    startNodeIndex?: number;
-    hooks?: WorkflowGraphExecutionHooks;
-  }) {
-    let state = {
-      ...(params.initialState as WatchlistTimingPipelineGraphState),
-      errors: (params.initialState.errors ?? []) as string[],
-    };
-
-    const startIndex = params.startNodeIndex ?? 0;
-
-    for (
-      let index = startIndex;
-      index < WATCHLIST_TIMING_PIPELINE_NODE_KEYS.length;
-      index += 1
-    ) {
-      const nodeKey = WATCHLIST_TIMING_PIPELINE_NODE_KEYS[index];
-
-      if (!nodeKey) {
-        continue;
-      }
-
-      const nodeGraph = this.buildSingleNodeGraph(nodeKey);
-
-      await params.hooks?.onNodeStarted?.(nodeKey);
-      await params.hooks?.onNodeProgress?.(nodeKey, {
-        message: "Node executing",
-      });
-
-      state = {
-        ...state,
-        currentNodeKey: nodeKey,
-      };
-
-      const result = (await nodeGraph.invoke(
-        state,
-      )) as typeof WorkflowState.State;
-      const progressPercent = Math.round(
-        ((index + 1) / WATCHLIST_TIMING_PIPELINE_NODE_KEYS.length) * 100,
-      );
-
-      state = {
-        ...(result as WatchlistTimingPipelineGraphState),
-        currentNodeKey: nodeKey,
-        progressPercent,
-      };
-
-      await params.hooks?.onNodeSucceeded?.(nodeKey, state);
-    }
-
-    return state;
-  }
-
-  private buildSingleNodeGraph(nodeKey: WatchlistTimingPipelineNodeKey) {
-    return new StateGraph(WorkflowState)
-      .addNode(nodeKey, (state) =>
-        this.nodeExecutors[nodeKey](state as WatchlistTimingPipelineGraphState),
-      )
-      .addEdge(START, nodeKey)
-      .addEdge(nodeKey, END)
-      .compile();
   }
 }

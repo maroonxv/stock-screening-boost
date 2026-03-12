@@ -25,7 +25,10 @@ import { ReviewPlan } from "~/server/domain/intelligence/value-objects/review-pl
 import { RiskPoint } from "~/server/domain/intelligence/value-objects/risk-point";
 import { ScreeningSessionStatus } from "~/server/domain/screening/enums/screening-session-status";
 import type { IScreeningSessionRepository } from "~/server/domain/screening/repositories/screening-session-repository";
-import { WorkflowDomainError } from "~/server/domain/workflow/errors";
+import {
+  WorkflowDomainError,
+  WorkflowPauseError,
+} from "~/server/domain/workflow/errors";
 import type {
   ScreeningInsightPipelineGraphState,
   ScreeningInsightPipelineInsightCard,
@@ -37,23 +40,29 @@ import {
   SCREENING_INSIGHT_PIPELINE_NODE_KEYS,
   SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
 } from "~/server/domain/workflow/types";
-import type {
-  WorkflowGraphBuildInitialStateParams,
-  WorkflowGraphExecutionHooks,
-  WorkflowGraphRunner,
-} from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import type { WorkflowGraphBuildInitialStateParams } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import {
+  BaseWorkflowLangGraph,
+  type WorkflowGraphSkip,
+} from "~/server/infrastructure/workflow/langgraph/workflow-graph-base";
+import {
+  addResumeStart,
+  addWorkflowNodes,
+} from "~/server/infrastructure/workflow/langgraph/workflow-graph-builder";
 
 const WorkflowState = Annotation.Root({
   runId: Annotation<string>,
   userId: Annotation<string>,
   query: Annotation<string>,
   progressPercent: Annotation<number>,
+  resumeFromNodeKey: Annotation<WorkflowNodeKey | undefined>,
   currentNodeKey: Annotation<ScreeningInsightPipelineNodeKey | undefined>,
   lastCompletedNodeKey: Annotation<ScreeningInsightPipelineNodeKey | undefined>,
   screeningInput: Annotation<{
     screeningSessionId: string;
     maxInsightsPerSession?: number;
   }>,
+  reviewApproved: Annotation<boolean>,
   screeningSession: Annotation<Record<string, unknown> | undefined>,
   candidateUniverse: Annotation<Record<string, unknown>[]>,
   evidenceBundle: Annotation<Record<string, unknown>[]>,
@@ -190,263 +199,341 @@ function toInsightAggregate(
   });
 }
 
-export class ScreeningInsightPipelineLangGraph implements WorkflowGraphRunner {
+export class ScreeningInsightPipelineLangGraph extends BaseWorkflowLangGraph<
+  ScreeningInsightPipelineGraphState,
+  ScreeningInsightPipelineNodeKey
+> {
   readonly templateCode = SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE;
 
-  private readonly screeningSessionRepository: IScreeningSessionRepository;
-  private readonly insightRepository: IScreeningInsightRepository;
-  private readonly dataClient: InsightDataClient;
-  private readonly synthesisService: InsightSynthesisService;
-  private readonly confidenceAnalysisService: ConfidenceAnalysisService;
-  private readonly reminderSchedulingService: ReminderSchedulingService;
-  private readonly maxInsightsPerSession: number;
-  private readonly nodeExecutors: Record<
-    ScreeningInsightPipelineNodeKey,
-    NodeExecutor
-  >;
-
   constructor(dependencies: ScreeningInsightPipelineGraphDependencies) {
-    this.screeningSessionRepository = dependencies.screeningSessionRepository;
-    this.insightRepository = dependencies.insightRepository;
-    this.dataClient = dependencies.dataClient;
-    this.synthesisService = dependencies.synthesisService;
-    this.confidenceAnalysisService = dependencies.confidenceAnalysisService;
-    this.reminderSchedulingService = dependencies.reminderSchedulingService;
-    this.maxInsightsPerSession = dependencies.maxInsightsPerSession ?? 10;
-    this.nodeExecutors = {
-      load_run_context: async (state) => {
-        const session = await this.loadSessionOrThrow(state);
+    const screeningSessionRepository = dependencies.screeningSessionRepository;
+    const insightRepository = dependencies.insightRepository;
+    const dataClient = dependencies.dataClient;
+    const synthesisService = dependencies.synthesisService;
+    const confidenceAnalysisService = dependencies.confidenceAnalysisService;
+    const reminderSchedulingService = dependencies.reminderSchedulingService;
+    const maxInsightsPerSession = dependencies.maxInsightsPerSession ?? 10;
 
-        return {
-          screeningSession: toSessionSnapshot(session),
-        };
-      },
-      screen_candidates: async (state) => {
-        const session = await this.loadSessionOrThrow(state);
-        const maxInsights =
-          state.screeningInput.maxInsightsPerSession ??
-          this.maxInsightsPerSession;
-        const candidates = session.topStocks
-          .slice(0, maxInsights)
-          .map((stock) => ({
-            stockCode: stock.stockCode.value,
-            stockName: stock.stockName,
-            score: stock.score,
-            scorePercent: stock.score * 100,
-            matchedConditionCount: stock.matchedConditions.length,
-            scoreExplanations: [...stock.scoreExplanations],
-          }));
+    const loadSessionOrThrow = async (
+      state: ScreeningInsightPipelineGraphState,
+    ) => {
+      const session = await screeningSessionRepository.findById(
+        state.screeningInput.screeningSessionId,
+      );
 
-        return {
-          candidateUniverse: candidates,
-        };
-      },
-      collect_evidence_batch: async (state) => {
-        const session = await this.loadSessionOrThrow(state);
-        const maxInsights =
-          state.screeningInput.maxInsightsPerSession ??
-          this.maxInsightsPerSession;
-        const stockMap = new Map(
-          session.topStocks
-            .slice(0, maxInsights)
-            .map((stock) => [stock.stockCode.value, stock]),
+      if (!session) {
+        throw new WorkflowDomainError(
+          "WORKFLOW_RUN_NOT_FOUND",
+          `绛涢€変細璇濅笉瀛樺湪: ${state.screeningInput.screeningSessionId}`,
         );
-        const evidenceBundle = [];
+      }
 
-        for (const candidate of state.candidateUniverse) {
-          const stock = stockMap.get(candidate.stockCode);
+      if (session.userId !== state.userId) {
+        throw new WorkflowDomainError(
+          "WORKFLOW_RUN_FORBIDDEN",
+          `鏃犳潈璁块棶绛涢€変細璇? ${state.screeningInput.screeningSessionId}`,
+        );
+      }
 
-          if (!stock) {
-            continue;
+      if (session.status !== ScreeningSessionStatus.SUCCEEDED) {
+        throw new WorkflowDomainError(
+          "WORKFLOW_NODE_EXECUTION_FAILED",
+          `绛涢€変細璇濆皻鏈畬鎴? ${state.screeningInput.screeningSessionId}`,
+        );
+      }
+
+      return session;
+    };
+
+    const safeGetEvidence = async (stockCode: string) => {
+      try {
+        return await dataClient.getEvidence(stockCode);
+      } catch {
+        return null;
+      }
+    };
+
+    const nodeExecutors: Record<ScreeningInsightPipelineNodeKey, NodeExecutor> =
+      {
+        load_run_context: async (state) => {
+          const session = await loadSessionOrThrow(state);
+
+          return {
+            screeningSession: toSessionSnapshot(session),
+          };
+        },
+        screen_candidates: async (state) => {
+          const session = await loadSessionOrThrow(state);
+          const maxInsights =
+            state.screeningInput.maxInsightsPerSession ?? maxInsightsPerSession;
+          const candidates = session.topStocks
+            .slice(0, maxInsights)
+            .map((stock) => ({
+              stockCode: stock.stockCode.value,
+              stockName: stock.stockName,
+              score: stock.score,
+              scorePercent: stock.score * 100,
+              matchedConditionCount: stock.matchedConditions.length,
+              scoreExplanations: [...stock.scoreExplanations],
+            }));
+
+          return {
+            candidateUniverse: candidates,
+          };
+        },
+        collect_evidence_batch: async (state) => {
+          const session = await loadSessionOrThrow(state);
+          const maxInsights =
+            state.screeningInput.maxInsightsPerSession ?? maxInsightsPerSession;
+          const stockMap = new Map(
+            session.topStocks
+              .slice(0, maxInsights)
+              .map((stock) => [stock.stockCode.value, stock]),
+          );
+          const evidenceBundle = [];
+
+          for (const candidate of state.candidateUniverse) {
+            const stock = stockMap.get(candidate.stockCode);
+
+            if (!stock) {
+              continue;
+            }
+
+            const evidence = await safeGetEvidence(stock.stockCode.value);
+            const factsBundle = mapScreeningStockToFactsBundle(
+              session,
+              stock,
+              evidence,
+            );
+            const evidenceRefs = buildInsightEvidenceRefs(
+              session,
+              stock,
+              evidence,
+            ).map((item) => item.toDict());
+
+            evidenceBundle.push({
+              stockCode: stock.stockCode.value,
+              stockName: stock.stockName,
+              score: stock.score,
+              factsBundle,
+              evidenceRefs,
+              evidence,
+            });
           }
 
-          const evidence = await this.safeGetEvidence(stock.stockCode.value);
-          const factsBundle = mapScreeningStockToFactsBundle(
-            session,
-            stock,
-            evidence,
-          );
-          const evidenceRefs = buildInsightEvidenceRefs(
-            session,
-            stock,
-            evidence,
-          ).map((item) => item.toDict());
+          return {
+            evidenceBundle,
+          };
+        },
+        synthesize_insights: async (state) => {
+          const sessionId = state.screeningInput.screeningSessionId;
+          const insightCards: ScreeningInsightPipelineInsightCard[] = [];
 
-          evidenceBundle.push({
-            stockCode: stock.stockCode.value,
-            stockName: stock.stockName,
-            score: stock.score,
-            factsBundle,
-            evidenceRefs,
-            evidence,
-          });
-        }
-
-        return {
-          evidenceBundle,
-        };
-      },
-      synthesize_insights: async (state) => {
-        const sessionId = state.screeningInput.screeningSessionId;
-        const insightCards: ScreeningInsightPipelineInsightCard[] = [];
-
-        for (const item of state.evidenceBundle) {
-          const evidenceRefs = item.evidenceRefs.map((ref) =>
-            EvidenceReference.fromDict(ref),
-          );
-          const draft = await this.synthesisService.synthesize({
-            factsBundle: item.factsBundle as never,
-            evidenceRefs,
-          });
-          const confidenceAnalysis =
-            await this.confidenceAnalysisService.analyzeScreeningInsight({
-              stockCode: item.stockCode,
-              stockName: item.stockName,
-              thesis: draft.thesis,
-              risks: draft.risks,
-              catalysts: draft.catalysts,
+          for (const item of state.evidenceBundle) {
+            const evidenceRefs = item.evidenceRefs.map((ref) =>
+              EvidenceReference.fromDict(ref),
+            );
+            const draft = await synthesisService.synthesize({
+              factsBundle: item.factsBundle as never,
               evidenceRefs,
             });
-          const existing =
-            await this.insightRepository.findBySessionAndStockCode(
+            const confidenceAnalysis =
+              await confidenceAnalysisService.analyzeScreeningInsight({
+                stockCode: item.stockCode,
+                stockName: item.stockName,
+                thesis: draft.thesis,
+                risks: draft.risks,
+                catalysts: draft.catalysts,
+                evidenceRefs,
+              });
+            const existing = await insightRepository.findBySessionAndStockCode(
               sessionId,
               item.stockCode,
             );
 
-          insightCards.push(
-            toInsightCard({
-              stockCode: item.stockCode,
-              stockName: item.stockName,
-              score: item.score,
-              draft: {
-                ...draft,
-                confidenceAnalysis,
-              },
-              existing,
-            }),
-          );
-        }
-
-        return {
-          insightCards,
-        };
-      },
-      validate_insights: async (state) => {
-        const normalized = state.insightCards.map((card) => ({
-          ...card,
-          qualityFlags: [...new Set(card.qualityFlags)],
-        }));
-
-        return {
-          insightCards: normalized,
-        };
-      },
-      archive_insights: async (state) => {
-        if (state.archiveArtifacts.insightIds.length > 0) {
-          return {
-            archiveArtifacts: state.archiveArtifacts,
-            insightCards: state.insightCards,
-          };
-        }
-
-        const savedCards: ScreeningInsightPipelineInsightCard[] = [];
-        const insightIds: string[] = [];
-        const versionIds: string[] = [];
-
-        for (const card of state.insightCards) {
-          const saved = await this.insightRepository.save(
-            toInsightAggregate(state, card),
-          );
-
-          insightIds.push(saved.id);
-
-          if (saved.latestVersionId) {
-            versionIds.push(saved.latestVersionId);
+            insightCards.push(
+              toInsightCard({
+                stockCode: item.stockCode,
+                stockName: item.stockName,
+                score: item.score,
+                draft: {
+                  ...draft,
+                  confidenceAnalysis,
+                },
+                existing,
+              }),
+            );
           }
 
-          savedCards.push({
-            ...card,
-            insightId: saved.id,
-            latestVersionId: saved.latestVersionId,
-            watchListId: saved.watchListId,
-            status: saved.status,
-            summary: saved.summary,
-            nextReviewAt: saved.reviewPlan.nextReviewAt.toISOString(),
-            confidenceAnalysis: saved.confidenceAnalysis,
-            confidenceScore: saved.confidenceScore,
-            confidenceLevel: saved.confidenceLevel,
-            confidenceStatus: saved.confidenceStatus,
-            supportedClaimCount: saved.supportedClaimCount,
-            insufficientClaimCount: saved.insufficientClaimCount,
-            contradictedClaimCount: saved.contradictedClaimCount,
-          });
-        }
-
-        return {
-          insightCards: savedCards,
-          archiveArtifacts: {
-            insightIds,
-            versionIds,
-            emptyResultArchived: false,
-          },
-        };
-      },
-      schedule_review_reminders: async (state) => {
-        if (state.scheduledReminderIds.length > 0) {
           return {
-            scheduledReminderIds: state.scheduledReminderIds,
+            insightCards,
           };
-        }
+        },
+        validate_insights: async (state) => {
+          const normalized = state.insightCards.map((card) => ({
+            ...card,
+            qualityFlags: [...new Set(card.qualityFlags)],
+          }));
 
-        const reminderIds: string[] = [];
+          return {
+            insightCards: normalized,
+          };
+        },
+        review_gate: async (state) => {
+          const needsReviewCount = countNeedsReview(state.insightCards);
 
-        for (const card of state.insightCards) {
-          const reminder =
-            await this.reminderSchedulingService.scheduleReviewReminder(
+          if (needsReviewCount > 0 && !state.reviewApproved) {
+            throw new WorkflowPauseError(
+              "insights_need_review",
+              "review_required",
+            );
+          }
+
+          return {
+            reviewApproved: true,
+          };
+        },
+        archive_insights: async (state) => {
+          if (state.archiveArtifacts.insightIds.length > 0) {
+            return {
+              archiveArtifacts: state.archiveArtifacts,
+              insightCards: state.insightCards,
+            };
+          }
+
+          const savedCards: ScreeningInsightPipelineInsightCard[] = [];
+          const insightIds: string[] = [];
+          const versionIds: string[] = [];
+
+          for (const card of state.insightCards) {
+            const saved = await insightRepository.save(
               toInsightAggregate(state, card),
             );
-          reminderIds.push(reminder.id);
-        }
 
-        return {
-          scheduledReminderIds: reminderIds,
-        };
-      },
-      archive_empty_result: async () => {
-        return {
-          archiveArtifacts: {
-            insightIds: [],
-            versionIds: [],
-            emptyResultArchived: true,
-          },
-        };
-      },
-      notify_user: async (state) => {
-        const needsReviewCount = countNeedsReview(state.insightCards);
-        const emptyResult = state.archiveArtifacts.emptyResultArchived;
-        const strategyName = state.screeningSession?.strategyName ?? "筛选结果";
+            insightIds.push(saved.id);
 
-        return {
-          notificationPayload: {
-            screeningSessionId: state.screeningInput.screeningSessionId,
-            strategyName,
-            candidateCount: state.candidateUniverse.length,
-            insightCount: state.insightCards.length,
-            needsReviewCount,
-            reminderCount: state.scheduledReminderIds.length,
-            emptyResult,
-            title: emptyResult ? "本次筛选无可归档标的" : "筛选洞察已完成归档",
-            summary: emptyResult
-              ? `${strategyName} 本次未发现可继续跟踪的候选标的。`
-              : `${strategyName} 已归档 ${state.insightCards.length} 条洞察，其中 ${needsReviewCount} 条待复评。`,
-          },
-        };
-      },
-    };
-  }
+            if (saved.latestVersionId) {
+              versionIds.push(saved.latestVersionId);
+            }
 
-  getNodeOrder() {
-    return [...SCREENING_INSIGHT_PIPELINE_NODE_KEYS];
+            savedCards.push({
+              ...card,
+              insightId: saved.id,
+              latestVersionId: saved.latestVersionId,
+              watchListId: saved.watchListId,
+              status: saved.status,
+              summary: saved.summary,
+              nextReviewAt: saved.reviewPlan.nextReviewAt.toISOString(),
+              confidenceAnalysis: saved.confidenceAnalysis,
+              confidenceScore: saved.confidenceScore,
+              confidenceLevel: saved.confidenceLevel,
+              confidenceStatus: saved.confidenceStatus,
+              supportedClaimCount: saved.supportedClaimCount,
+              insufficientClaimCount: saved.insufficientClaimCount,
+              contradictedClaimCount: saved.contradictedClaimCount,
+            });
+          }
+
+          return {
+            insightCards: savedCards,
+            archiveArtifacts: {
+              insightIds,
+              versionIds,
+              emptyResultArchived: false,
+            },
+          };
+        },
+        schedule_review_reminders: async (state) => {
+          if (state.scheduledReminderIds.length > 0) {
+            return {
+              scheduledReminderIds: state.scheduledReminderIds,
+            };
+          }
+
+          const reminderIds: string[] = [];
+
+          for (const card of state.insightCards) {
+            const reminder =
+              await reminderSchedulingService.scheduleReviewReminder(
+                toInsightAggregate(state, card),
+              );
+            reminderIds.push(reminder.id);
+          }
+
+          return {
+            scheduledReminderIds: reminderIds,
+          };
+        },
+        archive_empty_result: async () => {
+          return {
+            archiveArtifacts: {
+              insightIds: [],
+              versionIds: [],
+              emptyResultArchived: true,
+            },
+          };
+        },
+        notify_user: async (state) => {
+          const needsReviewCount = countNeedsReview(state.insightCards);
+          const emptyResult = state.archiveArtifacts.emptyResultArchived;
+          const strategyName =
+            state.screeningSession?.strategyName ?? "筛选结果";
+
+          return {
+            notificationPayload: {
+              screeningSessionId: state.screeningInput.screeningSessionId,
+              strategyName,
+              candidateCount: state.candidateUniverse.length,
+              insightCount: state.insightCards.length,
+              needsReviewCount,
+              reminderCount: state.scheduledReminderIds.length,
+              emptyResult,
+              title: emptyResult
+                ? "本次筛选无可归档标的"
+                : "筛选洞察已完成归档",
+              summary: emptyResult
+                ? `${strategyName} 本次未发现可继续跟踪的候选标的。`
+                : `${strategyName} 已归档 ${state.insightCards.length} 条洞察，其中 ${needsReviewCount} 条待复评。`,
+            },
+          };
+        },
+      };
+
+    const graphBuilder = new StateGraph(WorkflowState) as StateGraph<
+      unknown,
+      ScreeningInsightPipelineGraphState,
+      Partial<ScreeningInsightPipelineGraphState>,
+      string
+    >;
+    addWorkflowNodes(
+      graphBuilder,
+      SCREENING_INSIGHT_PIPELINE_NODE_KEYS,
+      nodeExecutors,
+    );
+    addResumeStart(graphBuilder, SCREENING_INSIGHT_PIPELINE_NODE_KEYS);
+
+    graphBuilder.addEdge("load_run_context", "screen_candidates");
+    graphBuilder.addConditionalEdges(
+      "screen_candidates",
+      (state: ScreeningInsightPipelineGraphState) =>
+        state.candidateUniverse.length > 0
+          ? "collect_evidence_batch"
+          : "archive_empty_result",
+      ["collect_evidence_batch", "archive_empty_result"],
+    );
+    graphBuilder.addEdge("collect_evidence_batch", "synthesize_insights");
+    graphBuilder.addEdge("synthesize_insights", "validate_insights");
+    graphBuilder.addEdge("validate_insights", "review_gate");
+    graphBuilder.addEdge("review_gate", "archive_insights");
+    graphBuilder.addEdge("archive_insights", "schedule_review_reminders");
+    graphBuilder.addEdge("schedule_review_reminders", "notify_user");
+    graphBuilder.addEdge("archive_empty_result", "notify_user");
+    graphBuilder.addEdge("notify_user", END);
+
+    super({
+      graph: graphBuilder.compile(),
+      nodeOrder: SCREENING_INSIGHT_PIPELINE_NODE_KEYS,
+    });
   }
 
   buildInitialState(
@@ -457,6 +544,7 @@ export class ScreeningInsightPipelineLangGraph implements WorkflowGraphRunner {
       userId: params.userId,
       query: params.query,
       progressPercent: params.progressPercent,
+      resumeFromNodeKey: undefined,
       currentNodeKey: undefined,
       lastCompletedNodeKey: undefined,
       screeningInput: {
@@ -466,6 +554,7 @@ export class ScreeningInsightPipelineLangGraph implements WorkflowGraphRunner {
             ? params.input.maxInsightsPerSession
             : undefined,
       },
+      reviewApproved: false,
       screeningSession: undefined,
       candidateUniverse: [],
       evidenceBundle: [],
@@ -502,6 +591,10 @@ export class ScreeningInsightPipelineLangGraph implements WorkflowGraphRunner {
       case "validate_insights":
         return {
           insightCards: screeningState.insightCards,
+        };
+      case "review_gate":
+        return {
+          reviewApproved: screeningState.reviewApproved,
         };
       case "archive_insights":
         return {
@@ -546,6 +639,11 @@ export class ScreeningInsightPipelineLangGraph implements WorkflowGraphRunner {
         return { insightCount };
       case "validate_insights":
         return { insightCount, needsReviewCount };
+      case "review_gate":
+        return {
+          needsReviewCount,
+          reviewApproved: screeningState.reviewApproved,
+        };
       case "archive_insights":
         return {
           archiveSaved: screeningState.archiveArtifacts.insightIds.length > 0,
@@ -616,171 +714,27 @@ export class ScreeningInsightPipelineLangGraph implements WorkflowGraphRunner {
     };
   }
 
-  async execute(params: {
-    initialState: WorkflowGraphState;
-    startNodeIndex?: number;
-    hooks?: WorkflowGraphExecutionHooks;
-  }) {
-    let state = {
-      ...(params.initialState as ScreeningInsightPipelineGraphState),
-      errors: (params.initialState.errors ?? []) as string[],
-    };
-
-    const startIndex = params.startNodeIndex ?? 0;
-
-    for (
-      let index = startIndex;
-      index < SCREENING_INSIGHT_PIPELINE_NODE_KEYS.length;
-      index += 1
-    ) {
-      const nodeKey = SCREENING_INSIGHT_PIPELINE_NODE_KEYS[index];
-
-      if (!nodeKey) {
-        continue;
-      }
-
-      const skipReason = this.getSkipReason(nodeKey, state);
-      const progressPercent = Math.round(
-        ((index + 1) / SCREENING_INSIGHT_PIPELINE_NODE_KEYS.length) * 100,
-      );
-
-      if (skipReason) {
-        state = {
-          ...state,
-          currentNodeKey: nodeKey,
-          lastCompletedNodeKey: nodeKey,
-          progressPercent,
-        };
-
-        await params.hooks?.onNodeSkipped?.(nodeKey, state, {
-          reason: skipReason,
-          ...this.getNodeEventPayload(nodeKey, state),
-        });
-        continue;
-      }
-
-      const nodeGraph = this.buildSingleNodeGraph(nodeKey);
-
-      await params.hooks?.onNodeStarted?.(nodeKey);
-      await params.hooks?.onNodeProgress?.(nodeKey, {
-        message: `节点 ${nodeKey} 执行中`,
-      });
-
-      state = {
-        ...state,
-        currentNodeKey: nodeKey,
-      };
-
-      const result = (await nodeGraph.invoke(
-        state,
-      )) as typeof WorkflowState.State;
-
-      state = {
-        ...(result as ScreeningInsightPipelineGraphState),
-        currentNodeKey: nodeKey,
-        lastCompletedNodeKey: nodeKey,
-        progressPercent,
-      };
-
-      await params.hooks?.onNodeSucceeded?.(nodeKey, state);
-    }
-
-    return state;
-  }
-
-  private async loadSessionOrThrow(state: ScreeningInsightPipelineGraphState) {
-    const session = await this.screeningSessionRepository.findById(
-      state.screeningInput.screeningSessionId,
-    );
-
-    if (!session) {
-      throw new WorkflowDomainError(
-        "WORKFLOW_RUN_NOT_FOUND",
-        `筛选会话不存在: ${state.screeningInput.screeningSessionId}`,
-      );
-    }
-
-    if (session.userId !== state.userId) {
-      throw new WorkflowDomainError(
-        "WORKFLOW_RUN_FORBIDDEN",
-        `无权访问筛选会话: ${state.screeningInput.screeningSessionId}`,
-      );
-    }
-
-    if (session.status !== ScreeningSessionStatus.SUCCEEDED) {
-      throw new WorkflowDomainError(
-        "WORKFLOW_NODE_EXECUTION_FAILED",
-        `筛选会话尚未完成: ${state.screeningInput.screeningSessionId}`,
-      );
-    }
-
-    return session;
-  }
-
-  private buildSingleNodeGraph(nodeKey: ScreeningInsightPipelineNodeKey) {
-    return new StateGraph(WorkflowState)
-      .addNode(nodeKey, (state) =>
-        this.nodeExecutors[nodeKey](
-          state as ScreeningInsightPipelineGraphState,
-        ),
-      )
-      .addEdge(START, nodeKey)
-      .addEdge(nodeKey, END)
-      .compile();
-  }
-
-  private getSkipReason(
+  protected getSkippedNodes(
     nodeKey: ScreeningInsightPipelineNodeKey,
     state: ScreeningInsightPipelineGraphState,
-  ) {
+  ): WorkflowGraphSkip<ScreeningInsightPipelineNodeKey>[] {
+    if (nodeKey !== "screen_candidates") {
+      return [];
+    }
+
     const hasCandidates = state.candidateUniverse.length > 0;
 
-    if (
-      !hasCandidates &&
-      [
-        "collect_evidence_batch",
-        "synthesize_insights",
-        "validate_insights",
-        "archive_insights",
-        "schedule_review_reminders",
-      ].includes(nodeKey)
-    ) {
-      return "no_candidates";
+    if (!hasCandidates) {
+      return [
+        { nodeKey: "collect_evidence_batch", reason: "no_candidates" },
+        { nodeKey: "synthesize_insights", reason: "no_candidates" },
+        { nodeKey: "validate_insights", reason: "no_candidates" },
+        { nodeKey: "review_gate", reason: "no_candidates" },
+        { nodeKey: "archive_insights", reason: "no_candidates" },
+        { nodeKey: "schedule_review_reminders", reason: "no_candidates" },
+      ];
     }
 
-    if (hasCandidates && nodeKey === "archive_empty_result") {
-      return "candidates_present";
-    }
-
-    if (
-      nodeKey === "archive_insights" &&
-      state.archiveArtifacts.insightIds.length > 0
-    ) {
-      return "already_archived";
-    }
-
-    if (
-      nodeKey === "schedule_review_reminders" &&
-      state.scheduledReminderIds.length > 0
-    ) {
-      return "already_scheduled";
-    }
-
-    if (
-      nodeKey === "archive_empty_result" &&
-      state.archiveArtifacts.emptyResultArchived
-    ) {
-      return "already_archived_empty_result";
-    }
-
-    return null;
-  }
-
-  private async safeGetEvidence(stockCode: string) {
-    try {
-      return await this.dataClient.getEvidence(stockCode);
-    } catch {
-      return null;
-    }
+    return [{ nodeKey: "archive_empty_result", reason: "candidates_present" }];
   }
 }

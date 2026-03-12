@@ -1,4 +1,4 @@
-import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
+import { Annotation, StateGraph } from "@langchain/langgraph";
 import type { TimingAnalysisService } from "~/server/application/timing/timing-analysis-service";
 import type { TimingReviewSchedulingService } from "~/server/application/timing/timing-review-scheduling-service";
 import { ScreeningSessionStatus } from "~/server/domain/screening/enums/screening-session-status";
@@ -19,17 +19,20 @@ import type { PrismaTimingAnalysisCardRepository } from "~/server/infrastructure
 import type { PrismaTimingPresetRepository } from "~/server/infrastructure/timing/prisma-timing-preset-repository";
 import type { PrismaTimingSignalSnapshotRepository } from "~/server/infrastructure/timing/prisma-timing-signal-snapshot-repository";
 import type { PythonTimingDataClient } from "~/server/infrastructure/timing/python-timing-data-client";
-import type {
-  WorkflowGraphBuildInitialStateParams,
-  WorkflowGraphExecutionHooks,
-  WorkflowGraphRunner,
-} from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import type { WorkflowGraphBuildInitialStateParams } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import { BaseWorkflowLangGraph } from "~/server/infrastructure/workflow/langgraph/workflow-graph-base";
+import {
+  addResumeStart,
+  addSequentialEdges,
+  addWorkflowNodes,
+} from "~/server/infrastructure/workflow/langgraph/workflow-graph-builder";
 
 const WorkflowState = Annotation.Root({
   runId: Annotation<string>,
   userId: Annotation<string>,
   query: Annotation<string>,
   progressPercent: Annotation<number>,
+  resumeFromNodeKey: Annotation<WorkflowNodeKey | undefined>,
   currentNodeKey: Annotation<ScreeningToTimingNodeKey | undefined>,
   timingInput: Annotation<ScreeningToTimingPipelineInput>,
   screeningSession: Annotation<ScreeningToTimingGraphState["screeningSession"]>,
@@ -61,33 +64,29 @@ type NodeExecutor = (
   state: ScreeningToTimingGraphState,
 ) => Promise<Partial<ScreeningToTimingGraphState>>;
 
-export class ScreeningToTimingPipelineLangGraph implements WorkflowGraphRunner {
+export class ScreeningToTimingPipelineLangGraph extends BaseWorkflowLangGraph<
+  ScreeningToTimingGraphState,
+  ScreeningToTimingNodeKey
+> {
   readonly templateCode = SCREENING_TO_TIMING_TEMPLATE_CODE;
 
-  private readonly nodeExecutors: Record<
-    ScreeningToTimingNodeKey,
-    NodeExecutor
-  >;
-
-  constructor(
-    private readonly deps: {
-      screeningSessionRepository: IScreeningSessionRepository;
-      presetRepository: PrismaTimingPresetRepository;
-      timingDataClient: PythonTimingDataClient;
-      analysisService: TimingAnalysisService;
-      signalSnapshotRepository: PrismaTimingSignalSnapshotRepository;
-      analysisCardRepository: PrismaTimingAnalysisCardRepository;
-      reviewSchedulingService: TimingReviewSchedulingService;
-    },
-  ) {
-    this.nodeExecutors = {
+  constructor(deps: {
+    screeningSessionRepository: IScreeningSessionRepository;
+    presetRepository: PrismaTimingPresetRepository;
+    timingDataClient: PythonTimingDataClient;
+    analysisService: TimingAnalysisService;
+    signalSnapshotRepository: PrismaTimingSignalSnapshotRepository;
+    analysisCardRepository: PrismaTimingAnalysisCardRepository;
+    reviewSchedulingService: TimingReviewSchedulingService;
+  }) {
+    const nodeExecutors: Record<ScreeningToTimingNodeKey, NodeExecutor> = {
       load_screening_results: async (state) => {
         const [session, preset] = await Promise.all([
-          this.deps.screeningSessionRepository.findById(
+          deps.screeningSessionRepository.findById(
             state.timingInput.screeningSessionId,
           ),
           state.timingInput.presetId
-            ? this.deps.presetRepository.getByIdForUser(
+            ? deps.presetRepository.getByIdForUser(
                 state.userId,
                 state.timingInput.presetId,
               )
@@ -95,11 +94,13 @@ export class ScreeningToTimingPipelineLangGraph implements WorkflowGraphRunner {
         ]);
 
         if (!session || session.userId !== state.userId) {
-          throw new Error("筛选会话不存在或无权访问");
+          throw new Error("Screening session not found or access denied");
         }
 
         if (session.status !== ScreeningSessionStatus.SUCCEEDED) {
-          throw new Error("筛选会话尚未完成，无法联动择时");
+          throw new Error(
+            "Screening session must finish before timing linkage",
+          );
         }
 
         return {
@@ -138,23 +139,23 @@ export class ScreeningToTimingPipelineLangGraph implements WorkflowGraphRunner {
           };
         }
 
-        const response = await this.deps.timingDataClient.getSignalsBatch({
+        const response = await deps.timingDataClient.getSignalsBatch({
           stockCodes: state.selectedTargets.map((target) => target.stockCode),
           asOfDate: state.timingInput.asOfDate,
         });
 
         if (response.items.length === 0 && response.errors.length > 0) {
           throw new Error(
-            response.errors.map((error) => error.message).join("；"),
+            response.errors.map((error) => error.message).join(", "),
           );
         }
 
         const technicalAssessments =
-          this.deps.analysisService.buildTechnicalAssessments(
+          deps.analysisService.buildTechnicalAssessments(
             response.items,
             state.presetConfig,
           );
-        const cards = this.deps.analysisService.buildCards({
+        const cards = deps.analysisService.buildCards({
           userId: state.userId,
           workflowRunId: state.runId,
           sourceType: "screening",
@@ -165,7 +166,7 @@ export class ScreeningToTimingPipelineLangGraph implements WorkflowGraphRunner {
           technicalAssessments,
         });
         const persistedSignalSnapshots =
-          await this.deps.signalSnapshotRepository.createMany({
+          await deps.signalSnapshotRepository.createMany({
             userId: state.userId,
             workflowRunId: state.runId,
             sourceType: "screening",
@@ -178,15 +179,14 @@ export class ScreeningToTimingPipelineLangGraph implements WorkflowGraphRunner {
             snapshot.id,
           ]),
         );
-        const persistedCards =
-          await this.deps.analysisCardRepository.createMany({
-            items: cards.map((card) => ({
-              ...card,
-              signalSnapshotId: snapshotByCode.get(card.stockCode) ?? "",
-            })),
-          });
+        const persistedCards = await deps.analysisCardRepository.createMany({
+          items: cards.map((card) => ({
+            ...card,
+            signalSnapshotId: snapshotByCode.get(card.stockCode) ?? "",
+          })),
+        });
         const reviewArtifacts =
-          await this.deps.reviewSchedulingService.scheduleForCards({
+          await deps.reviewSchedulingService.scheduleForCards({
             cards: persistedCards,
             presetConfig: state.presetConfig,
           });
@@ -204,10 +204,25 @@ export class ScreeningToTimingPipelineLangGraph implements WorkflowGraphRunner {
       },
       archive_results: async () => ({}),
     };
-  }
 
-  getNodeOrder() {
-    return [...SCREENING_TO_TIMING_NODE_KEYS];
+    const graphBuilder = new StateGraph(WorkflowState) as StateGraph<
+      unknown,
+      ScreeningToTimingGraphState,
+      Partial<ScreeningToTimingGraphState>,
+      string
+    >;
+    addWorkflowNodes(
+      graphBuilder,
+      SCREENING_TO_TIMING_NODE_KEYS,
+      nodeExecutors,
+    );
+    addResumeStart(graphBuilder, SCREENING_TO_TIMING_NODE_KEYS);
+    addSequentialEdges(graphBuilder, SCREENING_TO_TIMING_NODE_KEYS);
+
+    super({
+      graph: graphBuilder.compile(),
+      nodeOrder: SCREENING_TO_TIMING_NODE_KEYS,
+    });
   }
 
   buildInitialState(
@@ -218,6 +233,7 @@ export class ScreeningToTimingPipelineLangGraph implements WorkflowGraphRunner {
       userId: params.userId,
       query: params.query,
       progressPercent: params.progressPercent,
+      resumeFromNodeKey: undefined,
       currentNodeKey: undefined,
       lastCompletedNodeKey: undefined,
       timingInput: params.input as ScreeningToTimingPipelineInput,
@@ -311,69 +327,5 @@ export class ScreeningToTimingPipelineLangGraph implements WorkflowGraphRunner {
       reminderIds: timingState.scheduledReminderIds,
       partialErrors: timingState.batchErrors,
     };
-  }
-
-  async execute(params: {
-    initialState: WorkflowGraphState;
-    startNodeIndex?: number;
-    hooks?: WorkflowGraphExecutionHooks;
-  }) {
-    let state = {
-      ...(params.initialState as ScreeningToTimingGraphState),
-      errors: (params.initialState.errors ?? []) as string[],
-    };
-
-    const startIndex = params.startNodeIndex ?? 0;
-
-    for (
-      let index = startIndex;
-      index < SCREENING_TO_TIMING_NODE_KEYS.length;
-      index += 1
-    ) {
-      const nodeKey = SCREENING_TO_TIMING_NODE_KEYS[index];
-
-      if (!nodeKey) {
-        continue;
-      }
-
-      const nodeGraph = this.buildSingleNodeGraph(nodeKey);
-
-      await params.hooks?.onNodeStarted?.(nodeKey);
-      await params.hooks?.onNodeProgress?.(nodeKey, {
-        message: "节点执行中",
-      });
-
-      state = {
-        ...state,
-        currentNodeKey: nodeKey,
-      };
-
-      const result = (await nodeGraph.invoke(
-        state,
-      )) as typeof WorkflowState.State;
-      const progressPercent = Math.round(
-        ((index + 1) / SCREENING_TO_TIMING_NODE_KEYS.length) * 100,
-      );
-
-      state = {
-        ...(result as ScreeningToTimingGraphState),
-        currentNodeKey: nodeKey,
-        progressPercent,
-      };
-
-      await params.hooks?.onNodeSucceeded?.(nodeKey, state);
-    }
-
-    return state;
-  }
-
-  private buildSingleNodeGraph(nodeKey: ScreeningToTimingNodeKey) {
-    return new StateGraph(WorkflowState)
-      .addNode(nodeKey, (state) =>
-        this.nodeExecutors[nodeKey](state as ScreeningToTimingGraphState),
-      )
-      .addEdge(START, nodeKey)
-      .addEdge(nodeKey, END)
-      .compile();
   }
 }

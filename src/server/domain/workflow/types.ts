@@ -1,6 +1,7 @@
 import type { ConfidenceAnalysis } from "~/server/domain/intelligence/confidence";
 import type {
   CompanyEvidence,
+  CompanyResearchPack,
   ThemeNewsItem,
 } from "~/server/domain/intelligence/types";
 import type {
@@ -42,12 +43,26 @@ export const QUICK_RESEARCH_NODE_KEYS = [
   "agent5_competition_summary",
 ] as const;
 
-export const COMPANY_RESEARCH_NODE_KEYS = [
+export const COMPANY_RESEARCH_V1_NODE_KEYS = [
   "agent1_company_briefing",
   "agent2_concept_mapping",
   "agent3_question_design",
   "agent4_evidence_collection",
   "agent5_investment_synthesis",
+] as const;
+
+export const COMPANY_RESEARCH_NODE_KEYS = [
+  "agent1_company_briefing",
+  "agent2_concept_mapping",
+  "agent3_question_design",
+  "agent4_source_grounding",
+  "collector_official_sources",
+  "collector_financial_sources",
+  "collector_news_sources",
+  "collector_industry_sources",
+  "agent9_evidence_curation",
+  "agent10_reference_enrichment",
+  "agent11_investment_synthesis",
 ] as const;
 
 export const SCREENING_INSIGHT_PIPELINE_NODE_KEYS = [
@@ -56,6 +71,7 @@ export const SCREENING_INSIGHT_PIPELINE_NODE_KEYS = [
   "collect_evidence_batch",
   "synthesize_insights",
   "validate_insights",
+  "review_gate",
   "archive_insights",
   "schedule_review_reminders",
   "archive_empty_result",
@@ -106,7 +122,8 @@ export const TIMING_REVIEW_LOOP_NODE_KEYS = [
 
 export type QuickResearchNodeKey = (typeof QUICK_RESEARCH_NODE_KEYS)[number];
 export type CompanyResearchNodeKey =
-  (typeof COMPANY_RESEARCH_NODE_KEYS)[number];
+  | (typeof COMPANY_RESEARCH_V1_NODE_KEYS)[number]
+  | (typeof COMPANY_RESEARCH_NODE_KEYS)[number];
 export type ScreeningInsightPipelineNodeKey =
   (typeof SCREENING_INSIGHT_PIPELINE_NODE_KEYS)[number];
 export type TimingSignalPipelineNodeKey =
@@ -142,6 +159,8 @@ export type WorkflowTemplateCode =
 
 export type WorkflowEventStreamType =
   | "RUN_STARTED"
+  | "RUN_PAUSED"
+  | "RUN_RESUMED"
   | "NODE_STARTED"
   | "NODE_PROGRESS"
   | "NODE_SUCCEEDED"
@@ -157,6 +176,7 @@ export type WorkflowGraphState = Record<string, unknown> & {
   progressPercent: number;
   currentNodeKey?: WorkflowNodeKey;
   lastCompletedNodeKey?: WorkflowNodeKey;
+  resumeFromNodeKey?: WorkflowNodeKey;
   errors: string[];
 };
 
@@ -256,13 +276,33 @@ export type CompanyResearchQuestion = {
   dataHint: string;
 };
 
+export type CompanyResearchCollectorKey =
+  | "official_sources"
+  | "financial_sources"
+  | "news_sources"
+  | "industry_sources";
+
+export type CompanyResearchSourceType =
+  | "official"
+  | "financial"
+  | "news"
+  | "industry";
+
+export type CompanyResearchSourceTier = "first_party" | "third_party";
+
 export type CompanyEvidenceNote = {
+  referenceId: string;
   title: string;
-  url: string;
-  sourceType: "official" | "news" | "industry";
+  sourceName: string;
+  url?: string;
+  sourceType: CompanyResearchSourceType;
+  sourceTier: CompanyResearchSourceTier;
+  collectorKey: CompanyResearchCollectorKey;
+  isFirstParty: boolean;
   snippet: string;
   extractedFact: string;
   relevance: string;
+  publishedAt?: string;
 };
 
 export type CompanyQuestionFinding = {
@@ -270,7 +310,53 @@ export type CompanyQuestionFinding = {
   answer: string;
   confidence: "high" | "medium" | "low";
   evidenceUrls: string[];
+  referenceIds: string[];
   gaps: string[];
+};
+
+export type CompanyResearchReferenceItem = {
+  id: string;
+  title: string;
+  sourceName: string;
+  snippet: string;
+  extractedFact: string;
+  url?: string;
+  publishedAt?: string;
+  credibilityScore?: number;
+  sourceType: CompanyResearchSourceType | string;
+  sourceTier: CompanyResearchSourceTier;
+  collectorKey: CompanyResearchCollectorKey;
+  isFirstParty: boolean;
+};
+
+export type CompanyResearchGroundedSource = {
+  url: string;
+  title: string;
+  sourceType: CompanyResearchSourceType;
+  sourceTier: CompanyResearchSourceTier;
+  collectorKey: CompanyResearchCollectorKey;
+  isFirstParty: boolean;
+  reason: string;
+};
+
+export type CompanyResearchCollectorSummary = {
+  collectorKey: CompanyResearchCollectorKey;
+  label: string;
+  rawCount: number;
+  curatedCount: number;
+  referenceCount: number;
+  firstPartyCount: number;
+  configured: boolean;
+  notes: string[];
+};
+
+export type CompanyResearchCollectionSummary = {
+  collectors: CompanyResearchCollectorSummary[];
+  totalRawCount: number;
+  totalCuratedCount: number;
+  totalReferenceCount: number;
+  totalFirstPartyCount: number;
+  notes: string[];
 };
 
 export type CompanyResearchVerdict = {
@@ -287,7 +373,9 @@ export type CompanyResearchResultDto = {
   deepQuestions: CompanyResearchQuestion[];
   findings: CompanyQuestionFinding[];
   evidence: CompanyEvidenceNote[];
+  references: CompanyResearchReferenceItem[];
   verdict: CompanyResearchVerdict;
+  collectionSummary: CompanyResearchCollectionSummary;
   crawler: {
     provider: "firecrawl";
     configured: boolean;
@@ -304,8 +392,18 @@ export type CompanyResearchGraphState = WorkflowGraphState & {
   brief?: CompanyResearchBrief;
   conceptInsights?: CompanyConceptInsight[];
   deepQuestions?: CompanyResearchQuestion[];
+  groundedSources?: CompanyResearchGroundedSource[];
+  collectedEvidenceByCollector?: Partial<
+    Record<CompanyResearchCollectorKey, CompanyEvidenceNote[]>
+  >;
+  collectorPacks?: Partial<
+    Record<CompanyResearchCollectorKey, CompanyResearchPack | undefined>
+  >;
+  collectionNotes?: string[];
   evidence?: CompanyEvidenceNote[];
+  references?: CompanyResearchReferenceItem[];
   findings?: CompanyQuestionFinding[];
+  collectionSummary?: CompanyResearchCollectionSummary;
   crawlerSummary?: CompanyResearchResultDto["crawler"];
   finalReport?: CompanyResearchResultDto;
 };
@@ -437,6 +535,7 @@ export type ScreeningInsightPipelineGraphState = WorkflowGraphState & {
   currentNodeKey?: ScreeningInsightPipelineNodeKey;
   lastCompletedNodeKey?: ScreeningInsightPipelineNodeKey;
   screeningInput: ScreeningInsightPipelineInput;
+  reviewApproved: boolean;
   screeningSession?: ScreeningInsightPipelineSessionSnapshot;
   candidateUniverse: ScreeningInsightPipelineCandidate[];
   evidenceBundle: ScreeningInsightPipelineEvidenceBundle[];

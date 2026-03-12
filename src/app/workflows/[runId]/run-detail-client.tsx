@@ -15,6 +15,7 @@ import {
 import {
   COMPANY_RESEARCH_TEMPLATE_CODE,
   type CompanyResearchResultDto,
+  SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
 } from "~/server/domain/workflow/types";
 import { api } from "~/trpc/react";
 
@@ -120,6 +121,8 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "已取消",
 };
 
+statusLabels.PAUSED = "Paused";
+
 export function RunDetailClient({ runId }: RunDetailClientProps) {
   const utils = api.useUtils();
   const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([]);
@@ -145,6 +148,11 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
   );
 
   const cancelMutation = api.workflow.cancelRun.useMutation({
+    onSuccess: async () => {
+      await utils.workflow.getRun.invalidate({ runId });
+    },
+  });
+  const approveMutation = api.workflow.approveScreeningInsights.useMutation({
     onSuccess: async () => {
       await utils.workflow.getRun.invalidate({ runId });
     },
@@ -224,6 +232,9 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
   ]);
 
   const run = runQuery.data;
+  const canApprove =
+    run?.template.code === SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE &&
+    run.status === "PAUSED";
   const companyResult = isCompanyResearchResult(run?.result)
     ? run.result
     : null;
@@ -245,7 +256,20 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
           <Link href={backLink} className="app-button">
             返回任务列表
           </Link>
-          {run && (run.status === "RUNNING" || run.status === "PENDING") ? (
+          {canApprove ? (
+            <button
+              type="button"
+              onClick={() => approveMutation.mutate({ runId })}
+              disabled={approveMutation.isPending}
+              className="app-button app-button-primary"
+            >
+              {approveMutation.isPending ? "Resuming..." : "Approve & Resume"}
+            </button>
+          ) : null}
+          {run &&
+          (run.status === "RUNNING" ||
+            run.status === "PENDING" ||
+            run.status === "PAUSED") ? (
             <button
               type="button"
               onClick={() => cancelMutation.mutate({ runId })}
@@ -337,6 +361,17 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                   <div className="mt-4 rounded-[10px] border border-[rgba(239,142,157,0.34)] bg-[rgba(97,39,50,0.2)] px-4 py-3 text-sm text-[var(--app-danger)]">
                     {run.errorCode ? `${run.errorCode}: ` : ""}
                     {run.errorMessage}
+                  </div>
+                ) : null}
+                {canApprove ? (
+                  <div className="mt-4 rounded-[10px] border border-[rgba(191,154,96,0.34)] bg-[rgba(77,58,27,0.22)] px-4 py-3 text-sm text-[var(--app-warning)]">
+                    Manual review is required before this screening insight
+                    pipeline can continue.
+                  </div>
+                ) : null}
+                {approveMutation.error ? (
+                  <div className="mt-4 rounded-[10px] border border-[rgba(239,142,157,0.34)] bg-[rgba(97,39,50,0.2)] px-4 py-3 text-sm text-[var(--app-danger)]">
+                    {approveMutation.error.message}
                   </div>
                 ) : null}
               </div>

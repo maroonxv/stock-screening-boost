@@ -15,6 +15,8 @@ type RouteContext = {
 function mapEventType(eventType: string): WorkflowEventStreamType | null {
   const mapping: Record<string, WorkflowEventStreamType> = {
     RUN_STARTED: "RUN_STARTED",
+    RUN_PAUSED: "RUN_PAUSED",
+    RUN_RESUMED: "RUN_RESUMED",
     NODE_STARTED: "NODE_STARTED",
     NODE_PROGRESS: "NODE_PROGRESS",
     NODE_SUCCEEDED: "NODE_SUCCEEDED",

@@ -402,7 +402,11 @@ export class PrismaWorkflowRunRepository {
         userId,
         idempotencyKey,
         status: {
-          in: [WorkflowRunStatus.PENDING, WorkflowRunStatus.RUNNING],
+          in: [
+            WorkflowRunStatus.PENDING,
+            WorkflowRunStatus.RUNNING,
+            WorkflowRunStatus.PAUSED,
+          ],
         },
       },
       orderBy: {
@@ -580,7 +584,10 @@ export class PrismaWorkflowRunRepository {
         return null;
       }
 
-      if (run.status === WorkflowRunStatus.PENDING) {
+      if (
+        run.status === WorkflowRunStatus.PENDING ||
+        run.status === WorkflowRunStatus.PAUSED
+      ) {
         const now = new Date();
         const updated = await tx.workflowRun.update({
           where: {
@@ -603,7 +610,12 @@ export class PrismaWorkflowRunRepository {
         await this.createEventTx(tx, {
           runId,
           eventType: WorkflowEventType.RUN_CANCELLED,
-          payload: { reason: "pending_cancelled" },
+          payload: {
+            reason:
+              run.status === WorkflowRunStatus.PAUSED
+                ? "paused_cancelled"
+                : "pending_cancelled",
+          },
         });
 
         return updated;
@@ -969,6 +981,78 @@ export class PrismaWorkflowRunRepository {
         eventType: WorkflowEventType.RUN_CANCELLED,
         payload: {
           reason: params.reason,
+        },
+      });
+
+      return run;
+    });
+  }
+
+  async markRunPaused(params: {
+    runId: string;
+    currentNodeKey?: string;
+    progressPercent: number;
+    reason: string;
+    eventPayload?: Record<string, unknown>;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const run = await tx.workflowRun.update({
+        where: {
+          id: params.runId,
+        },
+        data: {
+          status: WorkflowRunStatus.PAUSED,
+          currentNodeKey: params.currentNodeKey,
+          progressPercent: params.progressPercent,
+          completedAt: null,
+          errorCode: null,
+          errorMessage: null,
+        },
+      });
+
+      await this.createEventTx(tx, {
+        runId: params.runId,
+        eventType: WorkflowEventType.RUN_PAUSED,
+        payload: {
+          reason: params.reason,
+          nodeKey: params.currentNodeKey,
+          ...params.eventPayload,
+        },
+      });
+
+      return run;
+    });
+  }
+
+  async markRunResumed(params: {
+    runId: string;
+    currentNodeKey?: string;
+    progressPercent: number;
+    reason?: string;
+    eventPayload?: Record<string, unknown>;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const run = await tx.workflowRun.update({
+        where: {
+          id: params.runId,
+        },
+        data: {
+          status: WorkflowRunStatus.RUNNING,
+          currentNodeKey: params.currentNodeKey,
+          progressPercent: params.progressPercent,
+          completedAt: null,
+          errorCode: null,
+          errorMessage: null,
+        },
+      });
+
+      await this.createEventTx(tx, {
+        runId: params.runId,
+        eventType: WorkflowEventType.RUN_RESUMED,
+        payload: {
+          reason: params.reason ?? "user_resumed",
+          nodeKey: params.currentNodeKey,
+          ...params.eventPayload,
         },
       });
 

@@ -63,6 +63,7 @@ function formatConfidenceLevel(level?: string) {
 const statusLabels: Record<string, string> = {
   PENDING: "Waiting",
   RUNNING: "Running",
+  PAUSED: "Paused",
   SUCCEEDED: "Succeeded",
   FAILED: "Failed",
   CANCELLED: "Cancelled",
@@ -148,6 +149,7 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
 
         if (
           status === "SUCCEEDED" ||
+          status === "PAUSED" ||
           status === "FAILED" ||
           status === "CANCELLED"
         ) {
@@ -164,8 +166,16 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
       await utils.workflow.getRun.invalidate({ runId });
     },
   });
+  const approveMutation = api.workflow.approveScreeningInsights.useMutation({
+    onSuccess: async () => {
+      await utils.workflow.getRun.invalidate({ runId });
+    },
+  });
 
   const run = runQuery.data;
+  const canApprove =
+    run?.template.code === SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE &&
+    run.status === "PAUSED";
   const digest = buildResearchDigest({
     templateCode: run?.template.code,
     query: run?.query,
@@ -192,7 +202,20 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
           <Link href={`/workflows/${runId}/debug`} className="app-button">
             Debug View
           </Link>
-          {run && (run.status === "RUNNING" || run.status === "PENDING") ? (
+          {canApprove ? (
+            <button
+              type="button"
+              onClick={() => approveMutation.mutate({ runId })}
+              disabled={approveMutation.isPending}
+              className="app-button app-button-primary"
+            >
+              {approveMutation.isPending ? "Resuming..." : "Approve & Resume"}
+            </button>
+          ) : null}
+          {run &&
+          (run.status === "RUNNING" ||
+            run.status === "PENDING" ||
+            run.status === "PAUSED") ? (
             <button
               type="button"
               onClick={() => cancelMutation.mutate({ runId })}
@@ -256,10 +279,36 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
             }
           />
 
+          {canApprove ? (
+            <ActionBanner
+              title="Approval required"
+              description="This screening insight pipeline is paused after validation because some insight cards need manual review."
+              tone="warning"
+              actions={
+                <button
+                  type="button"
+                  onClick={() => approveMutation.mutate({ runId })}
+                  disabled={approveMutation.isPending}
+                  className="app-button app-button-primary"
+                >
+                  {approveMutation.isPending
+                    ? "Resuming..."
+                    : "Approve & Resume"}
+                </button>
+              }
+            />
+          ) : null}
+
           {run.errorMessage ? (
             <div className="rounded-[16px] border border-[rgba(201,119,132,0.34)] bg-[rgba(81,33,43,0.22)] px-4 py-3 text-sm text-[var(--app-danger)]">
               {run.errorCode ? `${run.errorCode}: ` : ""}
               {run.errorMessage}
+            </div>
+          ) : null}
+
+          {approveMutation.error ? (
+            <div className="rounded-[16px] border border-[rgba(201,119,132,0.34)] bg-[rgba(81,33,43,0.22)] px-4 py-3 text-sm text-[var(--app-danger)]">
+              {approveMutation.error.message}
             </div>
           ) : null}
 

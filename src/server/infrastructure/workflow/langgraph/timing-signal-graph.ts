@@ -1,4 +1,4 @@
-import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
+import { Annotation, StateGraph } from "@langchain/langgraph";
 import type { TimingAnalysisService } from "~/server/application/timing/timing-analysis-service";
 import { resolveTimingPresetConfig } from "~/server/domain/timing/preset";
 import type {
@@ -16,17 +16,20 @@ import type { PrismaTimingAnalysisCardRepository } from "~/server/infrastructure
 import type { PrismaTimingPresetRepository } from "~/server/infrastructure/timing/prisma-timing-preset-repository";
 import type { PrismaTimingSignalSnapshotRepository } from "~/server/infrastructure/timing/prisma-timing-signal-snapshot-repository";
 import type { PythonTimingDataClient } from "~/server/infrastructure/timing/python-timing-data-client";
-import type {
-  WorkflowGraphBuildInitialStateParams,
-  WorkflowGraphExecutionHooks,
-  WorkflowGraphRunner,
-} from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import type { WorkflowGraphBuildInitialStateParams } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
+import { BaseWorkflowLangGraph } from "~/server/infrastructure/workflow/langgraph/workflow-graph-base";
+import {
+  addResumeStart,
+  addSequentialEdges,
+  addWorkflowNodes,
+} from "~/server/infrastructure/workflow/langgraph/workflow-graph-builder";
 
 const WorkflowState = Annotation.Root({
   runId: Annotation<string>,
   userId: Annotation<string>,
   query: Annotation<string>,
   progressPercent: Annotation<number>,
+  resumeFromNodeKey: Annotation<WorkflowNodeKey | undefined>,
   currentNodeKey: Annotation<TimingSignalPipelineNodeKey | undefined>,
   timingInput: Annotation<TimingSignalPipelineInput>,
   preset: Annotation<TimingSignalPipelineGraphState["preset"]>,
@@ -54,27 +57,23 @@ type NodeExecutor = (
   state: TimingSignalPipelineGraphState,
 ) => Promise<Partial<TimingSignalPipelineGraphState>>;
 
-export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
+export class TimingSignalPipelineLangGraph extends BaseWorkflowLangGraph<
+  TimingSignalPipelineGraphState,
+  TimingSignalPipelineNodeKey
+> {
   readonly templateCode = TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE;
 
-  private readonly nodeExecutors: Record<
-    TimingSignalPipelineNodeKey,
-    NodeExecutor
-  >;
-
-  constructor(
-    private readonly deps: {
-      timingDataClient: PythonTimingDataClient;
-      analysisService: TimingAnalysisService;
-      presetRepository: PrismaTimingPresetRepository;
-      signalSnapshotRepository: PrismaTimingSignalSnapshotRepository;
-      analysisCardRepository: PrismaTimingAnalysisCardRepository;
-    },
-  ) {
-    this.nodeExecutors = {
+  constructor(deps: {
+    timingDataClient: PythonTimingDataClient;
+    analysisService: TimingAnalysisService;
+    presetRepository: PrismaTimingPresetRepository;
+    signalSnapshotRepository: PrismaTimingSignalSnapshotRepository;
+    analysisCardRepository: PrismaTimingAnalysisCardRepository;
+  }) {
+    const nodeExecutors: Record<TimingSignalPipelineNodeKey, NodeExecutor> = {
       load_targets: async (state) => {
         const preset = state.timingInput.presetId
-          ? await this.deps.presetRepository.getByIdForUser(
+          ? await deps.presetRepository.getByIdForUser(
               state.userId,
               state.timingInput.presetId,
             )
@@ -91,7 +90,7 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
         };
       },
       fetch_signal_snapshots: async (state) => {
-        const snapshot = await this.deps.timingDataClient.getSignal({
+        const snapshot = await deps.timingDataClient.getSignal({
           stockCode: state.timingInput.stockCode,
           asOfDate: state.timingInput.asOfDate,
         });
@@ -102,14 +101,13 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
         };
       },
       technical_signal_agent: async (state) => ({
-        technicalAssessments:
-          this.deps.analysisService.buildTechnicalAssessments(
-            state.signalSnapshots,
-            state.presetConfig,
-          ),
+        technicalAssessments: deps.analysisService.buildTechnicalAssessments(
+          state.signalSnapshots,
+          state.presetConfig,
+        ),
       }),
       timing_synthesis_agent: async (state) => ({
-        cards: this.deps.analysisService.buildCards({
+        cards: deps.analysisService.buildCards({
           userId: state.userId,
           workflowRunId: state.runId,
           sourceType: "single",
@@ -122,7 +120,7 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
       }),
       persist_cards: async (state) => {
         const persistedSignalSnapshots =
-          await this.deps.signalSnapshotRepository.createMany({
+          await deps.signalSnapshotRepository.createMany({
             userId: state.userId,
             workflowRunId: state.runId,
             sourceType: "single",
@@ -137,13 +135,12 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
           ]),
         );
 
-        const persistedCards =
-          await this.deps.analysisCardRepository.createMany({
-            items: state.cards.map((card) => ({
-              ...card,
-              signalSnapshotId: snapshotByCode.get(card.stockCode) ?? "",
-            })),
-          });
+        const persistedCards = await deps.analysisCardRepository.createMany({
+          items: state.cards.map((card) => ({
+            ...card,
+            signalSnapshotId: snapshotByCode.get(card.stockCode) ?? "",
+          })),
+        });
 
         return {
           persistedSignalSnapshots,
@@ -151,10 +148,25 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
         };
       },
     };
-  }
 
-  getNodeOrder() {
-    return [...TIMING_SIGNAL_PIPELINE_NODE_KEYS];
+    const graphBuilder = new StateGraph(WorkflowState) as StateGraph<
+      unknown,
+      TimingSignalPipelineGraphState,
+      Partial<TimingSignalPipelineGraphState>,
+      string
+    >;
+    addWorkflowNodes(
+      graphBuilder,
+      TIMING_SIGNAL_PIPELINE_NODE_KEYS,
+      nodeExecutors,
+    );
+    addResumeStart(graphBuilder, TIMING_SIGNAL_PIPELINE_NODE_KEYS);
+    addSequentialEdges(graphBuilder, TIMING_SIGNAL_PIPELINE_NODE_KEYS);
+
+    super({
+      graph: graphBuilder.compile(),
+      nodeOrder: TIMING_SIGNAL_PIPELINE_NODE_KEYS,
+    });
   }
 
   buildInitialState(
@@ -165,6 +177,7 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
       userId: params.userId,
       query: params.query,
       progressPercent: params.progressPercent,
+      resumeFromNodeKey: undefined,
       currentNodeKey: undefined,
       lastCompletedNodeKey: undefined,
       timingInput: params.input as TimingSignalPipelineInput,
@@ -242,69 +255,5 @@ export class TimingSignalPipelineLangGraph implements WorkflowGraphRunner {
       cardIds: timingState.persistedCards.map((card) => card.id),
       stockCount: timingState.persistedCards.length,
     };
-  }
-
-  async execute(params: {
-    initialState: WorkflowGraphState;
-    startNodeIndex?: number;
-    hooks?: WorkflowGraphExecutionHooks;
-  }) {
-    let state = {
-      ...(params.initialState as TimingSignalPipelineGraphState),
-      errors: (params.initialState.errors ?? []) as string[],
-    };
-
-    const startIndex = params.startNodeIndex ?? 0;
-
-    for (
-      let index = startIndex;
-      index < TIMING_SIGNAL_PIPELINE_NODE_KEYS.length;
-      index += 1
-    ) {
-      const nodeKey = TIMING_SIGNAL_PIPELINE_NODE_KEYS[index];
-
-      if (!nodeKey) {
-        continue;
-      }
-
-      const nodeGraph = this.buildSingleNodeGraph(nodeKey);
-
-      await params.hooks?.onNodeStarted?.(nodeKey);
-      await params.hooks?.onNodeProgress?.(nodeKey, {
-        message: "节点执行中",
-      });
-
-      state = {
-        ...state,
-        currentNodeKey: nodeKey,
-      };
-
-      const result = (await nodeGraph.invoke(
-        state,
-      )) as typeof WorkflowState.State;
-      const progressPercent = Math.round(
-        ((index + 1) / TIMING_SIGNAL_PIPELINE_NODE_KEYS.length) * 100,
-      );
-
-      state = {
-        ...(result as TimingSignalPipelineGraphState),
-        currentNodeKey: nodeKey,
-        progressPercent,
-      };
-
-      await params.hooks?.onNodeSucceeded?.(nodeKey, state);
-    }
-
-    return state;
-  }
-
-  private buildSingleNodeGraph(nodeKey: TimingSignalPipelineNodeKey) {
-    return new StateGraph(WorkflowState)
-      .addNode(nodeKey, (state) =>
-        this.nodeExecutors[nodeKey](state as TimingSignalPipelineGraphState),
-      )
-      .addEdge(START, nodeKey)
-      .addEdge(nodeKey, END)
-      .compile();
   }
 }

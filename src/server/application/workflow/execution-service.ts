@@ -9,6 +9,7 @@ import { ReviewPlanPolicy } from "~/server/domain/intelligence/services/review-p
 import {
   WORKFLOW_ERROR_CODES,
   WorkflowDomainError,
+  WorkflowPauseError,
 } from "~/server/domain/workflow/errors";
 import type {
   WorkflowEventStreamType,
@@ -47,6 +48,10 @@ function mapEventType(
   switch (eventType) {
     case WorkflowEventType.RUN_STARTED:
       return "RUN_STARTED";
+    case WorkflowEventType.RUN_PAUSED:
+      return "RUN_PAUSED";
+    case WorkflowEventType.RUN_RESUMED:
+      return "RUN_RESUMED";
     case WorkflowEventType.RUN_SUCCEEDED:
       return "RUN_SUCCEEDED";
     case WorkflowEventType.RUN_FAILED:
@@ -394,6 +399,39 @@ export class WorkflowExecutionService {
           runId,
           state.progressPercent,
           state.currentNodeKey,
+        );
+        return;
+      }
+
+      if (error instanceof WorkflowPauseError) {
+        const pausedState =
+          error.state && isRecord(error.state)
+            ? ({
+                ...state,
+                ...error.state,
+              } as WorkflowGraphState)
+            : state;
+        const pausedNodeKey =
+          typeof pausedState.currentNodeKey === "string"
+            ? pausedState.currentNodeKey
+            : undefined;
+
+        state = pausedState;
+
+        await this.runtimeStore.saveCheckpoint(runId, pausedState);
+        await this.repository.markRunPaused({
+          runId,
+          currentNodeKey: pausedNodeKey,
+          progressPercent: pausedState.progressPercent,
+          reason: error.reason,
+          eventPayload: pausedNodeKey
+            ? graph.getNodeEventPayload(pausedNodeKey, pausedState)
+            : {},
+        });
+        await this.publishLatestEvent(
+          runId,
+          pausedState.progressPercent,
+          pausedNodeKey,
         );
         return;
       }

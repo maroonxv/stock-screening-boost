@@ -37,6 +37,12 @@ function mapWorkflowError(error: unknown): TRPCError {
       return new TRPCError({ code: "BAD_REQUEST", message: error.message });
     }
 
+    if (
+      error.code === WORKFLOW_ERROR_CODES.WORKFLOW_INVALID_STATUS_TRANSITION
+    ) {
+      return new TRPCError({ code: "BAD_REQUEST", message: error.message });
+    }
+
     return new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: error.message,
@@ -189,6 +195,10 @@ const listRunsInput = z.object({
 });
 
 const cancelRunInput = z.object({
+  runId: z.string().cuid(),
+});
+
+const approveScreeningInsightsInput = z.object({
   runId: z.string().cuid(),
 });
 
@@ -532,6 +542,22 @@ export const workflowRouter = createTRPCRouter({
         const commandService = new WorkflowCommandService(repository);
 
         return await commandService.cancelRun(ctx.session.user.id, input.runId);
+      } catch (error) {
+        throw mapWorkflowError(error);
+      }
+    }),
+
+  approveScreeningInsights: protectedProcedure
+    .input(approveScreeningInsightsInput)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const repository = new PrismaWorkflowRunRepository(ctx.db);
+        const commandService = new WorkflowCommandService(repository);
+
+        return await commandService.approveScreeningInsights({
+          userId: ctx.session.user.id,
+          runId: input.runId,
+        });
       } catch (error) {
         throw mapWorkflowError(error);
       }

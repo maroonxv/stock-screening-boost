@@ -538,7 +538,7 @@ export function ScreeningStudioClient() {
   return (
     <WorkspaceShell
       section="screening"
-      eyebrow="Opportunity Pool"
+      eyebrow="机会池"
       title="机会池"
       actions={
         <>

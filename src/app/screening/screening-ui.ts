@@ -96,7 +96,11 @@ export const sessionStatusClassMap: Record<string, string> = {
 export function createDefaultCondition(
   field: IndicatorField = IndicatorField.PE,
 ): FilterConditionInput {
-  const metadata = indicatorMetadataMap.get(field)!;
+  const metadata = indicatorMetadataMap.get(field);
+
+  if (!metadata) {
+    throw new Error(`未找到指标元数据：${field}`);
+  }
 
   if (metadata.category === IndicatorCategory.TIME_SERIES) {
     return {
@@ -262,10 +266,10 @@ export function formatDuration(durationMs: number | null | undefined): string {
   }
 
   if (durationMs < 1000) {
-    return `${Math.round(durationMs)} ms`;
+    return `${Math.round(durationMs)} 毫秒`;
   }
 
-  return `${(durationMs / 1000).toFixed(2)} s`;
+  return `${(durationMs / 1000).toFixed(2)} 秒`;
 }
 
 function toRecord(value: unknown): Record<string, unknown> | null {

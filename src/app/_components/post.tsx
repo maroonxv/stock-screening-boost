@@ -19,18 +19,16 @@ export function LatestPost() {
 
   return (
     <Panel
-      title="Latest Post"
+      title="最新帖子"
       description="保留一个简洁的调试入口，视觉上与新的暗色工作台保持一致。"
       className="w-full max-w-sm"
     >
       {latestPost ? (
         <p className="truncate text-sm text-[var(--app-text)]">
-          Your most recent post: {latestPost.name}
+          最近一条帖子：{latestPost.name}
         </p>
       ) : (
-        <p className="text-sm text-[var(--app-text-muted)]">
-          You have no posts yet.
-        </p>
+        <p className="text-sm text-[var(--app-text-muted)]">还没有帖子。</p>
       )}
       <form
         onSubmit={(e) => {
@@ -41,7 +39,7 @@ export function LatestPost() {
       >
         <input
           type="text"
-          placeholder="Title"
+          placeholder="标题"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="app-input"
@@ -51,7 +49,7 @@ export function LatestPost() {
           className="app-button app-button-primary"
           disabled={createPost.isPending}
         >
-          {createPost.isPending ? "Submitting..." : "Submit"}
+          {createPost.isPending ? "提交中..." : "提交"}
         </button>
       </form>
     </Panel>

@@ -80,6 +80,12 @@ const marketRegimeToneMap: Record<
   RISK_OFF: "warning",
 };
 
+const marketRegimeLabelMap: Record<string, string> = {
+  RISK_ON: "风险偏好修复",
+  NEUTRAL: "中性环境",
+  RISK_OFF: "防守环境",
+};
+
 const reviewVerdictLabelMap: Record<string, string> = {
   SUCCESS: "验证通过",
   MIXED: "表现一般",
@@ -441,7 +447,7 @@ export function TimingClient() {
   return (
     <WorkspaceShell
       section="timing"
-      eyebrow="Portfolio Decisions"
+      eyebrow="组合决策"
       title="择时组合"
       actions={
         <>
@@ -506,7 +512,7 @@ export function TimingClient() {
                       tone={actionToneMap[recommendation.action] ?? "neutral"}
                     />
                     <StatusPill
-                      label={`P${recommendation.priority}`}
+                      label={`优先级 ${recommendation.priority}`}
                       tone="warning"
                     />
                     <StatusPill
@@ -532,7 +538,13 @@ export function TimingClient() {
               <article className="rounded-[14px] border border-[var(--app-border)] bg-[rgba(14,18,24,0.88)] p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusPill
-                    label={latestRecommendations[0]?.marketRegime ?? "NEUTRAL"}
+                    label={
+                      marketRegimeLabelMap[
+                        latestRecommendations[0]?.marketRegime ?? "NEUTRAL"
+                      ] ??
+                      latestRecommendations[0]?.marketRegime ??
+                      "NEUTRAL"
+                    }
                     tone={
                       marketRegimeToneMap[
                         latestRecommendations[0]?.marketRegime ?? "NEUTRAL"
@@ -618,7 +630,7 @@ export function TimingClient() {
         <Panel title="批量信号">
           <div className="grid gap-4">
             <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
-              Watchlist
+              自选清单
               <select
                 value={watchListId}
                 onChange={(event) => setWatchListId(event.target.value)}
@@ -982,7 +994,13 @@ export function TimingClient() {
               <div className="grid gap-3 rounded-[12px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.78)] p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusPill
-                    label={latestRecommendations[0]?.marketRegime ?? "NEUTRAL"}
+                    label={
+                      marketRegimeLabelMap[
+                        latestRecommendations[0]?.marketRegime ?? "NEUTRAL"
+                      ] ??
+                      latestRecommendations[0]?.marketRegime ??
+                      "NEUTRAL"
+                    }
                     tone={
                       marketRegimeToneMap[
                         latestRecommendations[0]?.marketRegime ?? "NEUTRAL"
@@ -1047,7 +1065,7 @@ export function TimingClient() {
                         tone={actionToneMap[recommendation.action] ?? "neutral"}
                       />
                       <StatusPill
-                        label={`P${recommendation.priority}`}
+                        label={`优先级 ${recommendation.priority}`}
                         tone="info"
                       />
                     </div>
@@ -1297,7 +1315,7 @@ export function TimingClient() {
             <option value="screening">筛选联动</option>
           </select>
           <div className="text-xs leading-6 text-[var(--app-text-soft)]">
-            基础信号不含 HOLD / TRIM / EXIT。
+            基础信号不含持有 / 减仓 / 退出。
           </div>
         </div>
 
@@ -1366,7 +1384,7 @@ export function TimingClient() {
                     </div>
                     <div className="rounded-[10px] border border-[var(--app-border)] bg-[rgba(15,20,27,0.78)] px-4 py-3">
                       <div className="text-xs text-[var(--app-text-soft)]">
-                        MACD Hist
+                        MACD 柱值
                       </div>
                       <div className="mt-2 text-xl text-[var(--app-text)]">
                         {indicators?.macd.histogram.toFixed(2) ?? "-"}

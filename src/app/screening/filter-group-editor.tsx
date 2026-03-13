@@ -87,7 +87,7 @@ export function FilterGroupEditor(props: {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--app-text-soft)]">
-            {isRoot ? "ROOT GROUP" : "SUB GROUP"}
+            {isRoot ? "根分组" : "子分组"}
           </p>
           <p className="mt-2 text-sm font-medium text-[var(--app-text)]">
             {buildGroupSubtitle(group)}

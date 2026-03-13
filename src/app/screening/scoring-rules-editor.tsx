@@ -196,8 +196,8 @@ export function ScoringRulesEditor(props: {
           }
           className="app-select max-w-[180px]"
         >
-          <option value={NormalizationMethod.MIN_MAX}>MIN_MAX</option>
-          <option value={NormalizationMethod.Z_SCORE}>Z_SCORE</option>
+          <option value={NormalizationMethod.MIN_MAX}>最小-最大归一化</option>
+          <option value={NormalizationMethod.Z_SCORE}>Z 分数归一化</option>
         </select>
       </div>
     </section>

@@ -234,7 +234,7 @@ function buildCompanyResearchDigest(
     metrics: [
       ...buildConfidenceMetrics(result.confidenceAnalysis),
       { label: "证据条数", value: String(result.evidence.length) },
-      { label: "Reference 数", value: String(referenceCount) },
+      { label: "引用数量", value: String(referenceCount) },
       { label: "一手信源", value: String(firstPartyCount) },
       { label: "高信度回答", value: String(highConfidenceCount) },
       { label: "待核验缺口", value: String(gapCount) },
@@ -261,13 +261,13 @@ function buildGenericDigest(params: {
       headline: firstSentence(params.query),
       summary:
         params.currentNodeKey && params.currentNodeKey.length > 0
-          ? `当前正在处理: ${params.currentNodeKey}`
+          ? `当前正在处理：${params.currentNodeKey}`
           : "研究正在生成中，稍后可查看正式结论。",
       bullPoints: [],
       bearPoints: [],
       evidence: [],
       gaps: [],
-      nextActions: [`等待本次研究完成: ${params.progressPercent ?? 0}%`],
+      nextActions: [`等待本次研究完成：${params.progressPercent ?? 0}%`],
       metrics: [
         { label: "当前进度", value: `${params.progressPercent ?? 0}%` },
       ],
@@ -277,18 +277,18 @@ function buildGenericDigest(params: {
   if (params.status === "PAUSED") {
     return {
       templateLabel,
-      verdictLabel: "等待审批",
+      verdictLabel: "待处理",
       verdictTone: "warning",
       headline: firstSentence(params.query),
       summary:
         params.currentNodeKey && params.currentNodeKey.length > 0
-          ? `任务暂停于 ${params.currentNodeKey}，需要人工审批后继续。`
-          : "任务已暂停，等待人工审批。",
+          ? `任务暂停于 ${params.currentNodeKey}，需要补充信息或人工审批后继续。`
+          : "任务已暂停，等待补充信息或人工审批。",
       bullPoints: [],
       bearPoints: [],
       evidence: [],
-      gaps: ["审批后才能继续执行剩余节点。"],
-      nextActions: ["Approve & Resume"],
+      gaps: ["补充必要信息或完成审批后，才能继续执行剩余节点。"],
+      nextActions: ["补充信息或审批后继续"],
       metrics: [
         { label: "当前进度", value: `${params.progressPercent ?? 0}%` },
       ],

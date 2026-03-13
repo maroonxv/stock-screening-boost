@@ -95,7 +95,7 @@ export function WorkspaceShell(props: {
             <div className="flex items-center gap-3">
               <DeskMark />
               <div>
-                <p className="market-kicker">Stock Screening Boost</p>
+                <p className="market-kicker">股票筛选增强</p>
                 <p className="app-display mt-1 text-lg leading-none text-[var(--app-text)]">
                   投资决策终端
                 </p>

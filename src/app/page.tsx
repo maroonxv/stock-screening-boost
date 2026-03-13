@@ -149,7 +149,7 @@ export default async function Home() {
     <HydrateClient>
       <WorkspaceShell
         section="home"
-        eyebrow="Today Dashboard"
+        eyebrow="今日看板"
         title="今日投资看板"
         description="聚合重点建议、风险约束和在跑流程。"
         actions={

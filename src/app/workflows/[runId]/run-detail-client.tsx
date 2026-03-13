@@ -12,6 +12,7 @@ import {
   statusTone,
   WorkspaceShell,
 } from "~/app/_components/ui";
+import { getTemplateLabel } from "~/app/workflows/research-view-models";
 import {
   COMPANY_RESEARCH_TEMPLATE_CODE,
   type CompanyResearchResultDto,
@@ -139,7 +140,9 @@ function buildContinuationHref(params: {
   }
 
   const search = new URLSearchParams();
-  const suggestedInputPatch = isRecord(params.clarificationPayload?.suggestedInputPatch)
+  const suggestedInputPatch = isRecord(
+    params.clarificationPayload?.suggestedInputPatch,
+  )
     ? params.clarificationPayload.suggestedInputPatch
     : {};
   const mergedInput = {
@@ -180,7 +183,9 @@ function buildContinuationHref(params: {
   if (typeof researchPreferences.researchGoal === "string") {
     search.set("researchGoal", researchPreferences.researchGoal);
   }
-  const mustAnswerQuestions = listParam(researchPreferences.mustAnswerQuestions);
+  const mustAnswerQuestions = listParam(
+    researchPreferences.mustAnswerQuestions,
+  );
   if (mustAnswerQuestions) {
     search.set("mustAnswerQuestions", mustAnswerQuestions);
   }
@@ -217,7 +222,20 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "已取消",
 };
 
-statusLabels.PAUSED = "寰呰ˉ鍏呬俊鎭?";
+statusLabels.PAUSED = "已暂停";
+
+const eventTypeLabelMap: Record<string, string> = {
+  RUN_STARTED: "任务开始",
+  RUN_PAUSED: "任务暂停",
+  RUN_RESUMED: "任务恢复",
+  NODE_STARTED: "节点开始",
+  NODE_PROGRESS: "节点进度",
+  NODE_SUCCEEDED: "节点完成",
+  NODE_FAILED: "节点失败",
+  RUN_SUCCEEDED: "任务完成",
+  RUN_FAILED: "任务失败",
+  RUN_CANCELLED: "任务取消",
+};
 
 export function RunDetailClient({ runId }: RunDetailClientProps) {
   const utils = api.useUtils();
@@ -371,7 +389,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
   return (
     <WorkspaceShell
       section={section}
-      eyebrow="Research Run Detail"
+      eyebrow="研究运行详情"
       title="研究任务详情"
       description="以运行视角查看状态、进度、节点、时间线和结果摘要。对进行中的任务，页面会自动接收事件并刷新。"
       actions={
@@ -380,8 +398,11 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
             返回任务列表
           </Link>
           {clarificationPayload && continuationHref ? (
-            <Link href={continuationHref} className="app-button app-button-primary">
-              琛ュ厖淇℃伅鍚庨噸鏂板彂璧?
+            <Link
+              href={continuationHref}
+              className="app-button app-button-primary"
+            >
+              补充信息后重新发起
             </Link>
           ) : null}
           {canApprove ? (
@@ -391,7 +412,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
               disabled={approveMutation.isPending}
               className="app-button app-button-primary"
             >
-              {approveMutation.isPending ? "Resuming..." : "Approve & Resume"}
+              {approveMutation.isPending ? "恢复中..." : "审批并继续"}
             </button>
           ) : null}
           {run &&
@@ -471,7 +492,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                     tone={statusTone(run.status)}
                   />
                   <StatusPill
-                    label={run.template.code}
+                    label={getTemplateLabel(run.template.code)}
                     tone={
                       run.template.code === COMPANY_RESEARCH_TEMPLATE_CODE
                         ? "info"
@@ -493,8 +514,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                 ) : null}
                 {canApprove ? (
                   <div className="mt-4 rounded-[10px] border border-[rgba(191,154,96,0.34)] bg-[rgba(77,58,27,0.22)] px-4 py-3 text-sm text-[var(--app-warning)]">
-                    Manual review is required before this screening insight
-                    pipeline can continue.
+                    这条筛选洞察流程需要人工复核后才能继续执行。
                   </div>
                 ) : null}
                 {approveMutation.error ? (
@@ -512,7 +532,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                   {formatDate(run.completedAt)}
                 </p>
                 <p className="mt-4 text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
-                  Run ID
+                  任务 ID
                 </p>
                 <p className="app-data mt-3 break-all text-[11px] text-[var(--app-text-soft)]">
                   {runId}
@@ -523,15 +543,15 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
 
           {clarificationPayload ? (
             <Panel
-              title="寰呰ˉ鍏呬俊鎭?"
-              description="杩欐 research 鍦?clarify_scope 闃舵鏆傚仠锛岃ˉ鍏呰寖鍥村悗鍙洿鎺ラ噸鏂板彂璧峰悓绫讳换鍔°€?"
+              title="待补充信息"
+              description="本次研究在范围澄清阶段暂停，补充缺失信息后可直接重新发起同类任务。"
             >
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
                 <div className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4">
                   <p className="text-sm leading-7 text-[var(--app-text)]">
                     {typeof clarificationPayload.question === "string"
                       ? clarificationPayload.question
-                      : "璇峰鐮旂┒鑼冨洿鍋氳ˉ鍏呭悗鍐嶆鍙戣捣銆?"}
+                      : "请补充研究范围后再重新发起任务。"}
                   </p>
                   {Array.isArray(clarificationPayload.missingScopeFields) &&
                   clarificationPayload.missingScopeFields.length > 0 ? (
@@ -557,17 +577,17 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                 </div>
                 <div className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4 text-sm text-[var(--app-text-muted)]">
                   <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
-                    Next step
+                    下一步
                   </p>
                   <p className="mt-3 leading-6">
-                    琛ュ厖鍏抽敭鍙橀噺鍚庯紝绯荤粺浼氫繚鐣欏師杈撳叆骞惰嚜鍔ㄩ濉缓璁瓧娈点€?
+                    补充关键变量后，系统会保留原始输入，并自动预填建议字段。
                   </p>
                   {continuationHref ? (
                     <Link
                       href={continuationHref}
                       className="app-button app-button-primary mt-4 inline-flex"
                     >
-                      杩涘叆琛ュ厖琛ㄥ崟
+                      进入补充表单
                     </Link>
                   ) : null}
                 </div>
@@ -579,7 +599,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
             <>
               <Panel
                 title="投资判断"
-                description="先看公司研究最终 stance，再决定是否继续下钻问题与证据。"
+                description="先看公司研究的最终立场，再决定是否继续下钻问题与证据。"
               >
                 <div className="grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
                   <div className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4">
@@ -640,13 +660,13 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                 companyResult.compressedFindings ||
                 companyResult.gapAnalysis) && (
                 <Panel
-                  title="Research Orchestration"
-                  description="杩欓噷鏄柊 research workflow 鐨勮鍒掋€佺瑪璁般€佸帇缂╃粨璁哄拰琛ュ姩鍐冲畾銆?"
+                  title="研究编排"
+                  description="这里汇总新的研究工作流规划、笔记、压缩结论和缺口判断。"
                 >
                   <div className="grid gap-4 lg:grid-cols-2">
                     <article className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4">
                       <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
-                        Research brief
+                        研究简报
                       </p>
                       <pre className="mt-3 overflow-x-auto text-xs leading-6 text-[var(--app-text-soft)]">
                         {JSON.stringify(
@@ -661,11 +681,11 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                     </article>
                     <article className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4">
                       <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
-                        Planned units
+                        计划单元
                       </p>
                       <div className="mt-3 space-y-2 text-sm text-[var(--app-text-muted)]">
                         {(companyResult.researchPlan ?? []).length === 0 ? (
-                          <p>鏆傛棤 research unit 淇℃伅</p>
+                          <p>暂无研究单元信息</p>
                         ) : (
                           companyResult.researchPlan?.map((unit) => (
                             <div
@@ -676,7 +696,10 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                                 <p className="text-[13px] text-[var(--app-text)]">
                                   {unit.title}
                                 </p>
-                                <StatusPill label={unit.capability} tone="info" />
+                                <StatusPill
+                                  label={unit.capability}
+                                  tone="info"
+                                />
                               </div>
                               <p className="mt-2 text-xs leading-5">
                                 {unit.objective}
@@ -688,26 +711,27 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                     </article>
                     <article className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4">
                       <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
-                        Compressed findings
+                        压缩结论
                       </p>
                       <div className="mt-3 space-y-2 text-sm text-[var(--app-text-muted)]">
                         <p className="text-[var(--app-text)]">
-                          {companyResult.compressedFindings?.summary ?? "鏆傛棤鍘嬬缉缁撹"}
+                          {companyResult.compressedFindings?.summary ??
+                            "暂无压缩结论"}
                         </p>
-                        {(companyResult.compressedFindings?.highlights ?? []).map(
-                          (item) => (
-                            <p key={item}>- {item}</p>
-                          ),
-                        )}
+                        {(
+                          companyResult.compressedFindings?.highlights ?? []
+                        ).map((item) => (
+                          <p key={item}>- {item}</p>
+                        ))}
                       </div>
                     </article>
                     <article className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4">
                       <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
-                        Gap analysis
+                        缺口分析
                       </p>
                       <div className="mt-3 space-y-2 text-sm text-[var(--app-text-muted)]">
                         <p className="text-[var(--app-text)]">
-                          {companyResult.gapAnalysis?.summary ?? "鏆傛棤琛ュ姩璇勪及"}
+                          {companyResult.gapAnalysis?.summary ?? "暂无缺口评估"}
                         </p>
                         {(companyResult.gapAnalysis?.missingAreas ?? []).map(
                           (item) => (
@@ -719,22 +743,24 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                   </div>
                   {(companyResult.researchNotes ?? []).length > 0 ? (
                     <div className="mt-4 grid gap-3">
-                      {(companyResult.researchNotes ?? []).slice(0, 6).map((note) => (
-                        <article
-                          key={note.noteId}
-                          className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4"
-                        >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="text-sm text-[var(--app-text)]">
-                              {note.title}
+                      {(companyResult.researchNotes ?? [])
+                        .slice(0, 6)
+                        .map((note) => (
+                          <article
+                            key={note.noteId}
+                            className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-sm text-[var(--app-text)]">
+                                {note.title}
+                              </p>
+                              <StatusPill label={note.unitId} tone="neutral" />
+                            </div>
+                            <p className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
+                              {note.summary}
                             </p>
-                            <StatusPill label={note.unitId} tone="neutral" />
-                          </div>
-                          <p className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
-                            {note.summary}
-                          </p>
-                        </article>
-                      ))}
+                          </article>
+                        ))}
                     </div>
                   ) : null}
                 </Panel>
@@ -849,7 +875,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
 
                 <Panel
                   title="网页证据"
-                  description="Firecrawl 抓到的网页证据会优先出现在这里。"
+                  description="抓取服务获取到的网页证据会优先出现在这里。"
                 >
                   <div className="grid gap-3">
                     <article className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4">
@@ -889,7 +915,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                             {companyResult.collectionSummary.totalRawCount}/
                             入选{" "}
                             {companyResult.collectionSummary.totalCuratedCount}/
-                            References{" "}
+                            引用{" "}
                             {
                               companyResult.collectionSummary
                                 .totalReferenceCount
@@ -905,8 +931,8 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                           {companyResult.collectionSummary.collectors.map(
                             (collector) => (
                               <p key={collector.collectorKey}>
-                                {collector.label}: raw {collector.rawCount} /
-                                curated {collector.curatedCount} / first-party{" "}
+                                {collector.label}：原始 {collector.rawCount} /
+                                入选 {collector.curatedCount} / 一手{" "}
                                 {collector.firstPartyCount}
                               </p>
                             ),
@@ -957,7 +983,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                     {(companyResult.references ?? []).length > 0 ? (
                       <article className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4">
                         <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
-                          References
+                          引用列表
                         </p>
                         <div className="mt-3 grid gap-3">
                           {(companyResult.references ?? []).map((reference) => (
@@ -1061,7 +1087,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                             {node.nodeKey}
                           </p>
                           <p className="mt-1 text-xs text-[var(--app-text-soft)]">
-                            处理器: {node.agentName}
+                            处理器：{node.agentName}
                           </p>
                         </div>
                         <StatusPill
@@ -1071,10 +1097,10 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                       </div>
 
                       <div className="mt-3 grid gap-2 text-xs text-[var(--app-text-muted)] sm:grid-cols-3">
-                        <p>开始: {formatDate(node.startedAt)}</p>
-                        <p>结束: {formatDate(node.completedAt)}</p>
+                        <p>开始：{formatDate(node.startedAt)}</p>
+                        <p>结束：{formatDate(node.completedAt)}</p>
                         <p className="app-data">
-                          耗时: {node.durationMs ?? "-"} ms
+                          耗时：{node.durationMs ?? "-"} 毫秒
                         </p>
                       </div>
 
@@ -1092,7 +1118,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
 
             <Panel
               title="事件时间线"
-              description="数据库事件和 SSE 实时事件会自动合并，按序号倒序展示。"
+              description="数据库事件和实时推送事件会自动合并，按序号倒序展示。"
             >
               {timeline.length === 0 ? (
                 <EmptyState
@@ -1111,7 +1137,10 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                           label={`#${event.sequence}`}
                           tone="neutral"
                         />
-                        <StatusPill label={event.type} tone="info" />
+                        <StatusPill
+                          label={eventTypeLabelMap[event.type] ?? event.type}
+                          tone="info"
+                        />
                         <span className="text-xs text-[var(--app-text-soft)]">
                           {event.nodeKey ?? "主流程"}
                         </span>
@@ -1133,7 +1162,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
           </div>
 
           <Panel
-            title="原始结果 JSON"
+            title="原始结果数据"
             description="需要更细节的研究输出时，再展开完整结果对象。"
           >
             <pre className="app-data app-scroll overflow-auto rounded-[10px] border border-[var(--app-border)] bg-[rgba(10,14,18,0.88)] p-4 text-xs leading-6 text-[var(--app-accent-strong)]">

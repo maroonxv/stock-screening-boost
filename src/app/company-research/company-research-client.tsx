@@ -57,7 +57,7 @@ const statusLabelMap: Record<string, string> = {
   CANCELLED: "已取消",
 };
 
-statusLabelMap.PAUSED = "寰呰ˉ鍏呬俊鎭?";
+statusLabelMap.PAUSED = "已暂停";
 
 const starterCases = [
   {
@@ -339,7 +339,7 @@ export function CompanyResearchClient() {
   return (
     <WorkspaceShell
       section="companyResearch"
-      eyebrow="Company Judgement"
+      eyebrow="公司判断"
       title="公司判断"
       actions={
         <>
@@ -409,7 +409,7 @@ export function CompanyResearchClient() {
                 <input
                   value={officialWebsite}
                   onChange={(event) => setOfficialWebsite(event.target.value)}
-                  placeholder="官网或 IR 地址，可选"
+                  placeholder="官网或投资者关系地址，可选"
                   className="app-input"
                 />
                 <textarea
@@ -421,13 +421,13 @@ export function CompanyResearchClient() {
                 <textarea
                   value={supplementalUrls}
                   onChange={(event) => setSupplementalUrls(event.target.value)}
-                  placeholder="补充 URL，每行一个，可选"
+                  placeholder="补充链接，每行一个，可选"
                   className="app-textarea min-h-[140px]"
                 />
                 <textarea
                   value={researchGoal}
                   onChange={(event) => setResearchGoal(event.target.value)}
-                  placeholder="鍙€夛細鏈鐮旂┒鐨勭洰鏍?"
+                  placeholder="可选：本次研究的目标"
                   className="app-textarea min-h-[120px]"
                 />
                 <textarea
@@ -435,13 +435,13 @@ export function CompanyResearchClient() {
                   onChange={(event) =>
                     setMustAnswerQuestions(event.target.value)
                   }
-                  placeholder="鍙€夛細蹇呴』鍥炵瓟鐨勯棶棰橈紝姣忚涓€鏉?"
+                  placeholder="可选：必须回答的问题，每行一条"
                   className="app-textarea min-h-[120px]"
                 />
                 <textarea
                   value={preferredSources}
                   onChange={(event) => setPreferredSources(event.target.value)}
-                  placeholder="鍙€夛細浼樺厛淇℃簮锛屾瘡琛屼竴鏉?"
+                  placeholder="可选：优先信源，每行一条"
                   className="app-textarea min-h-[120px]"
                 />
                 <textarea
@@ -449,7 +449,7 @@ export function CompanyResearchClient() {
                   onChange={(event) =>
                     setForbiddenEvidenceTypes(event.target.value)
                   }
-                  placeholder="鍙€夛細绂佺敤璇佹嵁绫诲瀷锛屾瘡琛屼竴鏉?"
+                  placeholder="可选：禁用证据类型，每行一条"
                   className="app-textarea min-h-[120px]"
                 />
                 <input
@@ -457,7 +457,7 @@ export function CompanyResearchClient() {
                   onChange={(event) =>
                     setFreshnessWindowDays(event.target.value)
                   }
-                  placeholder="鍙€夛細鏃舵晥绐楀彛锛堝ぉ锛?"
+                  placeholder="可选：时效窗口（天）"
                   className="app-input"
                 />
                 <input

@@ -7,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   EmptyState,
   KeyPointList,
-  KpiCard,
   Panel,
   ProgressBar,
   StatusPill,
@@ -293,14 +292,6 @@ export function CompanyResearchClient() {
     );
   }, [runsQuery.data?.items]);
 
-  const liveRuns = sortedRuns.filter(
-    (run) =>
-      run.status === "PENDING" ||
-      run.status === "RUNNING" ||
-      run.status === "PAUSED",
-  );
-  const finishedRuns = sortedRuns.filter((run) => run.status === "SUCCEEDED");
-
   const handleStart = async () => {
     if (!companyName.trim()) {
       return;
@@ -355,18 +346,6 @@ export function CompanyResearchClient() {
           <Link href="/timing" className="app-button app-button-success">
             前往择时组合
           </Link>
-        </>
-      }
-      summary={
-        <>
-          <KpiCard label="研究卡片" value={sortedRuns.length} tone="info" />
-          <KpiCard label="进行中" value={liveRuns.length} tone="warning" />
-          <KpiCard label="已完成" value={finishedRuns.length} tone="success" />
-          <KpiCard
-            label="最近更新"
-            value={formatDate(sortedRuns[0]?.createdAt ?? null)}
-            tone="neutral"
-          />
         </>
       }
     >

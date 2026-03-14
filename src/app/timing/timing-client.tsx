@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   EmptyState,
-  KpiCard,
   Panel,
   StatusPill,
   WorkspaceShell,
@@ -343,24 +342,6 @@ export function TimingClient() {
     setPresetFormError(null);
   }, [presetDraftId, presets]);
 
-  const summary = useMemo(() => {
-    const addCount = cards.filter((card) => card.actionBias === "ADD").length;
-    const probeCount = cards.filter(
-      (card) => card.actionBias === "PROBE",
-    ).length;
-    const distinctStocks = new Set(cards.map((card) => card.stockCode)).size;
-
-    return {
-      totalCards: cards.length,
-      addCount,
-      probeCount,
-      distinctStocks,
-      latestCreatedAt: cards[0]?.createdAt ?? null,
-      recommendationCount: latestRecommendations.length,
-      riskBudgetPct: latestRecommendations[0]?.riskBudgetPct ?? null,
-    };
-  }, [cards, latestRecommendations]);
-
   const parsePortfolioPayload = () => {
     try {
       const positions = JSON.parse(positionsJson) as PortfolioPositionInput[];
@@ -480,27 +461,6 @@ export function TimingClient() {
           <Link href="/screening" className="app-button app-button-success">
             返回机会池
           </Link>
-        </>
-      }
-      summary={
-        <>
-          <KpiCard label="信号总数" value={summary.totalCards} tone="info" />
-          <KpiCard label="加仓候选" value={summary.addCount} tone="success" />
-          <KpiCard
-            label="组合建议"
-            value={summary.recommendationCount}
-            tone="warning"
-          />
-          <KpiCard
-            label="风险预算"
-            value={
-              summary.riskBudgetPct === null
-                ? formatDate(summary.latestCreatedAt)
-                : formatPct(summary.riskBudgetPct)
-            }
-            hint={summary.riskBudgetPct === null ? "最近写入" : "当前上限"}
-            tone="neutral"
-          />
         </>
       }
     >

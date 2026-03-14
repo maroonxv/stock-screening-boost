@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { KpiCard, WorkspaceShell } from "~/app/_components/ui";
+import { WorkspaceShell } from "~/app/_components/ui";
 import {
   type CreateStrategyInput,
   type FilterGroupInput,
@@ -673,13 +673,6 @@ export function ScreeningStudioClient() {
           <Link href="/timing" className="app-button app-button-primary">
             打开择时组合
           </Link>
-        </>
-      }
-      summary={
-        <>
-          <KpiCard label="筛选器" value={strategies.length} tone="info" />
-          <KpiCard label="刷新中" value={liveSessionCount} tone="warning" />
-          <KpiCard label="自选清单" value={watchLists.length} tone="success" />
         </>
       }
     >

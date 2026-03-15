@@ -12,6 +12,7 @@ import {
   statusTone,
   WorkspaceShell,
 } from "~/app/_components/ui";
+import { ResearchOpsPanels } from "~/app/workflows/research-ops-panels";
 import {
   buildResearchDigest,
   extractConfidenceAnalysis,
@@ -444,6 +445,8 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
               tone="neutral"
             />
           </div>
+
+          <ResearchOpsPanels result={run.result} />
 
           {companyResult ? (
             <Panel

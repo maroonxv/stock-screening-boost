@@ -1012,6 +1012,7 @@ export class CompanyResearchWorkflowService {
       verdict,
       confidenceAnalysis,
       researchPlan: params.state.researchUnits,
+      researchUnitRuns: params.state.researchUnitRuns,
       researchNotes: params.state.researchNotes,
       compressedFindings: params.state.compressedFindings,
       gapAnalysis: params.state.gapAnalysis,

@@ -12,6 +12,7 @@ import {
   statusTone,
   WorkspaceShell,
 } from "~/app/_components/ui";
+import { ResearchOpsPanels } from "~/app/workflows/research-ops-panels";
 import { getTemplateLabel } from "~/app/workflows/research-view-models";
 import {
   COMPANY_RESEARCH_TEMPLATE_CODE,
@@ -1063,6 +1064,8 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
               </div>
             </Panel>
           ) : null}
+
+          <ResearchOpsPanels result={run.result} />
 
           <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
             <Panel

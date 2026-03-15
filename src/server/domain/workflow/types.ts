@@ -309,6 +309,7 @@ export type QuickResearchResultDto = {
   confidenceAnalysis?: ConfidenceAnalysis;
   brief?: ResearchBriefV2;
   researchPlan?: ResearchUnitPlan[];
+  researchUnitRuns?: ResearchUnitRun[];
   researchNotes?: ResearchNote[];
   compressedFindings?: CompressedFindings;
   gapAnalysis?: ResearchGapAnalysis;
@@ -500,6 +501,7 @@ export type CompanyResearchResultDto = {
   };
   confidenceAnalysis?: ConfidenceAnalysis;
   researchPlan?: ResearchUnitPlan[];
+  researchUnitRuns?: ResearchUnitRun[];
   researchNotes?: ResearchNote[];
   compressedFindings?: CompressedFindings;
   gapAnalysis?: ResearchGapAnalysis;

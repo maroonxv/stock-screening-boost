@@ -11,6 +11,7 @@ import type {
   ResearchReplanRecord,
   ResearchRuntimeConfig,
   ResearchUnitPlan,
+  ResearchUnitRun,
 } from "~/server/domain/workflow/research";
 import type {
   CompanyConceptInsight,
@@ -1597,6 +1598,7 @@ export class CompanyResearchAgentService {
     references?: CompanyResearchReferenceItem[];
     collectionSummary?: CompanyResearchCollectionSummary;
     researchPlan?: ResearchUnitPlan[];
+    researchUnitRuns?: ResearchUnitRun[];
     researchNotes?: ResearchNote[];
     compressedFindings?: CompressedFindings;
     gapAnalysis?: ResearchGapAnalysis;
@@ -1634,6 +1636,7 @@ export class CompanyResearchAgentService {
       crawler: params.crawler,
       confidenceAnalysis: params.confidenceAnalysis,
       researchPlan: params.researchPlan ?? [],
+      researchUnitRuns: params.researchUnitRuns ?? [],
       researchNotes: params.researchNotes ?? [],
       compressedFindings: params.compressedFindings,
       gapAnalysis: params.gapAnalysis,

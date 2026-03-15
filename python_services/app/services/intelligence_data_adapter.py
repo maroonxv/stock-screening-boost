@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import hashlib
+from http.client import RemoteDisconnected
 import logging
 import os
 import random
@@ -19,7 +20,9 @@ from typing import Any, Callable, TypeVar
 
 import akshare as ak
 import pandas as pd
+from requests import exceptions as requests_exceptions
 
+from app.policies.retry_policy import RetryPolicy, retry_sync
 from app.services.akshare_adapter import AkShareAdapter
 from app.services.theme_concept_rules_registry import ThemeConceptRulesRegistry
 from app.services.zhipu_search_client import ZhipuSearchClient
@@ -52,7 +55,35 @@ def _env_bool(name: str, default: bool) -> bool:
 _CACHE_TTL_SECONDS = _env_int("INTELLIGENCE_CACHE_TTL_SECONDS", 300, 10)
 _CACHE_STALE_SECONDS = _env_int("INTELLIGENCE_CACHE_STALE_SECONDS", 1800, 30)
 _SPOT_CACHE_TTL_SECONDS = _env_int("INTELLIGENCE_SPOT_CACHE_TTL_SECONDS", 120, 10)
+_CONCEPT_CATALOG_CACHE_TTL_SECONDS = _env_int(
+    "INTELLIGENCE_CONCEPT_CATALOG_CACHE_TTL_SECONDS",
+    900,
+    30,
+)
+_CONCEPT_CONSTITUENTS_CACHE_TTL_SECONDS = _env_int(
+    "INTELLIGENCE_CONCEPT_CONSTITUENTS_CACHE_TTL_SECONDS",
+    600,
+    30,
+)
+_AKSHARE_RETRY_POLICY = RetryPolicy(
+    max_attempts=_env_int("INTELLIGENCE_AKSHARE_RETRY_ATTEMPTS", 3, 1),
+    base_delay_ms=_env_int("INTELLIGENCE_AKSHARE_RETRY_BASE_DELAY_MS", 400, 0),
+    multiplier=2.0,
+    max_delay_ms=1800,
+    jitter_ratio=0.15,
+)
 _ENABLE_MOCK_FALLBACK = _env_bool("INTELLIGENCE_ENABLE_MOCK_FALLBACK", True)
+_TRANSIENT_AKSHARE_ERROR_MARKERS = (
+    "connection aborted",
+    "remote end closed connection without response",
+    "connection reset by peer",
+    "read timed out",
+    "connect timeout",
+    "temporary failure",
+    "temporarily unavailable",
+    "chunkedencodingerror",
+    "protocolerror",
+)
 
 
 @dataclass
@@ -316,6 +347,8 @@ def _read_with_cache(
 
 
 def _is_useful_result(value: Any) -> bool:
+    if isinstance(value, pd.DataFrame):
+        return not value.empty
     if isinstance(value, list):
         return len(value) > 0
     if isinstance(value, dict):
@@ -358,7 +391,10 @@ def _get_spot_snapshot() -> pd.DataFrame:
         if _SPOT_CACHE and now - _SPOT_CACHE[1] <= _SPOT_CACHE_TTL_SECONDS:
             return _SPOT_CACHE[0]
 
-    latest = ak.stock_zh_a_spot_em()
+    latest = _call_akshare_with_retry(
+        "stock_zh_a_spot_em",
+        ak.stock_zh_a_spot_em,
+    )
     if latest.empty:
         raise ValueError("AkShare spot snapshot is empty")
 
@@ -465,7 +501,12 @@ def _fetch_candidates_from_akshare(
 
 def _load_concept_constituents(concept: dict) -> pd.DataFrame:
     concept_symbol = concept.get("conceptCode") or concept.get("concept")
-    return ak.stock_board_concept_cons_em(symbol=str(concept_symbol))
+    return _load_cached_akshare_payload(
+        cache_key=f"concept-constituents:{concept_symbol}",
+        ttl_seconds=_CONCEPT_CONSTITUENTS_CACHE_TTL_SECONDS,
+        operation_name=f"stock_board_concept_cons_em:{concept_symbol}",
+        fetch_fn=lambda: ak.stock_board_concept_cons_em(symbol=str(concept_symbol)),
+    )
 
 
 def _build_candidates_from_spot(theme: str, limit: int) -> list[dict]:
@@ -610,7 +651,10 @@ def _fetch_theme_news_from_akshare(
 
 def _fetch_stock_news(stock_code: str, theme: str, days: int, limit: int) -> list[dict]:
     try:
-        news_df = ak.stock_news_em(symbol=stock_code)
+        news_df = _call_akshare_with_retry(
+            f"stock_news_em:{stock_code}",
+            lambda: ak.stock_news_em(symbol=stock_code),
+        )
     except Exception as exc:  # noqa: BLE001
         LOGGER.warning("Failed to fetch stock news for %s: %s", stock_code, exc)
         return []
@@ -899,7 +943,12 @@ def _select_concepts_with_source(theme: str, top_n: int) -> tuple[list[dict], st
 
 
 def _load_concept_rows_from_akshare(theme: str) -> list[dict]:
-    concept_df = ak.stock_board_concept_name_em()
+    concept_df = _load_cached_akshare_payload(
+        cache_key="concept-catalog",
+        ttl_seconds=_CONCEPT_CATALOG_CACHE_TTL_SECONDS,
+        operation_name="stock_board_concept_name_em",
+        fetch_fn=ak.stock_board_concept_name_em,
+    )
     if concept_df.empty:
         return []
 
@@ -959,6 +1008,108 @@ def _load_concept_rows_from_akshare(theme: str) -> list[dict]:
         )
 
     return rows
+
+
+def _call_akshare_with_retry(operation_name: str, fetch_fn: Callable[[], _T]) -> _T:
+    return retry_sync(
+        operation=fetch_fn,
+        policy=_AKSHARE_RETRY_POLICY,
+        should_retry=_is_transient_akshare_error,
+        on_retry=lambda attempt, exc, sleep_ms: LOGGER.warning(
+            "Transient AkShare failure for %s (attempt %s/%s): %s; retrying in %.0fms",
+            operation_name,
+            attempt,
+            _AKSHARE_RETRY_POLICY.max_attempts,
+            exc,
+            sleep_ms,
+        ),
+    )
+
+
+def _load_cached_akshare_payload(
+    cache_key: str,
+    ttl_seconds: int,
+    operation_name: str,
+    fetch_fn: Callable[[], _T],
+) -> _T:
+    fresh_value = _read_cache(cache_key, allow_stale=False)
+    if fresh_value is not None:
+        return _clone_cached_payload(fresh_value)
+
+    stale_value = _read_cache(cache_key, allow_stale=True)
+
+    try:
+        value = _call_akshare_with_retry(operation_name, fetch_fn)
+        if _is_useful_result(value):
+            _write_cache(cache_key, value, ttl_seconds=ttl_seconds)
+            return _clone_cached_payload(value)
+
+        if stale_value is not None:
+            LOGGER.warning(
+                "Using stale AkShare cache for %s due to empty payload",
+                operation_name,
+            )
+            return _clone_cached_payload(stale_value)
+
+        return value
+    except Exception as exc:  # noqa: BLE001
+        if stale_value is not None:
+            LOGGER.warning(
+                "Using stale AkShare cache for %s after upstream failure: %s",
+                operation_name,
+                exc,
+            )
+            return _clone_cached_payload(stale_value)
+        raise
+
+
+def _clone_cached_payload(value: _T) -> _T:
+    if isinstance(value, pd.DataFrame):
+        return value.copy(deep=True)
+    return value
+
+
+def _is_transient_akshare_error(exc: Exception) -> bool:
+    transient_request_errors = (
+        requests_exceptions.ConnectionError,
+        requests_exceptions.Timeout,
+        requests_exceptions.ChunkedEncodingError,
+    )
+    transient_error_types = transient_request_errors + (RemoteDisconnected,)
+
+    if isinstance(exc, transient_error_types):
+        return True
+
+    for current in _iter_exception_chain(exc):
+        if isinstance(current, transient_error_types):
+            return True
+
+        message = str(current).lower()
+        if any(marker in message for marker in _TRANSIENT_AKSHARE_ERROR_MARKERS):
+            return True
+
+    return False
+
+
+def _iter_exception_chain(exc: Exception):
+    current: BaseException | None = exc
+    seen: set[int] = set()
+
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        yield current
+
+        next_error: BaseException | None = None
+        if current.__cause__ is not None:
+            next_error = current.__cause__
+        elif current.__context__ is not None:
+            next_error = current.__context__
+        elif len(current.args) > 1:
+            nested = current.args[1]
+            if isinstance(nested, BaseException):
+                next_error = nested
+
+        current = next_error
 
 
 def _match_by_whitelist(all_rows: list[dict], whitelist: list[str]) -> list[dict]:

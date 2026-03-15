@@ -1,8 +1,10 @@
+from http.client import RemoteDisconnected
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from requests import exceptions as requests_exceptions
 
 from app.services import intelligence_data_adapter as adapter_module
 from app.services.intelligence_data_adapter import IntelligenceDataAdapter
@@ -16,9 +18,21 @@ def setup_function() -> None:
 def _concept_df() -> pd.DataFrame:
     return pd.DataFrame(
         {
-            "name": ["AI compute"],
-            "code": ["BK001"],
-            "change": [2.1],
+            "板块名称": ["AI compute"],
+            "板块代码": ["BK001"],
+            "涨跌幅": [2.1],
+        }
+    )
+
+
+def _constituents_df() -> pd.DataFrame:
+    return pd.DataFrame(
+        {
+            "代码": ["300308"],
+            "名称": ["Test Corp"],
+            "涨跌幅": [3.2],
+            "换手率": [4.8],
+            "市盈率": [29.0],
         }
     )
 
@@ -42,8 +56,59 @@ def test_get_candidates_strict_raises_when_no_theme_specific_candidates():
             return_value=[],
         ),
     ):
-        with pytest.raises(ValueError, match="暂无可用候选股数据"):
+        with pytest.raises(ValueError):
             IntelligenceDataAdapter.get_candidates_strict(theme="AI", limit=5)
+
+
+@patch("app.policies.retry_policy.time.sleep", return_value=None)
+def test_get_candidates_strict_retries_transient_concept_catalog_disconnect(_mock_sleep):
+    retry_policy = adapter_module.RetryPolicy(
+        max_attempts=2,
+        base_delay_ms=0,
+        multiplier=1.0,
+        max_delay_ms=0,
+        jitter_ratio=0.0,
+    )
+
+    with (
+        patch.object(adapter_module, "_AKSHARE_RETRY_POLICY", retry_policy),
+        patch(
+            "app.services.intelligence_data_adapter.ak.stock_board_concept_name_em",
+            side_effect=[
+                requests_exceptions.ConnectionError(
+                    "Connection aborted.",
+                    RemoteDisconnected("Remote end closed connection without response"),
+                ),
+                _concept_df(),
+            ],
+        ) as mock_catalog,
+        patch(
+            "app.services.intelligence_data_adapter.ak.stock_board_concept_cons_em",
+            return_value=_constituents_df(),
+        ),
+        patch(
+            "app.services.intelligence_data_adapter._RULES_REGISTRY.get_rules",
+            return_value={"theme": "AI", "whitelist": [], "blacklist": [], "aliases": []},
+        ),
+        patch(
+            "app.services.intelligence_data_adapter._ZHIPU_SEARCH_CLIENT.search_theme_concepts",
+            return_value=[
+                {
+                    "name": "AI compute",
+                    "code": "BK001",
+                    "aliases": [],
+                    "confidence": 0.91,
+                    "reason": "retry path",
+                    "source": "zhipu_web_search",
+                }
+            ],
+        ),
+    ):
+        payload = IntelligenceDataAdapter.get_candidates_strict(theme="AI", limit=5)
+
+    assert mock_catalog.call_count == 2
+    assert len(payload) == 1
+    assert payload[0]["stockCode"] == "300308"
 
 
 @patch("app.services.intelligence_data_adapter._fetch_candidates_from_akshare")

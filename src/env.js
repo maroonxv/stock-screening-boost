@@ -24,6 +24,11 @@ export const env = createEnv({
     DATABASE_URL: z.string().url(),
     REDIS_URL: z.string().url().default("redis://127.0.0.1:6379"),
     PYTHON_SERVICE_URL: z.string().url().default("http://127.0.0.1:8000"),
+    PYTHON_SERVICE_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(60_000),
     PYTHON_INTELLIGENCE_SERVICE_URL: z
       .string()
       .url()
@@ -85,6 +90,7 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
     PYTHON_SERVICE_URL: process.env.PYTHON_SERVICE_URL,
+    PYTHON_SERVICE_TIMEOUT_MS: process.env.PYTHON_SERVICE_TIMEOUT_MS,
     PYTHON_INTELLIGENCE_SERVICE_URL:
       process.env.PYTHON_INTELLIGENCE_SERVICE_URL,
     PYTHON_INTELLIGENCE_SERVICE_TIMEOUT_MS:

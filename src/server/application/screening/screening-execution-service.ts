@@ -43,6 +43,7 @@ export class ScreeningExecutionService {
     this.strategyRepository = dependencies.strategyRepository;
     this.dataClient = new PythonDataServiceClient({
       baseUrl: env.PYTHON_SERVICE_URL,
+      timeout: env.PYTHON_SERVICE_TIMEOUT_MS,
     });
     this.calcService = new IndicatorCalculationService(this.dataClient);
     this.scoringService = new ScoringService();

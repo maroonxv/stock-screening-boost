@@ -8,11 +8,11 @@
  * - DataNotAvailableError 转换
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { PythonDataServiceClient } from "../python-data-service-client";
-import { StockCode } from "~/server/domain/screening/value-objects/stock-code.js";
-import { DataNotAvailableError } from "~/server/domain/screening/errors.js";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IndicatorField } from "~/server/domain/screening/enums/indicator-field.js";
+import { DataNotAvailableError } from "~/server/domain/screening/errors.js";
+import { StockCode } from "~/server/domain/screening/value-objects/stock-code.js";
+import { PythonDataServiceClient } from "../python-data-service-client";
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -21,8 +21,10 @@ global.fetch = mockFetch as unknown as typeof fetch;
 describe("PythonDataServiceClient", () => {
   let client: PythonDataServiceClient;
   const baseUrl = "http://localhost:8000";
+  const originalPythonServiceTimeoutMs = process.env.PYTHON_SERVICE_TIMEOUT_MS;
 
   beforeEach(() => {
+    delete process.env.PYTHON_SERVICE_TIMEOUT_MS;
     client = new PythonDataServiceClient({
       baseUrl,
       timeout: 5000,
@@ -32,6 +34,12 @@ describe("PythonDataServiceClient", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    if (originalPythonServiceTimeoutMs === undefined) {
+      delete process.env.PYTHON_SERVICE_TIMEOUT_MS;
+      return;
+    }
+
+    process.env.PYTHON_SERVICE_TIMEOUT_MS = originalPythonServiceTimeoutMs;
   });
 
   describe("getAllStockCodes", () => {
@@ -54,7 +62,7 @@ describe("PythonDataServiceClient", () => {
           headers: expect.objectContaining({
             "Content-Type": "application/json",
           }),
-        })
+        }),
       );
 
       expect(result).toHaveLength(3);
@@ -72,7 +80,7 @@ describe("PythonDataServiceClient", () => {
       });
 
       await expect(client.getAllStockCodes()).rejects.toThrow(
-        DataNotAvailableError
+        DataNotAvailableError,
       );
     });
   });
@@ -211,7 +219,7 @@ describe("PythonDataServiceClient", () => {
         expect.objectContaining({
           method: "POST",
           body: JSON.stringify({ codes: ["600519", "000001"] }),
-        })
+        }),
       );
 
       expect(result).toHaveLength(2);
@@ -238,7 +246,7 @@ describe("PythonDataServiceClient", () => {
       const codes = [StockCode.create("600519")];
 
       await expect(client.getStocksByCodes(codes)).rejects.toThrow(
-        DataNotAvailableError
+        DataNotAvailableError,
       );
     });
   });
@@ -260,7 +268,7 @@ describe("PythonDataServiceClient", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${baseUrl}/api/stocks/industries`,
-        expect.anything()
+        expect.anything(),
       );
 
       expect(result).toEqual(["白酒", "银行", "医药", "科技"]);
@@ -297,12 +305,12 @@ describe("PythonDataServiceClient", () => {
       const result = await client.getIndicatorHistory(
         code,
         IndicatorField.REVENUE,
-        3
+        3,
       );
 
       expect(mockFetch).toHaveBeenCalledWith(
         `${baseUrl}/api/stocks/600519/history?indicator=${IndicatorField.REVENUE}&years=3`,
-        expect.anything()
+        expect.anything(),
       );
 
       expect(result).toHaveLength(3);
@@ -336,7 +344,7 @@ describe("PythonDataServiceClient", () => {
       const result = await client.getIndicatorHistory(
         code,
         IndicatorField.ROE,
-        2
+        2,
       );
 
       expect(result).toHaveLength(2);
@@ -352,13 +360,13 @@ describe("PythonDataServiceClient", () => {
       mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
       await expect(client.getAllStockCodes()).rejects.toThrow(
-        DataNotAvailableError
+        DataNotAvailableError,
       );
-      
+
       mockFetch.mockClear();
       mockFetch.mockRejectedValueOnce(new Error("Network error"));
       await expect(client.getAllStockCodes()).rejects.toThrow(
-        "Python 数据服务请求失败"
+        "Python 数据服务请求失败",
       );
     });
 
@@ -375,10 +383,10 @@ describe("PythonDataServiceClient", () => {
       mockFetch.mockRejectedValue(abortError);
 
       await expect(shortTimeoutClient.getAllStockCodes()).rejects.toThrow(
-        DataNotAvailableError
+        DataNotAvailableError,
       );
       await expect(shortTimeoutClient.getAllStockCodes()).rejects.toThrow(
-        "超时"
+        "超时",
       );
     });
 
@@ -417,7 +425,7 @@ describe("PythonDataServiceClient", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8000/api/stocks/codes",
-        expect.anything()
+        expect.anything(),
       );
     });
 
@@ -436,7 +444,7 @@ describe("PythonDataServiceClient", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8000/api/stocks/codes",
-        expect.anything()
+        expect.anything(),
       );
     });
 
@@ -455,7 +463,7 @@ describe("PythonDataServiceClient", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8000/api/stocks/codes",
-        expect.anything()
+        expect.anything(),
       );
     });
 
@@ -474,16 +482,38 @@ describe("PythonDataServiceClient", () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         "http://localhost:8000/api/stocks/codes",
-        expect.anything()
+        expect.anything(),
       );
     });
 
-    it("应该使用默认超时时间", () => {
+    it("应该在未显式传入 timeout 时读取环境变量", async () => {
+      process.env.PYTHON_SERVICE_TIMEOUT_MS = "45000";
+      const clientWithEnvTimeout = new PythonDataServiceClient({
+        baseUrl,
+      });
+
+      const abortError = new Error("The operation was aborted");
+      abortError.name = "AbortError";
+      mockFetch.mockRejectedValueOnce(abortError);
+
+      await expect(clientWithEnvTimeout.getAllStockCodes()).rejects.toThrow(
+        "45000ms",
+      );
+    });
+
+    it("应该在未配置环境变量时使用 60000ms 默认超时", async () => {
+      delete process.env.PYTHON_SERVICE_TIMEOUT_MS;
       const clientWithDefaultTimeout = new PythonDataServiceClient({
         baseUrl,
       });
 
-      expect(clientWithDefaultTimeout).toBeDefined();
+      const abortError = new Error("The operation was aborted");
+      abortError.name = "AbortError";
+      mockFetch.mockRejectedValueOnce(abortError);
+
+      await expect(clientWithDefaultTimeout.getAllStockCodes()).rejects.toThrow(
+        "60000ms",
+      );
     });
   });
 });

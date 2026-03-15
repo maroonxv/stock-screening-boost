@@ -12,15 +12,17 @@
  * Requirements: 6.4, 6.5
  */
 
-import type { IMarketDataRepository } from "~/server/domain/screening/repositories/market-data-repository";
+import { Stock } from "~/server/domain/screening/entities/stock";
+import type { IndicatorField } from "~/server/domain/screening/enums/indicator-field";
+import { DataNotAvailableError } from "~/server/domain/screening/errors";
 import type {
   IHistoricalDataProvider,
   IndicatorDataPoint,
 } from "~/server/domain/screening/repositories/historical-data-provider";
+import type { IMarketDataRepository } from "~/server/domain/screening/repositories/market-data-repository";
 import { StockCode } from "~/server/domain/screening/value-objects/stock-code";
-import { Stock } from "~/server/domain/screening/entities/stock";
-import { DataNotAvailableError } from "~/server/domain/screening/errors";
-import type { IndicatorField } from "~/server/domain/screening/enums/indicator-field";
+
+const DEFAULT_PYTHON_SERVICE_TIMEOUT_MS = 60_000;
 
 /**
  * Python 服务的 StockData 响应接口
@@ -80,7 +82,7 @@ interface BatchStockRequest {
 export interface PythonDataServiceClientConfig {
   /** Python 服务的基础 URL */
   baseUrl: string;
-  /** 请求超时时间（毫秒），默认 10000 */
+  /** 请求超时时间（毫秒），默认 60000 */
   timeout?: number;
 }
 
@@ -121,6 +123,24 @@ function resolveScreeningServiceBasePath(
   };
 }
 
+function resolveScreeningServiceTimeoutMs(explicitTimeout?: number): number {
+  if (typeof explicitTimeout === "number" && Number.isFinite(explicitTimeout)) {
+    return explicitTimeout;
+  }
+
+  const rawTimeout = process.env.PYTHON_SERVICE_TIMEOUT_MS;
+  if (!rawTimeout) {
+    return DEFAULT_PYTHON_SERVICE_TIMEOUT_MS;
+  }
+
+  const parsedTimeout = Number.parseInt(rawTimeout, 10);
+  if (!Number.isFinite(parsedTimeout) || parsedTimeout <= 0) {
+    return DEFAULT_PYTHON_SERVICE_TIMEOUT_MS;
+  }
+
+  return parsedTimeout;
+}
+
 /**
  * Python 数据服务 HTTP 客户端
  *
@@ -142,7 +162,7 @@ export class PythonDataServiceClient
     const resolvedBaseUrl = resolveScreeningServiceBasePath(config.baseUrl);
     this.baseUrl = resolvedBaseUrl.baseUrl;
     this.stocksBasePath = resolvedBaseUrl.stocksBasePath;
-    this.timeout = config.timeout ?? 10000;
+    this.timeout = resolveScreeningServiceTimeoutMs(config.timeout);
   }
 
   private stocksPath(path: string) {
@@ -178,7 +198,7 @@ export class PythonDataServiceClient
         throw new DataNotAvailableError(
           `Python 数据服务返回错误: ${response.status} ${response.statusText}`,
           response.status,
-          errorText
+          errorText,
         );
       }
 
@@ -194,14 +214,14 @@ export class PythonDataServiceClient
         throw new DataNotAvailableError(
           `Python 数据服务请求超时 (${this.timeout}ms)`,
           undefined,
-          { url, timeout: this.timeout }
+          { url, timeout: this.timeout },
         );
       }
 
       throw new DataNotAvailableError(
         `Python 数据服务请求失败: ${(error as Error).message}`,
         undefined,
-        error
+        error,
       );
     }
   }
@@ -236,7 +256,7 @@ export class PythonDataServiceClient
    * @returns IndicatorDataPoint
    */
   private mapToIndicatorDataPoint(
-    data: IndicatorDataPointResponse
+    data: IndicatorDataPointResponse,
   ): IndicatorDataPoint {
     return {
       date: new Date(data.date),
@@ -269,10 +289,7 @@ export class PythonDataServiceClient
       return stocks[0] ?? null;
     } catch (error) {
       // 如果是 404 或数据不存在，返回 null
-      if (
-        error instanceof DataNotAvailableError &&
-        error.statusCode === 404
-      ) {
+      if (error instanceof DataNotAvailableError && error.statusCode === 404) {
         return null;
       }
       throw error;
@@ -328,13 +345,12 @@ export class PythonDataServiceClient
   async getIndicatorHistory(
     stockCode: StockCode,
     indicator: IndicatorField,
-    years: number
+    years: number,
   ): Promise<IndicatorDataPoint[]> {
     const path = this.stocksPath(
       `/${stockCode.value}/history?indicator=${indicator}&years=${years}`,
     );
-    const response =
-      await this.fetch<IndicatorDataPointResponse[]>(path);
+    const response = await this.fetch<IndicatorDataPointResponse[]>(path);
 
     return response.map((data) => this.mapToIndicatorDataPoint(data));
   }
@@ -344,12 +360,12 @@ export class PythonDataServiceClient
  * 创建 PythonDataServiceClient 实例的工厂函数
  *
  * @param baseUrl Python 服务的基础 URL，默认从环境变量 PYTHON_SERVICE_URL 读取
- * @param timeout 请求超时时间（毫秒），默认 10000
+ * @param timeout 请求超时时间（毫秒），默认读取 PYTHON_SERVICE_TIMEOUT_MS，否则使用 60000
  * @returns PythonDataServiceClient 实例
  */
 export function createPythonDataServiceClient(
   baseUrl?: string,
-  timeout?: number
+  timeout?: number,
 ): PythonDataServiceClient {
   const serviceUrl =
     baseUrl ?? process.env.PYTHON_SERVICE_URL ?? "http://localhost:8000";

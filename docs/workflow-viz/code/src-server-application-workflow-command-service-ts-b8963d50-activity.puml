@@ -18,14 +18,26 @@ skinparam StateBorderColor #FFFFFF
 skinparam StateFontColor #FFFFFF
 title 主流程活动图
 start
-:进入入口 cancelRun;
-:准备输入与上下文;
-:执行主流程编排;
-if (是否命中关键分支?) then (是)
-  :进入条件路径;
-else (否)
-  :继续主线路径;
+:进入 startWatchlistTimingPipeline();
+:组装 query / input / templateCode / idempotencyKey;
+:调用 startWorkflow();
+if (幂等键命中已有 pending/running run?) then (是)
+  :直接返回已有 runId / status;
+  stop
 endif
-:汇总输出并返回;
+
+:按 templateCode 查询模板;
+if (模板缺失?) then (是)
+  :ensureWatchlistTimingPipelineTemplate();
+endif
+
+:从 graphConfig 提取 nodeKeys;
+if (nodeKeys 为空?) then (是)
+  :抛出 WorkflowDomainError;
+  stop
+endif
+
+:repository.createRun();
+:返回 runId / status / createdAt;
 stop
 @enduml

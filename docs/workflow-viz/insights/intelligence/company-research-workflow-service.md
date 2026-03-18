@@ -2,99 +2,100 @@
 
 - 源文件: `src/server/application/intelligence/company-research-workflow-service.ts`
 - 热点分数: `85`
-- 主入口: `uniqueStrings`
-- 触发原因: `峰值函数圈复杂度 >= 10 (evidence=12)；嵌套深度 >= 4 且判定点 >= 6 (evidence: nesting=4, decisions=11)；显式状态/生命周期复杂 (2 states, 6 transitions)`
+- 为什么难: 它既负责规划研究单元，又负责真实采集执行、并发批处理、gap loop 和最终报告收束，是 V4 的执行中枢。
+- 建议先看函数: `planUnits`、`runCollectorUnit`、`executeUnits`、`runGapLoop`、`finalizeReport`
 
-这是一份以图为主的脚手架文档。请先补齐图中的真实角色、依赖和路径，再在每张图两侧补充贴图解释。
+如果 LangGraph 是“路由表”，那这个 service 就是“执行总控台”。图层只决定当前轮到哪个节点，真正把 `researchInput` 变成 `evidence`、`references`、`findings` 和 `finalReport` 的，是这里。
 
-开头引导：先看下面这组架构图，建立这个热点文件所在位置、内部拆分和依赖职责的整体轮廓，再进入流程细节。
+## 先带着这 4 个问题看图
+
+1. `researchUnits` 是在哪里生成，又在哪里真正被消耗的？
+2. capability 是如何映射成 `official_sources / industry_sources / financial_sources / news_sources` 的？
+3. 为什么这里既有 `executeCollectorUnit()`，又有 `executeUnits()`？
+4. `gap loop` 追加出来的 follow-up units 会怎样并入原来的执行状态？
 
 ## 架构图组
 
-这一组图默认优先生成，用来回答“它在系统哪里、内部怎么分、依赖如何协作”。
-
 ### 架构总览图
 
-图前说明：先看这个文件位于哪一层、被谁触发、向哪些外部角色发起协作。
+图前说明：把它看成 V4 的“执行总控台”。上游是 `CompanyResearchContractLangGraph`，下游是 `ResearchToolRegistry` 和 `CompanyResearchAgentService`。
 
 ![架构总览图](../../charts/src-server-application-intelligence-company-research-workflow-service-ts-69962f95-architecture-context.svg)
 
-图后解读：补全真实调用方、外部系统和边界约束后，这张图应能回答“它在整体架构中的位置”。
+图后解读：这张图最重要的结论是职责分层。workflow service 既不定义图，也不直接决定最终投资立场；它负责把每一步执行起来并把状态接好。
 
 ### 模块拆解图
 
-图前说明：这张图把文件内部的关键职责分成几个稳定模块，帮助快速识别边界。
+图前说明：内部可以粗分成四块: brief / task contract 构建、研究单元规划、采集执行与补洞、最终报告收束。
 
 ![模块拆解图](../../charts/src-server-application-intelligence-company-research-workflow-service-ts-69962f95-architecture-modules.svg)
 
-图后解读：补齐真实模块名称后，这张图应能回答“内部职责如何拆分，哪些模块不要混改”。
+图后解读：如果只想搞懂当前主路径，优先读后两块，也就是 `runCollectorUnit`、`executeUnits`、`runGapLoop` 和 `finalizeReport`。
 
 ### 依赖职责图
 
-图前说明：重点看入口如何把职责分派给不同依赖，以及每个依赖承担什么角色。
+图前说明：这里最重要的三个依赖分别承担三件事: `DeepSeekClient` 做规划/压缩，`ResearchToolRegistry` 负责外部工具访问，`CompanyResearchAgentService` 负责证据整理和结论收束。
 
 ![依赖职责图](../../charts/src-server-application-intelligence-company-research-workflow-service-ts-69962f95-architecture-dependencies.svg)
 
-图后解读：补齐真实依赖职责后，这张图应能回答“入口是如何协调多个依赖完成任务的”。
+图后解读：一旦把这三类依赖分清楚，再看这个文件就不会觉得它“什么都做了”。
 
 ## 主流程活动图
 
 ### 主流程活动图
 
-图前说明：沿着主入口顺序阅读，先建立正常路径的执行心智模型。
+图前说明：活动图建议对照 `planUnits -> executeCollectorUnit / executeUnits -> runGapLoop -> compressFindings -> finalizeReport` 这条主线一起看。
 
 ![主流程活动图](../../charts/src-server-application-intelligence-company-research-workflow-service-ts-69962f95-activity.svg)
 
-图后解读：把真实输入、关键判定和产出补进去后，这张图应能回答“正常流程到底怎么走”。
+图后解读：这张图最值得记住的是“规划和执行分两层”。`planUnits()` 只负责把 brief 变成结构化 unit，真正执行 unit 的是 `runCollectorUnit()` 和 `executeUnits()`。
 
 ## 协作顺序图
 
 ### 协作顺序图
 
-图前说明：这张图强调调用时序，适合定位谁先发起、谁后响应、哪里容易串线。
+图前说明：顺序图里请重点看 `runCollectorUnit()` 的交互，因为它最能体现这个 service 的真实职责。
 
 ![协作顺序图](../../charts/src-server-application-intelligence-company-research-workflow-service-ts-69962f95-sequence.svg)
 
-图后解读：把真实协作者和消息名补进去后，这张图应能回答“关键协作顺序是否符合预期”。
+图后解读：以 `industry_search` 为例，这里会先构造 queries，再调用 `researchToolRegistry.searchWeb()`，最后把网页结果映射成 `CompanyEvidenceNote`。
 
 ## 分支判定图
 
 ### 分支判定图
 
-图前说明：把主要分支和守卫条件单独抽出来，便于区分正常路径与特殊路径。
+图前说明：关键分支主要集中在 `runCollectorUnit()` 和 `runGapLoop()`。例如 `financial_pack` 会走 Python pack 分支，而 `page_scrape` 会追加抓取 first-party 页面。
 
 ![分支判定图](../../charts/src-server-application-intelligence-company-research-workflow-service-ts-69962f95-branch-decision.svg)
 
-图后解读：把真实条件替换进去后，这张图应能回答“哪些条件最容易引发路径分叉”。
+图后解读：如果你遇到“同样是 collector，为什么行为不同”，先回这张图确认当前 capability 走的是哪条分支。
 
 ## 状态图
 
 ### 状态图
 
-图前说明：当文件存在状态切换时，优先看清每个阶段之间如何流转。
+图前说明：这页的状态不是数据库状态，而是运行时快照里的阶段性状态: `researchUnits`、`researchNotes`、`researchUnitRuns`、`gapAnalysis`、`replanRecords`。
 
 ![状态图](../../charts/src-server-application-intelligence-company-research-workflow-service-ts-69962f95-state.svg)
 
-图后解读：把真实状态和值守条件补齐后，这张图应能回答“状态变更的触发器和退出点是什么”。
+图后解读：理解这张图后，再看 `workingState` 和 `snapshot` 这两个局部变量就不容易混淆了。
 
 ## 异步/并发图
 
 ### 异步/并发图
 
-图前说明：这张图专门突出异步触发、并发协作和等待回收的关系。
+图前说明：并发重点在 `executeUnits()`。它会按 `dependsOn` 拓扑筛出 ready units，再按 `maxConcurrentResearchUnits` 分批 `Promise.all`。
 
 ![异步/并发图](../../charts/src-server-application-intelligence-company-research-workflow-service-ts-69962f95-async-concurrency.svg)
 
-图后解读：把真实队列、回调和等待点补进去后，这张图应能回答“并发协调风险集中在哪”。
+图后解读：如果你在排查“为什么 follow-up unit 没有立刻执行”或“为什么某些 unit 必须等前面的完成”，就回来看这张图。
 
 ## 数据/依赖流图
 
 ### 数据/依赖流图
 
-图前说明：按数据从输入到输出的流向阅读，能更快看清中间变换链路。
+图前说明：顺着 `researchInput -> brief / deepQuestions -> researchUnits -> collectedEvidenceByCollector -> evidence / references -> findings / verdict -> finalReport` 这条线看图最省时间。
 
 ![数据/依赖流图](../../charts/src-server-application-intelligence-company-research-workflow-service-ts-69962f95-data-flow.svg)
 
-图后解读：把真实数据对象补齐后，这张图应能回答“数据在各协作者之间怎样被加工和交付”。
-
-结尾总结：补齐真实角色名称、关键条件和产出物后，这一页应能让人先通过图建立心智模型，再回到源码核对细节。
+图后解读：这张图最适合排查“某个字段为什么没有进最终报告”，尤其是 `researchNotes`、`collectorRunInfo` 和 `compressedFindings`。

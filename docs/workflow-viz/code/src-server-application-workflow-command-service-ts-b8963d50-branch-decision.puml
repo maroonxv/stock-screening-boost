@@ -18,30 +18,13 @@ skinparam StateBorderColor #FFFFFF
 skinparam StateFontColor #FFFFFF
 title 分支判定图
 start
-:startWorkflow(command);
-if (携带 idempotencyKey?) then (是)
-  if (已有 pending/running run?) then (是)
-    :返回 existing run;
-    stop
-  endif
+:进入判定入口 cancelRun;
+if (是否满足主守卫条件?) then (满足)
+  :执行主分支;
+elseif (是否满足降级条件?)
+  :执行降级分支;
+else
+  :执行默认路径或提前结束;
 endif
-
-:读取 templateCode 对应模板;
-if (模板不存在?) then (是)
-  :按 templateCode 调 ensure*Template();
-endif
-
-if (仍然没有模板?) then (是)
-  :抛出 WORKFLOW_TEMPLATE_NOT_FOUND;
-  stop
-endif
-
-:提取 nodeKeys;
-if (nodeKeys 为空?) then (是)
-  :抛出工作流模板缺少节点配置;
-  stop
-endif
-
-:createRun();
 stop
 @enduml

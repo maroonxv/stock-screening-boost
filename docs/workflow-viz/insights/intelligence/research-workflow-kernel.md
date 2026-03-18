@@ -2,89 +2,90 @@
 
 - 源文件: `src/server/application/intelligence/research-workflow-kernel.ts`
 - 热点分数: `65`
-- 主入口: `uniqueStrings`
-- 触发原因: `峰值函数圈复杂度 >= 10 (acceptanceCriteriaFor=26)；异常/重试/降级路径 >= 3 (16)`
+- 为什么难: 这里没有真正执行任何采集，但几乎所有“研究计划长什么样”的规则都写在这里，而且 LLM 规划和 fallback 规则混在一个文件里。
+- 建议先看函数: `clarifyResearchScope`、`writeTaskContract`、`writeResearchBrief`、`planResearchUnits`、`analyzeResearchGaps`、`compressResearchFindings`
 
-这是一份以图为主的脚手架文档。请先补齐图中的真实角色、依赖和路径，再在每张图两侧补充贴图解释。
+把这页理解成“规则内核”会最清楚。它负责把原始研究请求变成结构化的 contract、brief、unit plan 和 gap analysis，但不直接抓网页或生成最终 verdict。
 
-开头引导：先看下面这组架构图，建立这个热点文件所在位置、内部拆分和依赖职责的整体轮廓，再进入流程细节。
+## 先带着这 4 个问题看图
+
+1. 哪些产物是 LLM 规划出来的，哪些是 fallback 规则硬编码出来的？
+2. `allowedCapabilities` 是在哪一步被强制裁剪的？
+3. `industry_search` 这类默认研究单元是从哪里来的？
+4. gap loop 里用到的 follow-up units 是如何受 `maxGapIterations` 和 capability 白名单约束的？
 
 ## 架构图组
 
-这一组图默认优先生成，用来回答“它在系统哪里、内部怎么分、依赖如何协作”。
-
 ### 架构总览图
 
-图前说明：先看这个文件位于哪一层、被谁触发、向哪些外部角色发起协作。
+图前说明：把这个文件看成 workflow service 的“规划引擎”。上游是 `CompanyResearchWorkflowService`，下游主要是 `DeepSeekClient` 返回结构化 JSON。
 
 ![架构总览图](../../charts/src-server-application-intelligence-research-workflow-kernel-ts-85dd475b-architecture-context.svg)
 
-图后解读：补全真实调用方、外部系统和边界约束后，这张图应能回答“它在整体架构中的位置”。
+图后解读：这张图能帮你确认一个关键事实: kernel 决定“做什么”，但不决定“怎么抓数据”。
 
 ### 模块拆解图
 
-图前说明：这张图把文件内部的关键职责分成几个稳定模块，帮助快速识别边界。
+图前说明：内部可以分成三块: fallback 规则、提示词驱动的结构化规划、后续压缩与 gap 分析。
 
 ![模块拆解图](../../charts/src-server-application-intelligence-research-workflow-kernel-ts-85dd475b-architecture-modules.svg)
 
-图后解读：补齐真实模块名称后，这张图应能回答“内部职责如何拆分，哪些模块不要混改”。
+图后解读：第一次读时不用把所有 helper 都看懂，先抓 `buildUnitPlanFallback()`、`planResearchUnits()` 和 `analyzeResearchGaps()` 这三处就够了。
 
 ### 依赖职责图
 
-图前说明：重点看入口如何把职责分派给不同依赖，以及每个依赖承担什么角色。
+图前说明：这里最重要的依赖只有一个，就是 `DeepSeekClient`。其余复杂度主要来自 prompt 结构和 fallback 规则，而不是外部系统。
 
 ![依赖职责图](../../charts/src-server-application-intelligence-research-workflow-kernel-ts-85dd475b-architecture-dependencies.svg)
 
-图后解读：补齐真实依赖职责后，这张图应能回答“入口是如何协调多个依赖完成任务的”。
+图后解读：如果你在问“为什么某次计划长这样”，大概率答案就在 prompt 输入和 fallback 约束里。
 
 ## 主流程活动图
 
 ### 主流程活动图
 
-图前说明：沿着主入口顺序阅读，先建立正常路径的执行心智模型。
+图前说明：按“澄清范围 -> 写 task contract -> 写 brief -> 规划 research units -> 压缩 findings -> gap 分析”这条线看最顺。
 
 ![主流程活动图](../../charts/src-server-application-intelligence-research-workflow-kernel-ts-85dd475b-activity.svg)
 
-图后解读：把真实输入、关键判定和产出补进去后，这张图应能回答“正常流程到底怎么走”。
+图后解读：活动图对应的核心理解是，kernel 不会一步产出最终研究结果，而是不断产出下一层可消费的结构化中间件。
 
 ## 协作顺序图
 
 ### 协作顺序图
 
-图前说明：这张图强调调用时序，适合定位谁先发起、谁后响应、哪里容易串线。
+图前说明：顺序图里看的是 `DeepSeekClient` 被多次调用的顺序，而不是多系统并发。
 
 ![协作顺序图](../../charts/src-server-application-intelligence-research-workflow-kernel-ts-85dd475b-sequence.svg)
 
-图后解读：把真实协作者和消息名补进去后，这张图应能回答“关键协作顺序是否符合预期”。
+图后解读：如果你在排查“为什么 brief 看起来合理，但 units 很奇怪”，通常要把这几次结构化调用拆开看。
 
 ## 分支判定图
 
 ### 分支判定图
 
-图前说明：把主要分支和守卫条件单独抽出来，便于区分正常路径与特殊路径。
+图前说明：这里最重要的分支不是业务 if/else，而是 fallback 与白名单约束。例如 `planResearchUnits()` 即使拿到模型输出，也会再过滤到允许的 capability 集合里。
 
 ![分支判定图](../../charts/src-server-application-intelligence-research-workflow-kernel-ts-85dd475b-branch-decision.svg)
 
-图后解读：把真实条件替换进去后，这张图应能回答“哪些条件最容易引发路径分叉”。
+图后解读：如果你发现某个能力本来被规划出来，但最终没执行，先回来看 capability 过滤这一层。
 
 ## 异步/并发图
 
 ### 异步/并发图
 
-图前说明：这张图专门突出异步触发、并发协作和等待回收的关系。
+图前说明：这里的异步点主要是多次顺序化的 LLM 调用，没有像 workflow service 那样的多 collector 并发。
 
 ![异步/并发图](../../charts/src-server-application-intelligence-research-workflow-kernel-ts-85dd475b-async-concurrency.svg)
 
-图后解读：把真实队列、回调和等待点补进去后，这张图应能回答“并发协调风险集中在哪”。
+图后解读：这也是为什么它虽然分数不算最高，却很关键: 复杂度不在并发，而在“规则被分散在多个结构化规划函数里”。
 
 ## 数据/依赖流图
 
 ### 数据/依赖流图
 
-图前说明：按数据从输入到输出的流向阅读，能更快看清中间变换链路。
+图前说明：顺着 `query / preferences -> taskContract -> brief -> researchUnits -> compressedFindings -> gapAnalysis` 这条线看图最清楚。
 
 ![数据/依赖流图](../../charts/src-server-application-intelligence-research-workflow-kernel-ts-85dd475b-data-flow.svg)
 
-图后解读：把真实数据对象补齐后，这张图应能回答“数据在各协作者之间怎样被加工和交付”。
-
-结尾总结：补齐真实角色名称、关键条件和产出物后，这一页应能让人先通过图建立心智模型，再回到源码核对细节。
+图后解读：如果你在追 `industry_search` 为什么存在，回到这张图再配合 `buildUnitPlanFallback()` 看，会比直接翻完整文件更高效。

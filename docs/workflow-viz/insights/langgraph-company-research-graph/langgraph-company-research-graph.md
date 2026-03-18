@@ -2,99 +2,100 @@
 
 - 源文件: `src/server/infrastructure/workflow/langgraph/company-research-graph.ts`
 - 热点分数: `77`
-- 主入口: `mergeStringArrays`
-- 触发原因: `峰值函数圈复杂度 >= 10 (WorkflowPauseError=21)；嵌套深度 >= 4 且判定点 >= 6 (WorkflowPauseError: nesting=4, decisions=20)；显式状态/生命周期复杂 (2 states, 55 transitions)`
+- 为什么难: 一个文件里同时堆了 V1/V2/V3/V4 四代图，还把 pause/resume、节点输出映射和 fan-out/join 都写在了一起。
+- 建议先看节点: `CompanyResearchContractLangGraph`、`agent0_clarify_scope`、`agent2_plan_research_units`、`collector_industry_sources`、`agent5_gap_analysis_and_replan`
 
-这是一份以图为主的脚手架文档。请先补齐图中的真实角色、依赖和路径，再在每张图两侧补充贴图解释。
+这页建议你只盯 V4，也就是 `CompanyResearchContractLangGraph`。把它理解成“公司研究 run 的路由表”就够了: 图层决定走哪条线，真正干活的是 `CompanyResearchWorkflowService`。
 
-开头引导：先看下面这组架构图，建立这个热点文件所在位置、内部拆分和依赖职责的整体轮廓，再进入流程细节。
+## 先带着这 4 个问题看图
+
+1. 为什么 resume 到 collector 时，会被重定向回 `agent3_source_grounding`？
+2. 四个 collector 节点是怎样 fan-out 并在 `agent4_synthesis` join 的？
+3. `gap loop` 在首轮采集之后插在哪个位置？
+4. 哪一步会主动抛 `WorkflowPauseError` 暂停整个 run？
 
 ## 架构图组
 
-这一组图默认优先生成，用来回答“它在系统哪里、内部怎么分、依赖如何协作”。
-
 ### 架构总览图
 
-图前说明：先看这个文件位于哪一层、被谁触发、向哪些外部角色发起协作。
+图前说明：上游是 execution service 和 graph registry 选择图版本，下游是 `CompanyResearchWorkflowService` 负责具体节点的业务执行。
 
 ![架构总览图](../../charts/src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170-architecture-context.svg)
 
-图后解读：补全真实调用方、外部系统和边界约束后，这张图应能回答“它在整体架构中的位置”。
+图后解读：这张图最重要的结论是，LangGraph 层负责“路由和阶段切换”，并不负责抓网页、规划问题或打分证据。
 
 ### 模块拆解图
 
-图前说明：这张图把文件内部的关键职责分成几个稳定模块，帮助快速识别边界。
+图前说明：读这个文件时，先把它拆成四块: 多代图定义、resume 逻辑、V4 节点执行器、节点输出映射。
 
 ![模块拆解图](../../charts/src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170-architecture-modules.svg)
 
-图后解读：补齐真实模块名称后，这张图应能回答“内部职责如何拆分，哪些模块不要混改”。
+图后解读：如果你一开始就从文件顶端线性往下读，很容易被历史版本带偏。最省时间的方法是直接跳到 `CompanyResearchContractLangGraph` 附近。
 
 ### 依赖职责图
 
-图前说明：重点看入口如何把职责分派给不同依赖，以及每个依赖承担什么角色。
+图前说明：这里真正重要的依赖并不多，核心就是 `workflowService` 和 `StateGraph` builder。
 
 ![依赖职责图](../../charts/src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170-architecture-dependencies.svg)
 
-图后解读：补齐真实依赖职责后，这张图应能回答“入口是如何协调多个依赖完成任务的”。
+图后解读：如果某个节点的业务含义不清楚，别在图文件里硬想，直接跳去对应的 workflow service 方法。
 
 ## 主流程活动图
 
 ### 主流程活动图
 
-图前说明：沿着主入口顺序阅读，先建立正常路径的执行心智模型。
+图前说明：这张图建议对照 `1045` 行附近的 V4 定义一起看，顺着节点名把一条主线先串起来。
 
 ![主流程活动图](../../charts/src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170-activity.svg)
 
-图后解读：把真实输入、关键判定和产出补进去后，这张图应能回答“正常流程到底怎么走”。
+图后解读：V4 主线可以简化成五段: 澄清范围、写 brief、计划研究单元、四路采集并 join、补洞后定稿。记住这五段，再回源码就不会被节点名淹没。
 
 ## 协作顺序图
 
 ### 协作顺序图
 
-图前说明：这张图强调调用时序，适合定位谁先发起、谁后响应、哪里容易串线。
+图前说明：顺序图最值得看的是“图层如何把 state 交给 workflow service，再把返回的部分状态 merge 回图状态”。
 
 ![协作顺序图](../../charts/src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170-sequence.svg)
 
-图后解读：把真实协作者和消息名补进去后，这张图应能回答“关键协作顺序是否符合预期”。
+图后解读：如果你在排查“某个节点明明执行了，为什么结果没进 state”，先回这张图看对应节点返回了哪些字段。
 
 ## 分支判定图
 
 ### 分支判定图
 
-图前说明：把主要分支和守卫条件单独抽出来，便于区分正常路径与特殊路径。
+图前说明：这页的关键分支只有少数几个，但都非常关键: 需要澄清时暂停、某个 capability 没有对应 unit 时跳过 collector、resume 到 collector 时回退到 `agent3_source_grounding`。
 
 ![分支判定图](../../charts/src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170-branch-decision.svg)
 
-图后解读：把真实条件替换进去后，这张图应能回答“哪些条件最容易引发路径分叉”。
+图后解读：对照这张图，你可以很快判断某次 run 是“正常跳过某节点”还是“因为缺少 state 被异常绕开”。
 
 ## 状态图
 
 ### 状态图
 
-图前说明：当文件存在状态切换时，优先看清每个阶段之间如何流转。
+图前说明：这里的“状态”更像节点阶段，而不是传统业务状态枚举。
 
 ![状态图](../../charts/src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170-state.svg)
 
-图后解读：把真实状态和值守条件补齐后，这张图应能回答“状态变更的触发器和退出点是什么”。
+图后解读：如果你把它理解成“研究 run 从哪一段流到下一段”，这张图会非常有用；如果把它理解成数据库状态表，反而会更乱。
 
 ## 异步/并发图
 
 ### 异步/并发图
 
-图前说明：这张图专门突出异步触发、并发协作和等待回收的关系。
+图前说明：V4 最重要的并发不是线程，而是四个 collector 节点的显式 fan-out / join。
 
 ![异步/并发图](../../charts/src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170-async-concurrency.svg)
 
-图后解读：把真实队列、回调和等待点补进去后，这张图应能回答“并发协调风险集中在哪”。
+图后解读：这张图最能解释为什么 `industry_search` 这类能力不是一个隐式工具调用，而是图上单独的一条分支。
 
 ## 数据/依赖流图
 
 ### 数据/依赖流图
 
-图前说明：按数据从输入到输出的流向阅读，能更快看清中间变换链路。
+图前说明：顺着 `researchInput -> taskContract / brief -> researchUnits -> evidence / references -> finalReport` 这条线看图，会比盯节点名更轻松。
 
 ![数据/依赖流图](../../charts/src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170-data-flow.svg)
 
-图后解读：把真实数据对象补齐后，这张图应能回答“数据在各协作者之间怎样被加工和交付”。
-
-结尾总结：补齐真实角色名称、关键条件和产出物后，这一页应能让人先通过图建立心智模型，再回到源码核对细节。
+图后解读：如果你在追某个字段到底从哪来，这张图是最好的入口，尤其适合排查 `researchUnits`、`collectorRunInfo` 和 `finalReport`。

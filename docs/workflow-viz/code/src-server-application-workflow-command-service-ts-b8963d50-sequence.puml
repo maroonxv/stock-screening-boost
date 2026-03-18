@@ -19,23 +19,15 @@ skinparam StateFontColor #FFFFFF
 title 协作顺序图
 autonumber
 
-actor "workflowRouter" as Router
-participant "WorkflowCommandService" as Service
-participant "PrismaWorkflowRunRepository" as Repository
+actor "发起方" as Caller
+participant "入口函数 cancelRun" as Entry
+participant "关键协作者甲" as DepA
+participant "关键协作者乙" as DepB
 
-Router -> Service : startWatchlistTimingPipeline(command)
-Service -> Service : 组装 query / input / idempotencyKey
-Service -> Repository : findPendingOrRunningByIdempotency()
-alt 命中已有 run
-  Repository --> Service : existing run
-  Service --> Router : 直接返回 existing runId
-else 创建新 run
-  Service -> Repository : getTemplateByCodeAndVersion()
-  alt 模板缺失
-    Service -> Repository : ensureWatchlistTimingPipelineTemplate()
-  end
-  Service -> Repository : createRun(nodeKeys, input, query)
-  Repository --> Service : run
-  Service --> Router : runId / status / createdAt
-end
+Caller -> Entry : 发起调用
+Entry -> DepA : 请求步骤一
+DepA --> Entry : 返回阶段结果
+Entry -> DepB : 请求步骤二
+DepB --> Entry : 返回阶段结果
+Entry --> Caller : 返回完成结果
 @enduml

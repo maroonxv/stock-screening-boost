@@ -6,7 +6,7 @@ async function loadClient() {
   process.env.DATABASE_URL ??= "https://example.com/db";
   process.env.REDIS_URL ??= "redis://127.0.0.1:6379";
   process.env.PYTHON_INTELLIGENCE_SERVICE_URL ??= "http://127.0.0.1:8000";
-  process.env.PYTHON_INTELLIGENCE_SERVICE_TIMEOUT_MS ??= "30000";
+  process.env.PYTHON_INTELLIGENCE_SERVICE_TIMEOUT_MS ??= "300000";
 
   const module = await import(
     "~/server/infrastructure/intelligence/python-intelligence-data-client"

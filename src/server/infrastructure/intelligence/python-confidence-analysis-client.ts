@@ -25,7 +25,8 @@ export class PythonConfidenceAnalysisClient {
     this.baseUrl = (
       config?.baseUrl ?? env.PYTHON_INTELLIGENCE_SERVICE_URL
     ).replace(/\/$/, "");
-    this.timeoutMs = config?.timeoutMs ?? 20_000;
+    this.timeoutMs =
+      config?.timeoutMs ?? env.PYTHON_INTELLIGENCE_SERVICE_TIMEOUT_MS;
   }
 
   async check(request: ConfidenceCheckRequest): Promise<ConfidenceAnalysis> {

@@ -37,7 +37,7 @@ export const env = createEnv({
       .number()
       .int()
       .positive()
-      .default(30_000),
+      .default(300_000),
     IFIND_USERNAME: z.string().optional(),
     IFIND_PASSWORD: z.string().optional(),
     SCREENING_PRIMARY_PROVIDER: z.string().optional(),

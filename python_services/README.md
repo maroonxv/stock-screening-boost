@@ -139,7 +139,7 @@ Screening provider：
 Web / Worker 调用预算：
 
 - `PYTHON_SERVICE_TIMEOUT_MS`：T3 侧 screening legacy 数据接口超时预算（默认 `60000`）
-- `PYTHON_INTELLIGENCE_SERVICE_TIMEOUT_MS`：T3 侧 intelligence 数据接口超时预算（默认 `30000`）
+- `PYTHON_INTELLIGENCE_SERVICE_TIMEOUT_MS`：T3 侧 intelligence 数据接口超时预算（默认 `300000`）
 
 可信度分析：
 

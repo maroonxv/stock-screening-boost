@@ -1,0 +1,19 @@
+@startuml
+!theme materia
+title 依赖职责图
+skinparam shadowing false
+skinparam componentStyle rectangle
+
+rectangle "主入口" as entry
+rectangle "输入校验依赖" as validate
+rectangle "流程编排依赖" as orchestrate
+rectangle "状态记录依赖" as state
+rectangle "输出组装依赖" as output
+
+entry --> validate : 校验输入
+entry --> orchestrate : 触发主流程
+entry --> state : 记录状态
+entry --> output : 组装输出
+orchestrate --> state : 同步进度
+output --> entry : 返回结果
+@enduml

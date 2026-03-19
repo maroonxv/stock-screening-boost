@@ -275,6 +275,8 @@ export class WorkflowExecutionService {
     );
     const nodeRunIds = new Map<WorkflowNodeKey, string>();
     const nodeStartedAt = new Map<WorkflowNodeKey, number>();
+    let activeNodeKey: WorkflowNodeKey | undefined =
+      typeof state.currentNodeKey === "string" ? state.currentNodeKey : undefined;
 
     try {
       const executedState = await graph.execute({
@@ -303,6 +305,11 @@ export class WorkflowExecutionService {
             existingNodeRunIds.set(nodeKey, nodeRun.id);
             nodeRunIds.set(nodeKey, nodeRun.id);
             nodeStartedAt.set(nodeKey, Date.now());
+            activeNodeKey = nodeKey;
+            state = {
+              ...state,
+              currentNodeKey: nodeKey,
+            };
 
             await this.repository.updateRunProgress({
               runId,
@@ -367,6 +374,9 @@ export class WorkflowExecutionService {
               nodeKey,
             );
 
+            if (activeNodeKey === nodeKey) {
+              activeNodeKey = undefined;
+            }
             state = updatedState;
           },
           onNodeSucceeded: async (nodeKey, updatedState) => {
@@ -404,6 +414,9 @@ export class WorkflowExecutionService {
               nodeKey,
             );
 
+            if (activeNodeKey === nodeKey) {
+              activeNodeKey = undefined;
+            }
             state = updatedState;
 
             if (await this.repository.isCancellationRequested(runId)) {
@@ -435,7 +448,7 @@ export class WorkflowExecutionService {
         await this.publishLatestEvent(
           runId,
           state.progressPercent,
-          state.currentNodeKey,
+          activeNodeKey ?? state.currentNodeKey,
         );
         return;
       }
@@ -480,26 +493,29 @@ export class WorkflowExecutionService {
       const errorMessage =
         error instanceof Error ? error.message : "未知执行错误";
 
-      if (state.currentNodeKey) {
+      const failedNodeKey =
+        activeNodeKey ??
+        (typeof state.currentNodeKey === "string"
+          ? state.currentNodeKey
+          : undefined);
+
+      if (failedNodeKey) {
         const nodeRunId =
-          nodeRunIds.get(state.currentNodeKey) ??
-          existingNodeRunIds.get(state.currentNodeKey);
+          nodeRunIds.get(failedNodeKey) ?? existingNodeRunIds.get(failedNodeKey);
 
         if (nodeRunId) {
           await this.repository.markNodeFailed({
             runId,
             nodeRunId,
-            nodeKey: state.currentNodeKey,
+            nodeKey: failedNodeKey,
             errorCode,
             errorMessage,
-            durationMs:
-              Date.now() -
-              (nodeStartedAt.get(state.currentNodeKey) ?? Date.now()),
+            durationMs: Date.now() - (nodeStartedAt.get(failedNodeKey) ?? Date.now()),
           });
           await this.publishLatestEvent(
             runId,
             state.progressPercent,
-            state.currentNodeKey,
+            failedNodeKey,
           );
         }
       }
@@ -512,7 +528,7 @@ export class WorkflowExecutionService {
       await this.publishLatestEvent(
         runId,
         state.progressPercent,
-        state.currentNodeKey,
+        failedNodeKey,
       );
     }
   }

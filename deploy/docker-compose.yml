@@ -50,7 +50,7 @@
       IFIND_USERNAME: ${IFIND_USERNAME:-}
       IFIND_PASSWORD: ${IFIND_PASSWORD:-}
       SCREENING_PRIMARY_PROVIDER: ${SCREENING_PRIMARY_PROVIDER:-ifind}
-      SCREENING_ENABLE_AKSHARE_FALLBACK: ${SCREENING_ENABLE_AKSHARE_FALLBACK:-true}
+      SCREENING_ENABLE_AKSHARE_FALLBACK: "false"
       ZHIPU_API_KEY: ${ZHIPU_API_KEY:-}
       ZHIPU_WEB_SEARCH_MODEL: ${ZHIPU_WEB_SEARCH_MODEL:-glm-4-plus}
       ZHIPU_WEB_SEARCH_ENDPOINT: ${ZHIPU_WEB_SEARCH_ENDPOINT:-https://open.bigmodel.cn/api/paas/v4/chat/completions}
@@ -166,36 +166,6 @@
       WORKFLOW_WORKER_POLL_INTERVAL_MS: ${WORKFLOW_WORKER_POLL_INTERVAL_MS:-2000}
     command:
       ["sh", "-c", "npm run validate:runtime && npm run worker:workflow"]
-
-  screening-worker:
-    build:
-      context: ..
-      dockerfile: deploy/web/Dockerfile
-      args:
-        SKIP_ENV_VALIDATION: "1"
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      python-service:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      AUTH_SECRET: ${AUTH_SECRET:-}
-      AUTH_SECRET_1: ${AUTH_SECRET_1:-}
-      AUTH_SECRET_2: ${AUTH_SECRET_2:-}
-      AUTH_SECRET_3: ${AUTH_SECRET_3:-}
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-stock-screening-boost}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      PYTHON_SERVICE_URL: ${PYTHON_SERVICE_URL:-http://python-service:8000}
-      PYTHON_INTELLIGENCE_SERVICE_TIMEOUT_MS: ${PYTHON_INTELLIGENCE_SERVICE_TIMEOUT_MS:-300000}
-      SCREENING_WORKER_POLL_INTERVAL_MS: ${SCREENING_WORKER_POLL_INTERVAL_MS:-2000}
-    command:
-      ["sh", "-c", "npm run validate:runtime && npm run worker:screening"]
-
 volumes:
   postgres_data:
   redis_data:

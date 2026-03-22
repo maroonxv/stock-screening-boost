@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
 import {
   WorkflowEventType,
   WorkflowNodeRunStatus,
   WorkflowRunStatus,
 } from "@prisma/client";
+import { describe, expect, it, vi } from "vitest";
 import { WorkflowCommandService } from "~/server/application/workflow/command-service";
 import { WorkflowExecutionService } from "~/server/application/workflow/execution-service";
 import { WorkflowPauseError } from "~/server/domain/workflow/errors";
@@ -102,7 +102,7 @@ class RecoverableGraph implements WorkflowGraphRunner {
         updatedState: WorkflowGraphState,
       ) => Promise<void> | void;
     };
-  }) {
+  }): Promise<WorkflowGraphState> {
     let state = params.initialState as RecoverableState;
     const nodeOrder = this.getNodeOrder();
 
@@ -213,7 +213,7 @@ class ReviewPauseGraph implements WorkflowGraphRunner {
         updatedState: WorkflowGraphState,
       ) => Promise<void> | void;
     };
-  }) {
+  }): Promise<WorkflowGraphState> {
     let state = params.initialState as ReviewPauseState;
 
     for (const nodeKey of this.getNodeOrder().slice(
@@ -305,9 +305,11 @@ class ClarificationPauseGraph implements WorkflowGraphRunner {
     return {
       clarificationRequired: true,
       question:
-        (state as WorkflowGraphState & {
-          clarificationRequest?: { question?: string };
-        }).clarificationRequest?.question ?? "Need more detail",
+        (
+          state as WorkflowGraphState & {
+            clarificationRequest?: { question?: string };
+          }
+        ).clarificationRequest?.question ?? "Need more detail",
       missingScopeFields: ["query"],
       suggestedInputPatch: {
         researchPreferences: {
@@ -352,6 +354,96 @@ class ClarificationPauseGraph implements WorkflowGraphRunner {
         },
       },
     });
+  }
+}
+
+class FailingActiveNodeGraph implements WorkflowGraphRunner {
+  readonly templateCode = "failing_active_node_graph";
+  readonly templateVersion = 1;
+
+  getNodeOrder() {
+    return ["first_node", "second_node"];
+  }
+
+  buildInitialState(): WorkflowGraphState {
+    return {
+      runId: "run_1",
+      userId: "user_1",
+      query: "failing graph",
+      progressPercent: 0,
+      currentNodeKey: undefined,
+      lastCompletedNodeKey: undefined,
+      errors: [],
+    };
+  }
+
+  getNodeOutput(nodeKey: string) {
+    if (nodeKey === "first_node") {
+      return {
+        firstNodeComplete: true,
+      };
+    }
+
+    return {};
+  }
+
+  getNodeEventPayload() {
+    return {};
+  }
+
+  mergeNodeOutput(
+    state: WorkflowGraphState,
+    nodeKey: string,
+    output: Record<string, unknown>,
+  ) {
+    return {
+      ...state,
+      ...output,
+      currentNodeKey: nodeKey,
+      lastCompletedNodeKey: nodeKey,
+    };
+  }
+
+  getRunResult() {
+    return {};
+  }
+
+  async execute(params: {
+    initialState: WorkflowGraphState;
+    startNodeIndex?: number;
+    hooks?: {
+      onNodeStarted?: (nodeKey: string) => Promise<void> | void;
+      onNodeProgress?: (
+        nodeKey: string,
+        payload: Record<string, unknown>,
+      ) => Promise<void> | void;
+      onNodeSucceeded?: (
+        nodeKey: string,
+        updatedState: WorkflowGraphState,
+      ) => Promise<void> | void;
+    };
+  }): Promise<WorkflowGraphState> {
+    let state = params.initialState;
+
+    await params.hooks?.onNodeStarted?.("first_node");
+    await params.hooks?.onNodeProgress?.("first_node", {
+      message: "processing_first_node",
+    });
+
+    state = {
+      ...state,
+      currentNodeKey: "first_node",
+      lastCompletedNodeKey: "first_node",
+      progressPercent: 50,
+    };
+    await params.hooks?.onNodeSucceeded?.("first_node", state);
+
+    await params.hooks?.onNodeStarted?.("second_node");
+    await params.hooks?.onNodeProgress?.("second_node", {
+      message: "processing_second_node",
+    });
+
+    throw new Error("second_node_failed");
   }
 }
 
@@ -842,6 +934,50 @@ describe("WorkflowExecutionService", () => {
         question: "Need more detail",
       },
     });
+  });
+
+  it("marks the actually running node as failed when the next node crashes", async () => {
+    const graph = new FailingActiveNodeGraph();
+    const { repository, run } = createRepositoryHarness({
+      graph,
+      status: WorkflowRunStatus.PENDING,
+      nodeRuns: graph.getNodeOrder().map((nodeKey) => ({
+        nodeKey,
+        status: WorkflowNodeRunStatus.PENDING,
+      })),
+    });
+    const runtimeStoreHarness = createRuntimeStoreHarness(null);
+
+    const service = new WorkflowExecutionService({
+      repository,
+      runtimeStore: runtimeStoreHarness.runtimeStore,
+      graphs: [graph],
+    });
+
+    const picked = await service.executeNextPendingRun("worker_1");
+
+    expect(picked).toBe(true);
+    expect(run.status).toBe(WorkflowRunStatus.FAILED);
+    expect(run.currentNodeKey).toBe("second_node");
+    expect(repository.markNodeFailed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nodeKey: "second_node",
+        errorMessage: "second_node_failed",
+      }),
+    );
+    expect(run.nodeRuns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          nodeKey: "first_node",
+          status: WorkflowNodeRunStatus.SUCCEEDED,
+        }),
+        expect.objectContaining({
+          nodeKey: "second_node",
+          status: WorkflowNodeRunStatus.FAILED,
+        }),
+      ]),
+    );
+    expect(runtimeStoreHarness.publishedEvents.at(-1)?.type).toBe("RUN_FAILED");
   });
 
   it("approves a paused screening run and lets the worker finish it", async () => {

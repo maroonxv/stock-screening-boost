@@ -4,7 +4,6 @@ import {
   type CompanyResearchResultDto,
   QUICK_RESEARCH_TEMPLATE_CODE,
   type QuickResearchResultDto,
-  SCREENING_TO_TIMING_TEMPLATE_CODE,
   TIMING_REVIEW_LOOP_TEMPLATE_CODE,
   TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE,
   WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE,
@@ -372,7 +371,6 @@ const timingDigestTemplateLabelMap: Record<string, string> = {
   [TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE]: "单股择时",
   [WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE]: "批量信号",
   [WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE]: "组合建议",
-  [SCREENING_TO_TIMING_TEMPLATE_CODE]: "机会联动择时",
   [TIMING_REVIEW_LOOP_TEMPLATE_CODE]: "择时复盘",
 };
 
@@ -693,7 +691,6 @@ export function buildResearchDigest(params: {
     params.templateCode === TIMING_SIGNAL_PIPELINE_TEMPLATE_CODE ||
     params.templateCode === WATCHLIST_TIMING_CARDS_PIPELINE_TEMPLATE_CODE ||
     params.templateCode === WATCHLIST_TIMING_PIPELINE_TEMPLATE_CODE ||
-    params.templateCode === SCREENING_TO_TIMING_TEMPLATE_CODE ||
     params.templateCode === TIMING_REVIEW_LOOP_TEMPLATE_CODE
   ) {
     const timingDigest = buildTimingWorkflowDigest(params);

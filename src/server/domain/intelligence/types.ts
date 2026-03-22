@@ -71,7 +71,7 @@ export type ScreeningInsightStatus = "ACTIVE" | "NEEDS_REVIEW" | "ARCHIVED";
 
 export type ResearchReminderType = "REVIEW";
 
-export type ResearchReminderTargetType = "SCREENING_INSIGHT" | "TIMING_REVIEW";
+export type ResearchReminderTargetType = "TIMING_REVIEW";
 
 export type ResearchReminderStatus = "PENDING" | "TRIGGERED" | "CANCELLED";
 

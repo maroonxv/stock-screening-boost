@@ -3,8 +3,6 @@ import type { ResearchReminder } from "~/server/domain/intelligence/entities/res
 export interface IReminderRepository {
   save(reminder: ResearchReminder): Promise<void>;
   findById(id: string): Promise<ResearchReminder | null>;
-  findByInsightId(insightId: string): Promise<ResearchReminder[]>;
-  findByScreeningInsightId(insightId: string): Promise<ResearchReminder[]>;
   findByTimingReviewRecordId(
     reviewRecordId: string,
   ): Promise<ResearchReminder[]>;

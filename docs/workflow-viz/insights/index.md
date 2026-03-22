@@ -1,32 +1,36 @@
-# 行业研究 Workflow Viz 导览
+# 公司研究 Workflow Viz 入口
 
-这组文档聚焦公司/行业研究工作流里最难建立心智模型的代码。图已经由 `workflow-viz` 自动生成，我额外补了人工导览，帮助你区分“现行主路径”和“兼容旧版本路径”。
+这组文档聚焦“公司研究”主链里最容易读乱的 7 个热点文件。建议先从阅读导览建立心智模型，再按问题跳到对应热点页看图。
 
-## 先看这页
+## 推荐起点
 
-- [行业研究阅读导览](./industry-research-reading-guide.md)
+- [公司研究代码阅读导览](./company-research-reading-guide.md)：先建立 V4 主路径、阅读顺序和术语对齐。
+- [公司研究热点地图](./intelligence/analysis.md)：先看这 7 个热点分别回答什么问题。
 
-## 推荐阅读顺序
+## 7 个热点怎么分工
 
-1. [company-research-graph.ts 洞察](./src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170.md)
-2. [company-research-workflow-service.ts 洞察](./src-server-application-intelligence-company-research-workflow-service-ts-69962f95.md)
-3. [research-workflow-kernel.ts 洞察](./src-server-application-intelligence-research-workflow-kernel-ts-85dd475b.md)
-4. [research-tool-registry.ts 洞察](./src-server-application-intelligence-research-tool-registry-ts-ef9a2c67.md)
-5. [company-research-agent-service.ts 洞察](./src-server-application-intelligence-company-research-agent-service-ts-d175b6d7.md)
+| 页面 | 主要回答的问题 | 对应源码 |
+| --- | --- | --- |
+| [公司研究前端入口](./company-research-client/company-research-client.md) | 页面把哪些输入送进工作流？ | `src/app/company-research/company-research-client.tsx` |
+| [工作流启动入口](./workflow-command-service/workflow-command-service.md) | run 是怎么创建并绑定到 V4 模板的？ | `src/server/application/workflow/command-service.ts` |
+| [LangGraph 总控页](./langgraph-company-research-graph/langgraph-company-research-graph.md) | 节点顺序、fan-out、pause/resume、gap loop 在哪？ | `src/server/infrastructure/workflow/langgraph/company-research-graph.ts` |
+| [workflow service 核心](./intelligence/company-research-workflow-service.md) | `researchUnits` 是如何规划、执行、补洞、收束的？ | `src/server/application/intelligence/company-research-workflow-service.ts` |
+| [kernel 规则内核](./intelligence/research-workflow-kernel.md) | brief、task contract、unit plan、gap analysis 是怎么被规划出来的？ | `src/server/application/intelligence/research-workflow-kernel.ts` |
+| [tool registry 工具门面](./intelligence/research-tool-registry.md) | Web 搜索、页面抓取、财务 pack 是如何统一封装的？ | `src/server/application/intelligence/research-tool-registry.ts` |
+| [agent service 后处理](./intelligence/company-research-agent-service.md) | 证据如何去重、补引用、回答问题并变成 verdict？ | `src/server/application/intelligence/company-research-agent-service.ts` |
 
-## 热点文件
+## 最省时间的阅读路径
 
-| 文件 | 角色 | 为什么难读 | 文档 |
-| --- | --- | --- | --- |
-| `src/server/infrastructure/workflow/langgraph/company-research-graph.ts` | LangGraph 编排入口 | 同一个文件并存 V1/V2/V3/V4 四代公司研究图 | [打开](./src-server-infrastructure-workflow-langgraph-company-research-graph-ts-39959170.md) |
-| `src/server/application/intelligence/company-research-workflow-service.ts` | V3/V4 执行核心 | 同时处理任务计划结果、并发执行、补洞循环和最终报告 | [打开](./src-server-application-intelligence-company-research-workflow-service-ts-69962f95.md) |
-| `src/server/application/intelligence/research-workflow-kernel.ts` | 研究工作流策略内核 | 默认任务合同、默认研究单元、补洞策略都定义在这里 | [打开](./src-server-application-intelligence-research-workflow-kernel-ts-85dd475b.md) |
-| `src/server/application/intelligence/research-tool-registry.ts` | 外部工具边界 | 搜索、抓取、摘要、Python 金融数据都被包装在这一层 | [打开](./src-server-application-intelligence-research-tool-registry-ts-ef9a2c67.md) |
-| `src/server/application/intelligence/company-research-agent-service.ts` | 研究代理与汇总层 | 新旧采集路径和当前仍在使用的整理/总结逻辑混在一个大文件里 | [打开](./src-server-application-intelligence-company-research-agent-service-ts-d175b6d7.md) |
+1. 先看 [公司研究代码阅读导览](./company-research-reading-guide.md)。
+2. 再看 [LangGraph 总控页](./langgraph-company-research-graph/langgraph-company-research-graph.md)，确认当前主路径是 V4。
+3. 接着看 [workflow service 核心](./intelligence/company-research-workflow-service.md)，理解研究单元如何真正执行。
+4. 遇到“这一步是谁规划的”时回到 [kernel 规则内核](./intelligence/research-workflow-kernel.md)。
+5. 遇到“数据到底从哪来”时看 [tool registry 工具门面](./intelligence/research-tool-registry.md)。
+6. 遇到“证据怎么变结论”时看 [agent service 后处理](./intelligence/company-research-agent-service.md)。
 
-## 这套文档回答什么问题
+## 如果你只追一个问题
 
-- `industry_search` 到底从哪里被计划出来，又在哪里真正执行。
-- 为什么同样叫“公司研究”，代码里会出现多套图版本和两条不同的采集链路。
-- 哪一层负责“决定做什么”，哪一层负责“去搜什么”，哪一层负责“把证据整理成结论”。
-- 如果只想追行业研究相关逻辑，应该优先跳过哪些旧路径。
+- 想看“点按钮之后发生什么”：先看前端入口，再看工作流启动入口。
+- 想看“`industry_search` 怎么跑”：先看 LangGraph，再看 workflow service，再看 kernel。
+- 想看“为什么会补洞重跑”：先看 workflow service 的 `runGapLoop`，再回 kernel 的 `analyzeResearchGaps`。
+- 想看“为什么引用会被裁掉或补全”：直接看 agent service 的 `curateEvidence` 和 `enrichReferences`。

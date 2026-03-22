@@ -27,6 +27,7 @@ next-env.d.ts
 .runlogs/
 .codex/
 .cache/
+.worktrees/
 
 # debug
 npm-debug.log*
@@ -39,6 +40,8 @@ yarn-error.log*
 .env
 .env*.local
 deploy/.env
+deploy/python/vendor/*
+!deploy/python/vendor/README.md
 
 # vercel
 .vercel

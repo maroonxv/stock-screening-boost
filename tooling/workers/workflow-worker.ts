@@ -22,7 +22,6 @@ import { TimingReviewPolicy } from "~/server/domain/timing/services/timing-revie
 import { DeepSeekClient } from "~/server/infrastructure/intelligence/deepseek-client";
 import { FirecrawlClient } from "~/server/infrastructure/intelligence/firecrawl-client";
 import { PrismaResearchReminderRepository } from "~/server/infrastructure/intelligence/prisma-research-reminder-repository";
-import { PrismaScreeningInsightRepository } from "~/server/infrastructure/intelligence/prisma-screening-insight-repository";
 import { PythonConfidenceAnalysisClient } from "~/server/infrastructure/intelligence/python-confidence-analysis-client";
 import { PythonIntelligenceDataClient } from "~/server/infrastructure/intelligence/python-intelligence-data-client";
 import { PrismaWatchListRepository } from "~/server/infrastructure/screening/prisma-watch-list-repository";
@@ -41,15 +40,12 @@ import {
   LegacyCompanyResearchLangGraph,
 } from "~/server/infrastructure/workflow/langgraph/company-research-graph";
 import { QuickResearchLangGraph } from "~/server/infrastructure/workflow/langgraph/quick-research-graph";
-import { ScreeningInsightPipelineLangGraph } from "~/server/infrastructure/workflow/langgraph/screening-insight-pipeline-graph";
-import { ScreeningToTimingPipelineLangGraph } from "~/server/infrastructure/workflow/langgraph/screening-to-timing-graph";
 import { TimingSignalPipelineLangGraph } from "~/server/infrastructure/workflow/langgraph/timing-signal-graph";
 import { TimingReviewLoopLangGraph } from "~/server/infrastructure/workflow/langgraph/timing-review-loop-graph";
 import { WatchlistTimingPipelineLangGraph } from "~/server/infrastructure/workflow/langgraph/watchlist-timing-graph";
 import { WatchlistTimingCardsPipelineLangGraph } from "~/server/infrastructure/workflow/langgraph/watchlist-timing-cards-graph";
 import { PrismaWorkflowRunRepository } from "~/server/infrastructure/workflow/prisma/workflow-run-repository";
 import { RedisWorkflowRuntimeStore } from "~/server/infrastructure/workflow/redis/redis-workflow-runtime-store";
-import { PrismaScreeningSessionRepository } from "~/server/infrastructure/screening/prisma-screening-session-repository";
 
 const workflowRepository = new PrismaWorkflowRunRepository(db);
 const deepSeekClient = new DeepSeekClient();
@@ -58,8 +54,6 @@ const confidenceAnalysisService = new ConfidenceAnalysisService({
   client: new PythonConfidenceAnalysisClient(),
 });
 const reminderRepository = new PrismaResearchReminderRepository(db);
-const insightRepository = new PrismaScreeningInsightRepository(db);
-const screeningSessionRepository = new PrismaScreeningSessionRepository(db);
 const watchListRepository = new PrismaWatchListRepository(db);
 const portfolioSnapshotRepository = new PrismaPortfolioSnapshotRepository(db);
 const timingMarketContextSnapshotRepository =
@@ -128,14 +122,6 @@ const executionService = new WorkflowExecutionService({
         confidenceAnalysisService,
       }),
     ),
-    new ScreeningInsightPipelineLangGraph({
-      screeningSessionRepository,
-      insightRepository,
-      dataClient: pythonDataClient,
-      synthesisService,
-      confidenceAnalysisService,
-      reminderSchedulingService,
-    }),
     new TimingSignalPipelineLangGraph({
       timingDataClient: pythonTimingDataClient,
       analysisService: timingAnalysisService,
@@ -163,15 +149,6 @@ const executionService = new WorkflowExecutionService({
       riskManagerService: watchlistRiskManagerService,
       portfolioManagerService: watchlistPortfolioManagerService,
       recommendationRepository: timingRecommendationRepository,
-      reviewSchedulingService: timingReviewSchedulingService,
-    }),
-    new ScreeningToTimingPipelineLangGraph({
-      screeningSessionRepository,
-      presetRepository: timingPresetRepository,
-      timingDataClient: pythonTimingDataClient,
-      analysisService: timingAnalysisService,
-      signalSnapshotRepository: timingSignalSnapshotRepository,
-      analysisCardRepository: timingAnalysisCardRepository,
       reviewSchedulingService: timingReviewSchedulingService,
     }),
     new TimingReviewLoopLangGraph({

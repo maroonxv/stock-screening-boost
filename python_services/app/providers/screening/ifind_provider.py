@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
+from importlib.util import find_spec
 import logging
 import math
 import os
@@ -13,13 +14,8 @@ import pandas as pd
 
 from app.providers.screening.base import ScreeningDataProvider
 
-try:
-    from iFinDPy import THS_BD, THS_DR, THS_DS, THS_RQ, THS_iFinDLogin
-
-    IFIND_AVAILABLE = True
-except ImportError:  # pragma: no cover - runtime-dependent
-    THS_BD = THS_DR = THS_DS = THS_RQ = THS_iFinDLogin = None
-    IFIND_AVAILABLE = False
+THS_BD = THS_DR = THS_DS = THS_RQ = THS_iFinDLogin = None
+IFIND_AVAILABLE = find_spec("iFinDPy") is not None
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,6 +52,37 @@ _HISTORY_FIELD_SPECS: dict[str, tuple[str, str]] = {
     "REVENUE": ("ths_revenue_stock", _STATEMENT_PARAM),
     "NET_PROFIT": ("ths_np_atoopc_stock", _STATEMENT_PARAM),
 }
+
+
+def _ensure_ifind_symbols_loaded() -> None:
+    global THS_BD, THS_DR, THS_DS, THS_RQ, THS_iFinDLogin, IFIND_AVAILABLE
+
+    if all(
+        symbol is not None
+        for symbol in (THS_BD, THS_DR, THS_DS, THS_RQ, THS_iFinDLogin)
+    ):
+        return
+
+    if not IFIND_AVAILABLE:
+        raise RuntimeError("iFinDPy 未安装，无法启用 iFinD 数据源")
+
+    try:
+        from iFinDPy import (
+            THS_BD as loaded_ths_bd,
+            THS_DR as loaded_ths_dr,
+            THS_DS as loaded_ths_ds,
+            THS_RQ as loaded_ths_rq,
+            THS_iFinDLogin as loaded_ifind_login,
+        )
+    except ImportError as exc:  # pragma: no cover - runtime-dependent
+        IFIND_AVAILABLE = False
+        raise RuntimeError("iFinDPy 未安装，无法启用 iFinD 数据源") from exc
+
+    THS_BD = THS_BD or loaded_ths_bd
+    THS_DR = THS_DR or loaded_ths_dr
+    THS_DS = THS_DS or loaded_ths_ds
+    THS_RQ = THS_RQ or loaded_ths_rq
+    THS_iFinDLogin = THS_iFinDLogin or loaded_ifind_login
 
 
 class IFindScreeningProvider(ScreeningDataProvider):
@@ -274,11 +301,16 @@ class IFindScreeningProvider(ScreeningDataProvider):
                     industries.add(industry)
         return sorted(industries)
 
+    def _ensure_ifind_api_loaded(self) -> None:
+        _ensure_ifind_symbols_loaded()
+
     def _ensure_login(self) -> None:
         if self._is_logged_in:
             return
 
-        if not IFIND_AVAILABLE or THS_iFinDLogin is None:
+        self._ensure_ifind_api_loaded()
+
+        if THS_iFinDLogin is None:
             raise RuntimeError("iFinDPy 未安装，无法启用 iFinD 数据源")
 
         username = self._username or os.getenv("IFIND_USERNAME")

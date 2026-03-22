@@ -4,7 +4,16 @@
 .cache
 .codex
 .kiro
-temp
+temp/*
+!temp/-v3/
+temp/-v3/*
+!temp/-v3/backend/
+temp/-v3/backend/*
+!temp/-v3/backend/app/
+temp/-v3/backend/app/*
+!temp/-v3/backend/app/utils/
+temp/-v3/backend/app/utils/*
+!temp/-v3/backend/app/utils/indicators_mapping.py
 node_modules
 npm-debug.log*
 

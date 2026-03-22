@@ -1,1696 +1,1210 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import {
-  ActionStrip,
+  EmptyState,
   InlineNotice,
+  SectionCard,
   StatusPill,
-  statusTone,
   WorkspaceShell,
 } from "~/app/_components/ui";
 import {
-  type CreateStrategyInput,
-  type FilterGroupInput,
-  filterGroupInputSchema,
-  scoringConfigInputSchema,
+  annualPresetOptions,
+  buildMetricNameMap,
+  buildResultColumns,
+  buildVisibleResultRows,
+  formatDateTime,
+  getLatestMetricValue,
+  groupCatalogItems,
+  quarterlyPresetOptions,
+} from "~/app/screening/screening-ui";
+import type {
+  WorkspaceFilterRule,
+  WorkspaceResult,
+  WorkspaceTimeConfig,
 } from "~/contracts/screening";
-import type { NormalizationMethod } from "~/server/domain/screening/value-objects/scoring-config";
 import { api, type RouterOutputs } from "~/trpc/react";
-import { FilterGroupEditor } from "./filter-group-editor";
-import { ScoringRulesEditor } from "./scoring-rules-editor";
-import {
-  countConditions,
-  createDefaultStrategyForm,
-  formatDate,
-  formatDuration,
-  isLiveSession,
-  normalizeRuleWeights,
-  type ParsedTopStock,
-  type ParsedWatchedStock,
-  parseTags,
-  parseTopStocks,
-  parseWatchedStocks,
-  type StrategyFormState,
-  scoringConfigToRules,
-  scoringRulesToConfig,
-  sessionStatusLabelMap,
-} from "./screening-ui";
 
-type StrategyListItem = RouterOutputs["screening"]["listStrategies"][number];
-type SessionListItem = RouterOutputs["screening"]["listRecentSessions"][number];
-type WatchListItem = RouterOutputs["watchlist"]["list"][number];
-
-type OpportunityRow = {
+type FormulaItem = RouterOutputs["screening"]["listFormulas"][number];
+type WorkspaceSummary = RouterOutputs["screening"]["listWorkspaces"][number];
+type WorkspaceDetail = RouterOutputs["screening"]["getWorkspace"];
+type SelectedStock = {
   stockCode: string;
   stockName: string;
-  source: "筛选" | "清单" | "筛选+清单";
-  score?: number;
-  indicatorPreview?: string;
-  rationale?: string;
-  note?: string;
-  tags?: string[];
-  addedAt?: string;
+  market: string;
 };
+type FilterRuleDraft = WorkspaceFilterRule & { clientId: string };
 
 type NoticeState = {
-  tone: "success" | "error" | "info";
+  tone: "info" | "success" | "error";
   text: string;
 };
 
-function Notice({ notice }: { notice: NoticeState | null }) {
-  if (!notice) {
-    return null;
-  }
+const defaultTimeConfig: WorkspaceTimeConfig = {
+  periodType: "ANNUAL",
+  rangeMode: "PRESET",
+  presetKey: "3Y",
+};
 
-  return (
-    <InlineNotice
-      tone={
-        notice.tone === "success"
-          ? "success"
-          : notice.tone === "error"
-            ? "danger"
-            : "warning"
-      }
-      description={notice.text}
-    />
+const defaultColumnState = {
+  hiddenMetricIds: [] as string[],
+  pinnedMetricIds: ["stockCode", "stockName"],
+};
+
+function emptyFilterRule(): FilterRuleDraft {
+  return {
+    clientId: crypto.randomUUID(),
+    metricId: "",
+    operator: ">=",
+    value: "",
+    valueType: "NUMBER",
+    applyScope: "LATEST_DEFAULT",
+  };
+}
+
+function toSelectedStocks(detail: WorkspaceDetail): SelectedStock[] {
+  const latestRows = detail.state.resultSnapshot?.latestSnapshotRows ?? [];
+  const latestMap = new Map(
+    latestRows.map((row) => [row.stockCode, row.stockName] as const),
   );
+
+  return detail.state.stockCodes.map((stockCode) => ({
+    stockCode,
+    stockName: latestMap.get(stockCode) ?? stockCode,
+    market: "",
+  }));
 }
 
 export function ScreeningStudioClient() {
+  const searchParams = useSearchParams();
+  const workspaceIdFromUrl = searchParams.get("workspaceId");
   const utils = api.useUtils();
   const [notice, setNotice] = useState<NoticeState | null>(null);
-  const [hasInitializedStrategySelection, setHasInitializedStrategySelection] =
-    useState(false);
-  const [strategyMode, setStrategyMode] = useState<"create" | "update">(
-    "create",
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
+    workspaceIdFromUrl,
   );
-  const [strategyForm, setStrategyForm] = useState<StrategyFormState>(
-    createDefaultStrategyForm(),
+  const [draftMode, setDraftMode] = useState(workspaceIdFromUrl === null);
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceDescription, setWorkspaceDescription] = useState("");
+  const [selectedStocks, setSelectedStocks] = useState<SelectedStock[]>([]);
+  const [selectedIndicatorIds, setSelectedIndicatorIds] = useState<string[]>(
+    [],
   );
-  const [selectedStrategyId, setSelectedStrategyId] = useState<string | null>(
+  const [selectedFormulaIds, setSelectedFormulaIds] = useState<string[]>([]);
+  const [timeConfig, setTimeConfig] =
+    useState<WorkspaceTimeConfig>(defaultTimeConfig);
+  const [filterRules, setFilterRules] = useState<FilterRuleDraft[]>([]);
+  const [sortState, setSortState] = useState<{
+    metricId: string;
+    direction: "asc" | "desc";
+  } | null>(null);
+  const [columnState] = useState(defaultColumnState);
+  const [resultSnapshot, setResultSnapshot] = useState<WorkspaceResult | null>(
     null,
   );
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
-    null,
-  );
-  const [selectedWatchListId, setSelectedWatchListId] = useState<string | null>(
+  const [lastFetchedAt, setLastFetchedAt] = useState<string | undefined>();
+  const [stockSearchKeyword, setStockSearchKeyword] = useState("");
+  const deferredStockKeyword = useDeferredValue(stockSearchKeyword.trim());
+  const [editingFormulaId, setEditingFormulaId] = useState<string | null>(null);
+  const [formulaName, setFormulaName] = useState("");
+  const [formulaDescription, setFormulaDescription] = useState("");
+  const [formulaExpression, setFormulaExpression] = useState("");
+  const [formulaTargetIndicators, setFormulaTargetIndicators] = useState<
+    string[]
+  >([]);
+  const [formulaValidation, setFormulaValidation] = useState<string | null>(
     null,
   );
 
-  const [newWatchListName, setNewWatchListName] = useState("长期跟踪");
-  const [newWatchListDescription, setNewWatchListDescription] = useState("");
-  const [watchMetaName, setWatchMetaName] = useState("");
-  const [watchMetaDescription, setWatchMetaDescription] = useState("");
-  const [_newStockCode, setNewStockCode] = useState("");
-  const [_newStockName, setNewStockName] = useState("");
-  const [_newStockNote, setNewStockNote] = useState("");
-  const [_newStockTags, _setNewStockTags] = useState("跟踪, 命中");
-  const [selectedStockCode, setSelectedStockCode] = useState("");
-
-  const strategiesQuery = api.screening.listStrategies.useQuery(
-    { limit: 50, offset: 0 },
+  const catalogQuery = api.screening.listIndicatorCatalog.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const formulasQuery = api.screening.listFormulas.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+  const workspacesQuery = api.screening.listWorkspaces.useQuery(
+    { limit: 100, offset: 0 },
     { refetchOnWindowFocus: false },
   );
-  const sessionsQuery = api.screening.listRecentSessions.useQuery(
-    { limit: 20, offset: 0 },
-    { refetchInterval: 2500, refetchOnWindowFocus: false },
-  );
-  const watchListsQuery = api.watchlist.list.useQuery({
-    limit: 30,
-    offset: 0,
-    sortBy: "updatedAt",
-    sortDirection: "desc",
-  });
-
-  const strategyDetailQuery = api.screening.getStrategy.useQuery(
-    { id: selectedStrategyId ?? "" },
-    { enabled: selectedStrategyId !== null, refetchOnWindowFocus: false },
-  );
-
-  const selectedSessionSummary = useMemo(
-    () =>
-      (sessionsQuery.data ?? []).find(
-        (session) => session.id === selectedSessionId,
-      ) ?? null,
-    [selectedSessionId, sessionsQuery.data],
-  );
-
-  const sessionDetailQuery = api.screening.getSessionDetail.useQuery(
-    { sessionId: selectedSessionId ?? "" },
+  const workspaceDetailQuery = api.screening.getWorkspace.useQuery(
+    { id: selectedWorkspaceId ?? "" },
     {
-      enabled: selectedSessionId !== null,
-      refetchInterval: isLiveSession(selectedSessionSummary?.status)
-        ? 2000
-        : false,
+      enabled: selectedWorkspaceId !== null && !draftMode,
+      refetchOnWindowFocus: false,
+    },
+  );
+  const searchStocksQuery = api.screening.searchStocks.useQuery(
+    {
+      keyword: deferredStockKeyword,
+      limit: 20,
+    },
+    {
+      enabled: deferredStockKeyword.length > 0,
       refetchOnWindowFocus: false,
     },
   );
 
-  const watchListDetailQuery = api.watchlist.getDetail.useQuery(
-    { id: selectedWatchListId ?? "" },
-    { enabled: selectedWatchListId !== null },
+  const groupedCatalog = useMemo(
+    () =>
+      groupCatalogItems({
+        categories: catalogQuery.data?.categories ?? [],
+        items: catalogQuery.data?.items ?? [],
+      }),
+    [catalogQuery.data],
+  );
+  const formulas = formulasQuery.data ?? [];
+  const workspaceOptions = workspacesQuery.data ?? [];
+  const metricNameMap = useMemo(
+    () =>
+      buildMetricNameMap({
+        catalogItems: catalogQuery.data?.items ?? [],
+        formulas,
+        result: resultSnapshot,
+      }),
+    [catalogQuery.data, formulas, resultSnapshot],
+  );
+  const resultColumns = useMemo(
+    () => buildResultColumns(resultSnapshot),
+    [resultSnapshot],
+  );
+  const visibleLatestRows = useMemo(
+    () =>
+      buildVisibleResultRows({
+        result: resultSnapshot,
+        filterRules: filterRules.filter((rule) => rule.metricId),
+        sortState,
+      }),
+    [filterRules, resultSnapshot, sortState],
+  );
+  const visibleRows = useMemo(() => {
+    if (!resultSnapshot) {
+      return [];
+    }
+
+    const visibleOrder = new Map(
+      visibleLatestRows.map((row, index) => [row.stockCode, index] as const),
+    );
+
+    return resultSnapshot.rows
+      .filter((row) => visibleOrder.has(row.stockCode))
+      .sort(
+        (left, right) =>
+          (visibleOrder.get(left.stockCode) ?? 0) -
+          (visibleOrder.get(right.stockCode) ?? 0),
+      );
+  }, [resultSnapshot, visibleLatestRows]);
+  const filterMetricOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(visibleLatestRows.flatMap((row) => Object.keys(row.metrics))),
+      ),
+    [visibleLatestRows],
   );
 
-  const createStrategyMutation = api.screening.createStrategy.useMutation({
-    onSuccess: async (created) => {
-      setHasInitializedStrategySelection(true);
-      setStrategyMode("update");
-      setSelectedStrategyId(created.id);
-      setNotice({ tone: "success", text: `策略「${created.name}」已创建` });
-      await utils.screening.listStrategies.invalidate();
+  const createWorkspaceMutation = api.screening.createWorkspace.useMutation({
+    onSuccess: async (workspace) => {
+      setDraftMode(false);
+      setSelectedWorkspaceId(workspace.id);
+      setNotice({ tone: "success", text: `工作台“${workspace.name}”已保存` });
+      await utils.screening.listWorkspaces.invalidate();
     },
-    onError: (error) => {
-      setNotice({ tone: "error", text: `创建失败：${error.message}` });
-    },
+    onError: (error) => setNotice({ tone: "error", text: error.message }),
   });
-
-  const updateStrategyMutation = api.screening.updateStrategy.useMutation({
-    onSuccess: async (updated) => {
-      setNotice({ tone: "success", text: `策略「${updated.name}」已更新` });
+  const updateWorkspaceMutation = api.screening.updateWorkspace.useMutation({
+    onSuccess: async (workspace) => {
+      setNotice({ tone: "success", text: `工作台“${workspace.name}”已更新` });
       await Promise.all([
-        utils.screening.listStrategies.invalidate(),
-        utils.screening.getStrategy.invalidate({ id: updated.id }),
+        utils.screening.listWorkspaces.invalidate(),
+        utils.screening.getWorkspace.invalidate({ id: workspace.id }),
       ]);
     },
-    onError: (error) => {
-      setNotice({ tone: "error", text: `更新失败：${error.message}` });
-    },
+    onError: (error) => setNotice({ tone: "error", text: error.message }),
   });
-
-  const deleteStrategyMutation = api.screening.deleteStrategy.useMutation({
-    onSuccess: async (_deleted, variables) => {
-      const remainingStrategies = strategies.filter(
-        (strategy) => strategy.id !== variables.id,
+  const queryDatasetMutation = api.screening.queryDataset.useMutation({
+    onSuccess: (workspaceResult) => {
+      setResultSnapshot({
+        ...workspaceResult,
+        warnings: workspaceResult.warnings ?? [],
+      });
+      setLastFetchedAt(new Date().toISOString());
+      setSelectedStocks((current) =>
+        current.map((stock) => {
+          const row = workspaceResult.latestSnapshotRows.find(
+            (item) => item.stockCode === stock.stockCode,
+          );
+          return row ? { ...stock, stockName: row.stockName } : stock;
+        }),
       );
-
-      if (selectedStrategyId === variables.id) {
-        if (remainingStrategies[0]) {
-          setHasInitializedStrategySelection(true);
-          setSelectedStrategyId(remainingStrategies[0].id);
-          setStrategyMode("update");
-        } else {
-          setHasInitializedStrategySelection(true);
-          setSelectedStrategyId(null);
-          setStrategyMode("create");
-          setStrategyForm(createDefaultStrategyForm());
-        }
-      }
-
-      setNotice({ tone: "success", text: "策略已删除" });
-      await Promise.all([
-        utils.screening.listStrategies.invalidate(),
-        utils.screening.listRecentSessions.invalidate(),
-      ]);
-    },
-    onError: (error) => {
-      setNotice({ tone: "error", text: `删除失败：${error.message}` });
-    },
-  });
-
-  const executeStrategyMutation = api.screening.executeStrategy.useMutation({
-    onSuccess: async (result) => {
-      setSelectedSessionId(result.sessionId);
       setNotice({
         tone: "success",
-        text: "策略已加入执行队列。",
+        text: "iFinD 数据已获取，可本地筛选与排序",
       });
-      await Promise.all([
-        utils.screening.listRecentSessions.invalidate(),
-        utils.screening.getSessionDetail.invalidate({
-          sessionId: result.sessionId,
-        }),
-      ]);
     },
-    onError: (error) => {
-      setNotice({ tone: "error", text: `入队失败：${error.message}` });
-    },
+    onError: (error) => setNotice({ tone: "error", text: error.message }),
   });
-
-  const cancelSessionMutation = api.screening.cancelSession.useMutation({
-    onSuccess: async (result) => {
-      setNotice({
-        tone: "info",
-        text:
-          result.status === "CANCELLED"
-            ? "任务已取消"
-            : "已提交取消请求，等待 worker 响应。",
-      });
-      await Promise.all([
-        utils.screening.listRecentSessions.invalidate(),
-        utils.screening.getSessionDetail.invalidate({
-          sessionId: result.sessionId,
-        }),
-      ]);
-    },
-    onError: (error) => {
-      setNotice({ tone: "error", text: `取消失败：${error.message}` });
-    },
+  const validateFormulaMutation = api.screening.validateFormula.useMutation({
+    onSuccess: (result) =>
+      setFormulaValidation(
+        result.valid
+          ? `校验通过：${result.normalizedExpression ?? formulaExpression}`
+          : result.errors.join("；"),
+      ),
+    onError: (error) => setFormulaValidation(error.message),
   });
-
-  const retrySessionMutation = api.screening.retrySession.useMutation({
-    onSuccess: async (result) => {
-      setSelectedSessionId(result.sessionId);
-      setNotice({ tone: "success", text: "已重新提交筛选任务" });
-      await Promise.all([
-        utils.screening.listRecentSessions.invalidate(),
-        utils.screening.getSessionDetail.invalidate({
-          sessionId: result.sessionId,
-        }),
-      ]);
+  const createFormulaMutation = api.screening.createFormula.useMutation({
+    onSuccess: async (formula) => {
+      setSelectedFormulaIds((current) =>
+        current.includes(formula.id) ? current : [...current, formula.id],
+      );
+      setNotice({ tone: "success", text: `公式“${formula.name}”已保存` });
+      await utils.screening.listFormulas.invalidate();
+      resetFormulaEditor();
     },
-    onError: (error) => {
-      setNotice({ tone: "error", text: `重试失败：${error.message}` });
-    },
+    onError: (error) => setNotice({ tone: "error", text: error.message }),
   });
-
-  const deleteSessionMutation = api.screening.deleteSession.useMutation({
+  const updateFormulaMutation = api.screening.updateFormula.useMutation({
+    onSuccess: async (formula) => {
+      setNotice({ tone: "success", text: `公式“${formula.name}”已更新` });
+      await utils.screening.listFormulas.invalidate();
+      resetFormulaEditor();
+    },
+    onError: (error) => setNotice({ tone: "error", text: error.message }),
+  });
+  const deleteFormulaMutation = api.screening.deleteFormula.useMutation({
     onSuccess: async () => {
-      setNotice({ tone: "success", text: "会话已删除" });
-      await Promise.all([
-        utils.screening.listRecentSessions.invalidate(),
-        utils.screening.getSessionDetail.invalidate(),
-      ]);
+      setNotice({ tone: "success", text: "公式已删除" });
+      await utils.screening.listFormulas.invalidate();
+      resetFormulaEditor();
     },
-    onError: (error) => {
-      setNotice({ tone: "error", text: `删除失败：${error.message}` });
-    },
+    onError: (error) => setNotice({ tone: "error", text: error.message }),
   });
 
-  const createWatchListMutation = api.watchlist.create.useMutation({
-    onSuccess: async (created) => {
-      setSelectedWatchListId(created.id);
-      setNotice({ tone: "success", text: `清单「${created.name}」已创建` });
-      await Promise.all([
-        utils.watchlist.list.invalidate(),
-        utils.watchlist.getDetail.invalidate({ id: created.id }),
-      ]);
-    },
-    onError: (error) => {
-      setNotice({ tone: "error", text: `创建清单失败：${error.message}` });
-    },
-  });
+  function resetFormulaEditor() {
+    setEditingFormulaId(null);
+    setFormulaName("");
+    setFormulaDescription("");
+    setFormulaExpression("");
+    setFormulaTargetIndicators([]);
+    setFormulaValidation(null);
+  }
 
-  const updateWatchMetaMutation = api.watchlist.updateMeta.useMutation({
-    onSuccess: async (updated) => {
-      setNotice({ tone: "success", text: `清单「${updated.name}」已更新` });
-      await Promise.all([
-        utils.watchlist.list.invalidate(),
-        utils.watchlist.getDetail.invalidate({ id: updated.id }),
-      ]);
-    },
-  });
-
-  const _deleteWatchListMutation = api.watchlist.delete.useMutation({
-    onSuccess: async () => {
-      setNotice({ tone: "success", text: "自选股清单已删除" });
-      await Promise.all([
-        utils.watchlist.list.invalidate(),
-        utils.watchlist.getDetail.invalidate(),
-      ]);
-    },
-  });
-
-  const addStockMutation = api.watchlist.addStock.useMutation({
-    onSuccess: async () => {
-      if (selectedWatchListId) {
-        await utils.watchlist.getDetail.invalidate({ id: selectedWatchListId });
-      }
-      await utils.watchlist.list.invalidate();
-      setNotice({ tone: "success", text: "股票已加入自选股清单" });
-      setNewStockCode("");
-      setNewStockName("");
-      setNewStockNote("");
-    },
-    onError: (error) => {
-      setNotice({ tone: "error", text: `加入清单失败：${error.message}` });
-    },
-  });
-
-  const removeStockMutation = api.watchlist.removeStock.useMutation({
-    onSuccess: async () => {
-      if (selectedWatchListId) {
-        await utils.watchlist.getDetail.invalidate({ id: selectedWatchListId });
-      }
-      await utils.watchlist.list.invalidate();
-      setNotice({ tone: "success", text: "股票已移出清单" });
-    },
-  });
-
-  const strategies = strategiesQuery.data ?? [];
-  const sessions = sessionsQuery.data ?? [];
-  const watchLists = watchListsQuery.data ?? [];
-  const parsedTopStocks = useMemo(
-    () => parseTopStocks(sessionDetailQuery.data?.topStocks),
-    [sessionDetailQuery.data?.topStocks],
-  );
-  const parsedWatchStocks = useMemo(
-    () => parseWatchedStocks(watchListDetailQuery.data?.stocks),
-    [watchListDetailQuery.data?.stocks],
-  );
-  const watchStockSet = useMemo(
-    () => new Set(parsedWatchStocks.map((stock) => stock.stockCode)),
-    [parsedWatchStocks],
-  );
-  const opportunityRows = useMemo<OpportunityRow[]>(() => {
-    const map = new Map<string, OpportunityRow>();
-
-    parsedTopStocks.forEach((stock) => {
-      map.set(stock.stockCode, {
-        stockCode: stock.stockCode,
-        stockName: stock.stockName,
-        source: "筛选",
-        score: stock.score,
-        indicatorPreview: stock.indicatorPreview,
-        rationale: stock.explanations[0] ?? stock.indicatorPreview,
-      });
-    });
-
-    parsedWatchStocks.forEach((stock) => {
-      const existing = map.get(stock.stockCode);
-      if (existing) {
-        map.set(stock.stockCode, {
-          ...existing,
-          source: "筛选+清单",
-          note: stock.note,
-          tags: stock.tags,
-          addedAt: stock.addedAt,
-        });
-        return;
-      }
-
-      map.set(stock.stockCode, {
-        stockCode: stock.stockCode,
-        stockName: stock.stockName,
-        source: "清单",
-        note: stock.note,
-        tags: stock.tags,
-        addedAt: stock.addedAt,
-      });
-    });
-
-    const rows = Array.from(map.values());
-    const sourcePriority = (source: OpportunityRow["source"]) =>
-      source === "筛选+清单" ? 0 : source === "筛选" ? 1 : 2;
-
-    rows.sort((left, right) => {
-      const priority =
-        sourcePriority(left.source) - sourcePriority(right.source);
-      if (priority !== 0) {
-        return priority;
-      }
-
-      const leftScore =
-        typeof left.score === "number" ? left.score : Number.NEGATIVE_INFINITY;
-      const rightScore =
-        typeof right.score === "number"
-          ? right.score
-          : Number.NEGATIVE_INFINITY;
-      if (leftScore !== rightScore) {
-        return rightScore - leftScore;
-      }
-
-      return left.stockCode.localeCompare(right.stockCode);
-    });
-
-    return rows;
-  }, [parsedTopStocks, parsedWatchStocks]);
+  function resetWorkspaceDraft() {
+    setDraftMode(true);
+    setSelectedWorkspaceId(null);
+    setWorkspaceName("");
+    setWorkspaceDescription("");
+    setSelectedStocks([]);
+    setSelectedIndicatorIds([]);
+    setSelectedFormulaIds([]);
+    setTimeConfig(defaultTimeConfig);
+    setFilterRules([]);
+    setSortState(null);
+    setResultSnapshot(null);
+    setLastFetchedAt(undefined);
+  }
 
   useEffect(() => {
-    if (!notice) {
+    if (workspaceIdFromUrl) {
+      setDraftMode(false);
+      setSelectedWorkspaceId(workspaceIdFromUrl);
+    }
+  }, [workspaceIdFromUrl]);
+
+  useEffect(() => {
+    if (workspaceOptions.length === 0 || selectedWorkspaceId || draftMode) {
       return;
     }
 
-    const timer = window.setTimeout(() => setNotice(null), 3800);
-    return () => window.clearTimeout(timer);
-  }, [notice]);
+    const firstWorkspace = workspaceOptions[0];
+    if (firstWorkspace) {
+      setSelectedWorkspaceId(firstWorkspace.id);
+      setDraftMode(false);
+    }
+  }, [draftMode, selectedWorkspaceId, workspaceOptions]);
 
   useEffect(() => {
-    if (!strategiesQuery.isFetched) {
+    if (!workspaceDetailQuery.data) {
       return;
     }
 
-    const selectedStillExists =
-      selectedStrategyId !== null &&
-      strategies.some((strategy) => strategy.id === selectedStrategyId);
-
-    if (selectedStillExists) {
-      if (!hasInitializedStrategySelection) {
-        setHasInitializedStrategySelection(true);
-      }
-
-      return;
-    }
-
-    if (selectedStrategyId !== null) {
-      if (strategies[0]) {
-        setHasInitializedStrategySelection(true);
-        setSelectedStrategyId(strategies[0].id);
-        setStrategyMode("update");
-      } else {
-        setHasInitializedStrategySelection(true);
-        setSelectedStrategyId(null);
-        setStrategyMode("create");
-        setStrategyForm(createDefaultStrategyForm());
-      }
-
-      return;
-    }
-
-    if (!hasInitializedStrategySelection) {
-      if (strategies[0]) {
-        setSelectedStrategyId(strategies[0].id);
-        setStrategyMode("update");
-      } else {
-        setStrategyMode("create");
-      }
-
-      setHasInitializedStrategySelection(true);
-    }
-  }, [
-    hasInitializedStrategySelection,
-    selectedStrategyId,
-    strategies,
-    strategiesQuery.isFetched,
-  ]);
-
-  useEffect(() => {
-    if (sessions.length > 0 && !selectedSessionId) {
-      setSelectedSessionId(sessions[0]?.id ?? null);
-    }
-  }, [selectedSessionId, sessions]);
-
-  useEffect(() => {
-    if (watchLists.length > 0 && !selectedWatchListId) {
-      setSelectedWatchListId(watchLists[0]?.id ?? null);
-    }
-  }, [selectedWatchListId, watchLists]);
-
-  useEffect(() => {
-    if (strategyMode !== "update" || !strategyDetailQuery.data) {
-      return;
-    }
-
-    const parsedFilters = filterGroupInputSchema.safeParse(
-      strategyDetailQuery.data.filters,
+    const detail = workspaceDetailQuery.data;
+    setWorkspaceName(detail.name);
+    setWorkspaceDescription(detail.description ?? "");
+    setSelectedStocks(toSelectedStocks(detail));
+    setSelectedIndicatorIds(detail.state.indicatorIds);
+    setSelectedFormulaIds(detail.state.formulaIds);
+    setTimeConfig(detail.state.timeConfig);
+    setFilterRules(
+      detail.state.filterRules.map((rule) => ({
+        ...rule,
+        clientId: crypto.randomUUID(),
+      })),
     );
-    const parsedScoring = scoringConfigInputSchema.safeParse(
-      strategyDetailQuery.data.scoringConfig,
+    setSortState(detail.state.sortState ?? null);
+    setResultSnapshot(detail.state.resultSnapshot ?? null);
+    setLastFetchedAt(detail.state.lastFetchedAt);
+  }, [workspaceDetailQuery.data]);
+
+  useEffect(() => {
+    setSelectedFormulaIds((current) =>
+      current.filter((formulaId) =>
+        formulas.some((formula: FormulaItem) => formula.id === formulaId),
+      ),
     );
+  }, [formulas]);
 
-    if (!parsedFilters.success || !parsedScoring.success) {
-      setNotice({
-        tone: "error",
-        text: "策略详情解析失败，请检查存量配置格式。",
-      });
-      return;
-    }
-
-    setStrategyForm({
-      name: strategyDetailQuery.data.name,
-      description: strategyDetailQuery.data.description ?? "",
-      tagsText: strategyDetailQuery.data.tags.join(", "),
-      isTemplate: strategyDetailQuery.data.isTemplate,
-      filters: parsedFilters.data,
-      scoringRules: scoringConfigToRules(parsedScoring.data),
-      normalizationMethod: parsedScoring.data.normalizationMethod,
+  function toggleStock(stock: SelectedStock) {
+    setSelectedStocks((current) => {
+      const exists = current.some((item) => item.stockCode === stock.stockCode);
+      if (exists) {
+        return current.filter((item) => item.stockCode !== stock.stockCode);
+      }
+      if (current.length >= 20) {
+        setNotice({ tone: "error", text: "最多只能选择 20 只股票" });
+        return current;
+      }
+      return [...current, stock];
     });
-  }, [strategyDetailQuery.data, strategyMode]);
+  }
 
-  useEffect(() => {
-    if (!watchListDetailQuery.data) {
-      return;
-    }
-
-    setWatchMetaName(watchListDetailQuery.data.name);
-    setWatchMetaDescription(watchListDetailQuery.data.description ?? "");
-  }, [watchListDetailQuery.data]);
-
-  useEffect(() => {
-    if (parsedWatchStocks.length === 0) {
-      setSelectedStockCode("");
-      return;
-    }
-
-    if (!selectedStockCode) {
-      setSelectedStockCode(parsedWatchStocks[0]?.stockCode ?? "");
-    }
-  }, [parsedWatchStocks, selectedStockCode]);
-
-  const scoringWeightSum = strategyForm.scoringRules.reduce(
-    (sum, rule) => sum + rule.weight,
-    0,
-  );
-  const liveSessionCount = sessions.filter((session) =>
-    isLiveSession(session.status),
-  ).length;
-  const selectedStrategySummary = useMemo(() => {
-    if (strategyMode !== "update" || !selectedStrategyId) {
-      return null;
-    }
-
-    const strategySummary =
-      strategies.find((strategy) => strategy.id === selectedStrategyId) ?? null;
-
-    if (!strategySummary && !strategyDetailQuery.data) {
-      return null;
-    }
-
-    return {
-      name:
-        strategyDetailQuery.data?.name ??
-        strategySummary?.name ??
-        (strategyForm.name.trim() || "未命名筛选器"),
-      description:
-        strategyDetailQuery.data?.description ??
-        strategySummary?.description ??
-        strategyForm.description,
-      tags: strategyDetailQuery.data?.tags ?? strategySummary?.tags ?? [],
-      isTemplate:
-        strategyDetailQuery.data?.isTemplate ??
-        strategySummary?.isTemplate ??
-        strategyForm.isTemplate,
-      updatedAt:
-        strategyDetailQuery.data?.updatedAt ?? strategySummary?.updatedAt,
-    };
-  }, [
-    selectedStrategyId,
-    strategies,
-    strategyDetailQuery.data,
-    strategyForm.description,
-    strategyForm.isTemplate,
-    strategyForm.name,
-    strategyMode,
-  ]);
-  const draftTags = useMemo(
-    () => parseTags(strategyForm.tagsText),
-    [strategyForm.tagsText],
-  );
-  const strategySummaryTags =
-    strategyMode === "create"
-      ? draftTags
-      : (selectedStrategySummary?.tags ?? []);
-  const visibleStrategySummaryTags = strategySummaryTags.slice(0, 3);
-  const hiddenStrategySummaryTagCount = Math.max(
-    strategySummaryTags.length - visibleStrategySummaryTags.length,
-    0,
-  );
-
-  const resetStrategyForm = () => {
-    setHasInitializedStrategySelection(true);
-    setSelectedStrategyId(null);
-    setStrategyMode("create");
-    setStrategyForm(createDefaultStrategyForm());
-  };
-
-  const selectStrategyForEditing = (strategyId: string) => {
-    setHasInitializedStrategySelection(true);
-    setSelectedStrategyId(strategyId);
-    setStrategyMode("update");
-  };
-
-  const handleSubmitStrategy = async () => {
-    const normalizedRules = normalizeRuleWeights(strategyForm.scoringRules);
-    const scoringConfig = scoringRulesToConfig(
-      normalizedRules,
-      strategyForm.normalizationMethod,
+  function toggleIndicator(indicatorId: string) {
+    setSelectedIndicatorIds((current) =>
+      current.includes(indicatorId)
+        ? current.filter((item) => item !== indicatorId)
+        : [...current, indicatorId],
     );
-    const validatedFilters = filterGroupInputSchema.safeParse(
-      strategyForm.filters,
+  }
+
+  function toggleFormula(formulaId: string) {
+    setSelectedFormulaIds((current) =>
+      current.includes(formulaId)
+        ? current.filter((item) => item !== formulaId)
+        : [...current, formulaId],
     );
-    const validatedScoring = scoringConfigInputSchema.safeParse(scoringConfig);
+  }
 
-    if (!validatedFilters.success) {
-      setNotice({
-        tone: "error",
-        text: validatedFilters.error.issues[0]?.message ?? "筛选条件配置无效",
-      });
-      return;
-    }
+  function addFilterRule() {
+    setFilterRules((current) => [...current, emptyFilterRule()]);
+  }
 
-    if (!validatedScoring.success) {
-      setNotice({
-        tone: "error",
-        text: validatedScoring.error.issues[0]?.message ?? "评分配置无效",
-      });
-      return;
-    }
+  function updateFilterRule(
+    index: number,
+    patch: Partial<WorkspaceFilterRule>,
+  ) {
+    setFilterRules((current) =>
+      current.map((rule, ruleIndex) =>
+        ruleIndex === index ? { ...rule, ...patch } : rule,
+      ),
+    );
+  }
 
-    const payload: CreateStrategyInput = {
-      name: strategyForm.name.trim(),
-      description: strategyForm.description.trim() || undefined,
-      tags: parseTags(strategyForm.tagsText),
-      isTemplate: strategyForm.isTemplate,
-      filters: validatedFilters.data,
-      scoringConfig: validatedScoring.data,
+  function removeFilterRule(index: number) {
+    setFilterRules((current) =>
+      current.filter((_rule, ruleIndex) => ruleIndex !== index),
+    );
+  }
+
+  function insertMetricIntoFormula(name: string) {
+    setFormulaExpression((current) =>
+      current.length === 0 ? `[${name}]` : `${current}[${name}]`,
+    );
+  }
+
+  function toggleFormulaTargetIndicator(metricId: string) {
+    setFormulaTargetIndicators((current) => {
+      if (current.includes(metricId)) {
+        return current.filter((item) => item !== metricId);
+      }
+      if (current.length >= 5) {
+        setNotice({ tone: "error", text: "目标指标最多只能选择 5 个" });
+        return current;
+      }
+      return [...current, metricId];
+    });
+  }
+
+  async function handleSaveWorkspace() {
+    const payload = {
+      name: workspaceName,
+      description: workspaceDescription || undefined,
+      stockCodes: selectedStocks.map((stock) => stock.stockCode),
+      indicatorIds: selectedIndicatorIds,
+      formulaIds: selectedFormulaIds,
+      timeConfig,
+      filterRules: filterRules.map(({ clientId: _clientId, ...rule }) => rule),
+      sortState,
+      columnState,
+      resultSnapshot: resultSnapshot ?? undefined,
+      lastFetchedAt,
     };
 
-    if (strategyMode === "create") {
-      await createStrategyMutation.mutateAsync(payload);
+    if (draftMode || !selectedWorkspaceId) {
+      await createWorkspaceMutation.mutateAsync(payload);
       return;
     }
 
-    if (!selectedStrategyId) {
-      return;
-    }
-
-    await updateStrategyMutation.mutateAsync({
-      id: selectedStrategyId,
+    await updateWorkspaceMutation.mutateAsync({
+      id: selectedWorkspaceId,
       ...payload,
     });
-  };
+  }
+
+  async function handleFetchDataset() {
+    if (selectedStocks.length === 0) {
+      setNotice({ tone: "error", text: "请先选择股票" });
+      return;
+    }
+    if (selectedIndicatorIds.length === 0 && selectedFormulaIds.length === 0) {
+      setNotice({ tone: "error", text: "请至少选择一个指标或公式" });
+      return;
+    }
+
+    await queryDatasetMutation.mutateAsync({
+      stockCodes: selectedStocks.map((stock) => stock.stockCode),
+      indicatorIds: selectedIndicatorIds,
+      formulaIds: selectedFormulaIds,
+      timeConfig,
+    });
+  }
+
+  async function handleValidateFormula() {
+    if (!formulaExpression.trim() || formulaTargetIndicators.length === 0) {
+      setFormulaValidation("请填写公式表达式并选择目标指标");
+      return;
+    }
+    await validateFormulaMutation.mutateAsync({
+      expression: formulaExpression,
+      targetIndicators: formulaTargetIndicators,
+    });
+  }
+
+  async function handleSaveFormula() {
+    const payload = {
+      name: formulaName,
+      expression: formulaExpression,
+      targetIndicators: formulaTargetIndicators,
+      description: formulaDescription || undefined,
+      categoryId: "custom",
+    };
+
+    if (editingFormulaId) {
+      await updateFormulaMutation.mutateAsync({
+        id: editingFormulaId,
+        ...payload,
+      });
+      return;
+    }
+
+    await createFormulaMutation.mutateAsync(payload);
+  }
 
   return (
     <WorkspaceShell
       section="screening"
-      eyebrow="机会池"
-      title="机会池"
+      title="iFinD 小批量筛选工作台"
+      description="先搜股票，再选指标/公式与报告期；只有点击“获取”时才会请求 iFinD。结果获取后，筛选、排序和保存都在本地工作台内完成。"
       actions={
         <>
-          <Link href="/" className="app-button">
-            返回看板
-          </Link>
+          <select
+            value={draftMode ? "" : (selectedWorkspaceId ?? "")}
+            onChange={(event) => {
+              const nextId = event.target.value;
+              if (!nextId) {
+                return;
+              }
+              setDraftMode(false);
+              setSelectedWorkspaceId(nextId);
+            }}
+            className="app-input min-w-[220px]"
+          >
+            <option value="">选择已保存工作台</option>
+            {workspaceOptions.map((workspace: WorkspaceSummary) => (
+              <option key={workspace.id} value={workspace.id}>
+                {workspace.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={resetWorkspaceDraft}
+            className="app-button"
+          >
+            新建工作台
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSaveWorkspace()}
+            className="app-button app-button-primary"
+            disabled={
+              createWorkspaceMutation.isPending ||
+              updateWorkspaceMutation.isPending
+            }
+          >
+            保存工作台
+          </button>
           <Link href="/screening/history" className="app-button">
-            历史会话
-          </Link>
-          <Link href="/timing" className="app-button app-button-primary">
-            打开择时组合
+            工作台库
           </Link>
         </>
       }
     >
-      <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)_360px]">
-        <ActionStrip
-          title={
-            strategyMode === "create"
-              ? strategyForm.name.trim() || "新建筛选策略"
-              : (selectedStrategySummary?.name ?? "未选择策略")
-          }
-          description={
-            selectedSessionSummary
-              ? `当前会话：${selectedSessionSummary.strategyName} · ${sessionStatusLabelMap[selectedSessionSummary.status] ?? selectedSessionSummary.status} · ${selectedSessionSummary.currentStep ?? "等待结果"}`
-              : "先选择策略并执行筛选，再把结果同步到右侧观察清单。"
-          }
+      {notice ? (
+        <InlineNotice
           tone={
-            selectedSessionSummary
-              ? statusTone(selectedSessionSummary.status)
-              : "info"
+            notice.tone === "success"
+              ? "success"
+              : notice.tone === "error"
+                ? "danger"
+                : "info"
           }
-          actions={
-            <>
+          description={notice.text}
+        />
+      ) : null}
+
+      <div className="grid gap-6 xl:grid-cols-12">
+        <SectionCard
+          title="股票搜索多选"
+          description="搜索只调用本地股票池匹配；选中后不会自动取数。"
+          className="xl:col-span-4"
+        >
+          <input
+            value={stockSearchKeyword}
+            onChange={(event) => setStockSearchKeyword(event.target.value)}
+            placeholder="输入股票代码或名称"
+            className="app-input"
+          />
+          <div className="mt-4 flex flex-wrap gap-2">
+            {selectedStocks.map((stock) => (
               <button
+                key={stock.stockCode}
                 type="button"
-                onClick={() => {
-                  if (selectedStrategyId) {
-                    executeStrategyMutation.mutate({
-                      strategyId: selectedStrategyId,
-                    });
-                  }
-                }}
-                disabled={!selectedStrategyId}
-                className="app-button app-button-primary"
+                onClick={() => toggleStock(stock)}
+                className="rounded-full border border-[var(--app-border-soft)] px-3 py-1 text-xs text-[var(--app-text)]"
               >
-                执行筛选
+                {stock.stockName} {stock.stockCode}
               </button>
+            ))}
+          </div>
+          <div className="mt-4 max-h-[280px] overflow-auto rounded-[12px] border border-[var(--app-border-soft)]">
+            {deferredStockKeyword.length === 0 ? (
+              <div className="p-4 text-sm text-[var(--app-text-muted)]">
+                输入关键词后可从缓存股票池中搜索，最多选择 20 只。
+              </div>
+            ) : searchStocksQuery.isLoading ? (
+              <div className="p-4 text-sm text-[var(--app-text-muted)]">
+                搜索中...
+              </div>
+            ) : (
+              <div className="grid">
+                {(searchStocksQuery.data ?? []).map((stock) => {
+                  const selected = selectedStocks.some(
+                    (item) => item.stockCode === stock.stockCode,
+                  );
+                  return (
+                    <button
+                      key={stock.stockCode}
+                      type="button"
+                      onClick={() =>
+                        toggleStock({
+                          stockCode: stock.stockCode,
+                          stockName: stock.stockName,
+                          market: stock.market,
+                        })
+                      }
+                      className="flex items-center justify-between border-b border-[var(--app-border-soft)] px-4 py-3 text-left text-sm last:border-b-0"
+                    >
+                      <div>
+                        <div className="text-[var(--app-text)]">
+                          {stock.stockName} {stock.stockCode}
+                        </div>
+                        <div className="text-xs text-[var(--app-text-subtle)]">
+                          {stock.market} ·{" "}
+                          {stock.matchField === "CODE"
+                            ? "代码命中"
+                            : "名称命中"}
+                        </div>
+                      </div>
+                      <StatusPill
+                        label={selected ? "已选" : "添加"}
+                        tone={selected ? "success" : "info"}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="指标目录"
+          description="官方指标与自定义公式都在当前工作台里统一勾选。"
+          className="xl:col-span-4"
+        >
+          <div className="max-h-[420px] overflow-auto rounded-[12px] border border-[var(--app-border-soft)]">
+            <div className="border-b border-[var(--app-border-soft)] px-4 py-3 text-xs text-[var(--app-text-subtle)]">
+              官方指标
+            </div>
+            {groupedCatalog.map((category) => (
+              <div
+                key={category.id}
+                className="border-b border-[var(--app-border-soft)] px-4 py-3 last:border-b-0"
+              >
+                <div className="text-xs font-medium text-[var(--app-text-soft)]">
+                  {category.name}
+                </div>
+                <div className="mt-2 grid gap-2">
+                  {category.items.map((item) => (
+                    <label
+                      key={item.id}
+                      className="flex items-start gap-2 text-sm text-[var(--app-text)]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedIndicatorIds.includes(item.id)}
+                        onChange={() => toggleIndicator(item.id)}
+                        className="mt-1"
+                      />
+                      <span>
+                        <span>{item.name}</span>
+                        <span className="block text-xs text-[var(--app-text-subtle)]">
+                          {item.periodScope === "series"
+                            ? "多期间展开"
+                            : "仅最新值"}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <div className="border-t border-[var(--app-border-soft)] px-4 py-3 text-xs text-[var(--app-text-subtle)]">
+              自定义公式
+            </div>
+            <div className="px-4 py-3">
+              {formulas.length === 0 ? (
+                <div className="text-sm text-[var(--app-text-muted)]">
+                  还没有保存过公式。
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {formulas.map((formula: FormulaItem) => (
+                    <label
+                      key={formula.id}
+                      className="flex items-start gap-2 text-sm text-[var(--app-text)]"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedFormulaIds.includes(formula.id)}
+                        onChange={() => toggleFormula(formula.id)}
+                        className="mt-1"
+                      />
+                      <span>
+                        <span>{formula.name}</span>
+                        <span className="block text-xs text-[var(--app-text-subtle)]">
+                          {formula.expression}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="公式编辑器"
+          description="输入 [指标名]，保存时会由后端转换为安全表达式。"
+          className="xl:col-span-4"
+          actions={
+            editingFormulaId ? (
               <button
                 type="button"
-                onClick={resetStrategyForm}
+                onClick={resetFormulaEditor}
                 className="app-button"
               >
-                新建策略
+                取消编辑
               </button>
-            </>
+            ) : null
           }
-          className="xl:col-span-3"
-        />
-
-        <section className="app-panel p-4 sm:p-5 xl:col-span-3">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="min-w-[220px] flex-1">
-              <label
-                htmlFor="screening-strategy"
-                className="text-xs text-[var(--app-text-soft)]"
-              >
-                筛选器
-              </label>
-              <select
-                id="screening-strategy"
-                value={selectedStrategyId ?? ""}
-                onChange={(event) => {
-                  const nextId = event.target.value;
-
-                  if (!nextId) {
-                    resetStrategyForm();
-                    return;
-                  }
-
-                  selectStrategyForEditing(nextId);
-                }}
-                className="app-select mt-2"
-              >
-                <option value="">新建筛选器（草稿）</option>
-                {strategies.map((strategy: StrategyListItem) => (
-                  <option key={strategy.id} value={strategy.id}>
-                    {strategy.name}
-                  </option>
+        >
+          <div className="grid gap-3">
+            <input
+              value={formulaName}
+              onChange={(event) => setFormulaName(event.target.value)}
+              placeholder="公式名称"
+              className="app-input"
+            />
+            <textarea
+              value={formulaExpression}
+              onChange={(event) => setFormulaExpression(event.target.value)}
+              placeholder="示例：[营业收入] / [归母净利润]"
+              className="app-input min-h-[120px]"
+            />
+            <input
+              value={formulaDescription}
+              onChange={(event) => setFormulaDescription(event.target.value)}
+              placeholder="说明"
+              className="app-input"
+            />
+            <div className="rounded-[12px] border border-[var(--app-border-soft)] p-3">
+              <div className="text-xs text-[var(--app-text-subtle)]">
+                点击插入指标名
+              </div>
+              <div className="mt-2 flex max-h-[120px] flex-wrap gap-2 overflow-auto">
+                {(catalogQuery.data?.items ?? []).slice(0, 30).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => insertMetricIntoFormula(item.name)}
+                    className="rounded-full border border-[var(--app-border-soft)] px-3 py-1 text-xs text-[var(--app-text)]"
+                  >
+                    {item.name}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
-            <div className="min-w-[220px] flex-1 rounded-[14px] border border-[var(--app-border)] bg-[rgba(12,16,22,0.82)] px-4 py-3">
-              <p className="text-xs text-[var(--app-text-soft)]">当前会话</p>
-              <p className="mt-2 text-sm font-medium text-[var(--app-text)]">
-                {selectedSessionSummary
-                  ? selectedSessionSummary.strategyName
-                  : "暂无选中会话"}
-              </p>
-              <p className="mt-2 text-xs leading-5 text-[var(--app-text-muted)]">
-                {selectedSessionSummary
-                  ? `${sessionStatusLabelMap[selectedSessionSummary.status] ?? selectedSessionSummary.status} · ${selectedSessionSummary.currentStep ?? "等待结果"}`
-                  : "历史会话已迁移到独立页面，可在下方查看最近记录。"}
-              </p>
+            <div className="rounded-[12px] border border-[var(--app-border-soft)] p-3">
+              <div className="text-xs text-[var(--app-text-subtle)]">
+                目标指标（最多 5 个）
+              </div>
+              <div className="mt-2 grid max-h-[140px] gap-2 overflow-auto">
+                {(catalogQuery.data?.items ?? []).map((item) => (
+                  <label
+                    key={item.id}
+                    className="flex items-center gap-2 text-sm text-[var(--app-text)]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formulaTargetIndicators.includes(item.id)}
+                      onChange={() => toggleFormulaTargetIndicator(item.id)}
+                    />
+                    <span>{item.name}</span>
+                  </label>
+                ))}
+              </div>
             </div>
-            <div className="hidden min-w-[220px] flex-1">
-              <label
-                htmlFor="screening-session"
-                className="text-xs text-[var(--app-text-soft)]"
-              >
-                会话
-              </label>
-              <select
-                id="screening-session"
-                value={selectedSessionId ?? ""}
-                onChange={(event) =>
-                  setSelectedSessionId(event.target.value || null)
-                }
-                className="app-select mt-2"
-              >
-                {sessions.length === 0 ? (
-                  <option value="">暂无会话</option>
-                ) : (
-                  sessions.map((session: SessionListItem) => (
-                    <option key={session.id} value={session.id}>
-                      {session.strategyName} ·{" "}
-                      {sessionStatusLabelMap[session.status] ?? session.status}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-            <div className="min-w-[220px] flex-1">
-              <label
-                htmlFor="screening-watchlist"
-                className="text-xs text-[var(--app-text-soft)]"
-              >
-                观察清单
-              </label>
-              <select
-                id="screening-watchlist"
-                value={selectedWatchListId ?? ""}
-                onChange={(event) =>
-                  setSelectedWatchListId(event.target.value || null)
-                }
-                className="app-select mt-2"
-              >
-                {watchLists.length === 0 ? (
-                  <option value="">暂无清单</option>
-                ) : (
-                  watchLists.map((item: WatchListItem) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} · {item.stockCount} 支
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
+            {formulaValidation ? (
+              <InlineNotice tone="info" description={formulaValidation} />
+            ) : null}
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  if (selectedStrategyId) {
-                    executeStrategyMutation.mutate({
-                      strategyId: selectedStrategyId,
-                    });
-                  }
-                }}
-                disabled={!selectedStrategyId}
-                className="app-button app-button-primary"
-              >
-                执行筛选
-              </button>
-              <Link href="/screening/history" className="app-button">
-                浏览历史会话
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  const panel = document.getElementById("sessions-panel");
-                  if (panel) {
-                    panel.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                  }
-                }}
-                disabled={!selectedSessionId}
+                onClick={() => void handleValidateFormula()}
                 className="app-button"
               >
-                查看会话
+                校验公式
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSaveFormula()}
+                className="app-button app-button-primary"
+              >
+                保存公式
               </button>
             </div>
-          </div>
-        </section>
-
-        <Notice notice={notice} />
-
-        <section className="app-panel p-4 sm:p-5 xl:col-start-2">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-medium text-[var(--app-text)]">
-                机会池总览
-              </h2>
-              <p className="mt-2 text-xs text-[var(--app-text-soft)]">
-                筛选命中 {parsedTopStocks.length} · 清单{" "}
-                {parsedWatchStocks.length} · 合并 {opportunityRows.length}
-              </p>
-            </div>
-            {selectedSessionSummary ? (
-              <p className="text-xs text-[var(--app-text-muted)]">
-                当前会话：{selectedSessionSummary.strategyName} ·{" "}
-                {sessionStatusLabelMap[selectedSessionSummary.status] ??
-                  selectedSessionSummary.status}
-              </p>
-            ) : null}
-          </div>
-          <div className="mt-4 overflow-auto rounded-2xl border border-[var(--app-border)]">
-            <table className="app-table min-w-[980px]">
-              <thead>
-                <tr>
-                  <th className="sticky top-0 z-10 bg-[rgba(12,17,23,0.98)]">
-                    股票
-                  </th>
-                  <th className="sticky top-0 z-10 bg-[rgba(12,17,23,0.98)]">
-                    来源
-                  </th>
-                  <th className="sticky top-0 z-10 bg-[rgba(12,17,23,0.98)]">
-                    评分
-                  </th>
-                  <th className="sticky top-0 z-10 bg-[rgba(12,17,23,0.98)]">
-                    命中理由 / 指标摘要
-                  </th>
-                  <th className="sticky top-0 z-10 bg-[rgba(12,17,23,0.98)]">
-                    清单备注 / 标签
-                  </th>
-                  <th className="sticky top-0 z-10 bg-[rgba(12,17,23,0.98)]">
-                    加入时间
-                  </th>
-                  <th className="sticky top-0 z-10 bg-[rgba(12,17,23,0.98)]">
-                    操作
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {opportunityRows.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-4 py-8 text-center text-sm text-[var(--app-text-soft)]"
+            {formulas.length > 0 ? (
+              <div className="rounded-[12px] border border-[var(--app-border-soft)] p-3">
+                <div className="text-xs text-[var(--app-text-subtle)]">
+                  已保存公式
+                </div>
+                <div className="mt-2 grid gap-2">
+                  {formulas.map((formula: FormulaItem) => (
+                    <div
+                      key={formula.id}
+                      className="flex items-center justify-between gap-3 rounded-[10px] border border-[var(--app-border-soft)] px-3 py-2"
                     >
-                      暂无机会池数据。
-                    </td>
-                  </tr>
-                ) : (
-                  opportunityRows.map((row) => {
-                    const sourceTone =
-                      row.source === "筛选+清单"
-                        ? "text-[var(--app-success)]"
-                        : row.source === "筛选"
-                          ? "text-[var(--app-accent-strong)]"
-                          : "text-[var(--app-text-muted)]";
-                    const rationale =
-                      row.rationale ?? row.indicatorPreview ?? "-";
-                    const note = row.note?.trim() ?? "";
-                    const tags =
-                      row.tags && row.tags.length > 0
-                        ? row.tags.join(" · ")
-                        : "";
-                    const score =
-                      typeof row.score === "number"
-                        ? row.score.toFixed(4)
-                        : "-";
-
-                    return (
-                      <tr
-                        key={row.stockCode}
-                        className="hover:bg-[rgba(15,20,27,0.7)]"
-                      >
-                        <td className="px-4 py-3 text-sm text-[var(--app-text)]">
-                          <div className="font-medium">{row.stockName}</div>
-                          <div className="mt-1 text-xs text-[var(--app-text-soft)]">
-                            {row.stockCode}
-                          </div>
-                        </td>
-                        <td className={`px-4 py-3 text-sm ${sourceTone}`}>
-                          {row.source}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-[var(--app-text)]">
-                          {score}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-[var(--app-text-muted)]">
-                          <p className="line-clamp-2">{rationale}</p>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-[var(--app-text-muted)]">
-                          <p className="line-clamp-2">{note || "-"}</p>
-                          {tags ? (
-                            <p className="mt-1 text-xs text-[var(--app-text-soft)]">
-                              {tags}
-                            </p>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-[var(--app-text-muted)]">
-                          {row.addedAt ? formatDate(row.addedAt) : "-"}
-                        </td>
-                        <td className="px-4 py-3">
-                          {watchStockSet.has(row.stockCode) ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!selectedWatchListId) {
-                                  return;
-                                }
-                                removeStockMutation.mutate({
-                                  watchListId: selectedWatchListId,
-                                  stockCode: row.stockCode,
-                                });
-                              }}
-                              disabled={!selectedWatchListId}
-                              className="app-button app-button-danger"
-                            >
-                              移除
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!selectedWatchListId) {
-                                  return;
-                                }
-                                addStockMutation.mutate({
-                                  watchListId: selectedWatchListId,
-                                  stockCode: row.stockCode,
-                                  stockName: row.stockName,
-                                  note: row.rationale ?? row.indicatorPreview,
-                                  tags: parseTags("跟踪, 命中"),
-                                });
-                              }}
-                              disabled={!selectedWatchListId}
-                              className="app-button app-button-success"
-                            >
-                              加入清单
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <details
-          className="app-panel p-4 sm:p-5 xl:col-span-2"
-          id="filters-panel"
-          open
-        >
-          <summary className="cursor-pointer text-sm font-medium text-[var(--app-text)]">
-            筛选器设置
-            <span className="ml-2 text-xs text-[var(--app-text-soft)]">
-              {strategies.length} 个筛选器 ·{" "}
-              {countConditions(strategyForm.filters)} 条条件
-            </span>
-          </summary>
-          <div className="mt-4">
-            <section className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)] xl:items-start">
-              <aside className="xl:sticky xl:top-6">
-                <section className="app-section p-5 sm:p-6">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em] text-[#7f99b4]">
-                        筛选器库
-                      </p>
-                      <h2 className="mt-2 font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
-                        策略导航
-                      </h2>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={resetStrategyForm}
-                      className="rounded-full border border-[#d2e5f9]/20 bg-[#0f2137]/88 px-3 py-1.5 text-xs font-medium text-[#d2e5f9]"
-                    >
-                      新建筛选器
-                    </button>
-                  </div>
-
-                  <section className="app-subpanel mt-5 p-4">
-                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[#7f99b4]">
-                          {strategyMode === "create" ? "当前状态" : "当前选中"}
-                        </p>
-                        <h3 className="mt-2 truncate text-lg font-semibold text-[#eef6ff]">
-                          {strategyMode === "create"
-                            ? strategyForm.name.trim() || "新建筛选器"
-                            : (selectedStrategySummary?.name ?? "未选中筛选器")}
-                        </h3>
-                      </div>
-                      <span className="rounded-full border border-[#e1eeff]/20 px-3 py-1 text-[11px] text-[#cfe4f8]">
-                        {strategyMode === "create"
-                          ? "草稿"
-                          : selectedStrategySummary?.isTemplate
-                            ? "模板"
-                            : "策略"}
-                      </span>
-                    </div>
-                    <p className="mt-3 text-sm leading-6 text-[#97afc7]">
-                      {strategyMode === "create"
-                        ? strategyForm.description.trim() ||
-                          "当前处于新建模式。你可以直接在右侧搭建筛选条件，保存后会自动进入策略库。"
-                        : (selectedStrategySummary?.description ??
-                          "当前策略暂无说明，可在右侧补充筛选思路与备注。")}
-                    </p>
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                      <div className="app-subpanel px-4 py-3">
-                        <p className="text-xs text-[#7f99b4]">筛选条件</p>
-                        <p className="mt-2 text-lg font-semibold text-[#eef6ff]">
-                          {countConditions(strategyForm.filters)}
-                        </p>
-                      </div>
-                      <div className="app-subpanel px-4 py-3">
-                        <p className="text-xs text-[#7f99b4]">评分指标</p>
-                        <p className="mt-2 text-lg font-semibold text-[#eef6ff]">
-                          {strategyForm.scoringRules.length}
-                        </p>
-                      </div>
-                    </div>
-                    {visibleStrategySummaryTags.length > 0 ? (
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {visibleStrategySummaryTags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full border border-[#e1eeff]/16 bg-[#11253b] px-3 py-1 text-[11px] text-[#d4e7f8]"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {hiddenStrategySummaryTagCount > 0 ? (
-                          <span className="rounded-full border border-[#e1eeff]/12 px-3 py-1 text-[11px] text-[#8fb0cc]">
-                            +{hiddenStrategySummaryTagCount}
-                          </span>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {strategyMode === "update" &&
-                    selectedStrategySummary?.updatedAt ? (
-                      <p className="mt-4 text-xs text-[#7f99b4]">
-                        最近更新：
-                        {formatDate(selectedStrategySummary.updatedAt)}
-                      </p>
-                    ) : null}
-                  </section>
-
-                  <div className="mt-5 flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-[#eef6ff]">
-                      已保存筛选器
-                    </h3>
-                    <span className="rounded-full border border-[#e1eeff]/20 px-3 py-1 text-[11px] text-[#8fb0cc]">
-                      {strategies.length} 个
-                    </span>
-                  </div>
-
-                  {strategies.length === 0 ? (
-                    <div className="app-subpanel mt-3 p-4 text-sm leading-6 text-[var(--app-text-muted)]">
-                      还没有已保存的筛选器。先在右侧创建一个，保存后会自动出现在这里。
-                    </div>
-                  ) : (
-                    <div className="mt-3 grid gap-3 xl:max-h-[calc(100vh-20rem)] xl:overflow-y-auto xl:pr-1">
-                      {strategies.map((strategy: StrategyListItem) => {
-                        const isActive =
-                          strategyMode === "update" &&
-                          strategy.id === selectedStrategyId;
-                        const visibleTags = strategy.tags.slice(0, 2);
-
-                        return (
-                          <article
-                            key={strategy.id}
-                            className={`rounded-2xl border p-4 ${isActive ? "border-[#49ddb8] bg-[#123f35]" : "border-[#35526f]/35 bg-[#10253c]/90"}`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() =>
-                                selectStrategyForEditing(strategy.id)
-                              }
-                              className="w-full text-left"
-                            >
-                              <div className="flex items-start justify-between gap-3">
-                                <p className="truncate text-sm font-semibold text-[#eff8ff]">
-                                  {strategy.name}
-                                </p>
-                                {strategy.isTemplate ? (
-                                  <span className="rounded-full border border-[#d8e9fa]/18 px-2.5 py-1 text-[10px] text-[#d8e9fa]">
-                                    模板
-                                  </span>
-                                ) : null}
-                              </div>
-                              <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#97afc7]">
-                                {strategy.description ?? "未填写"}
-                              </p>
-                            </button>
-
-                            {visibleTags.length > 0 ? (
-                              <div className="mt-3 flex flex-wrap gap-2">
-                                {visibleTags.map((tag) => (
-                                  <span
-                                    key={`${strategy.id}-${tag}`}
-                                    className="rounded-full border border-[#e1eeff]/14 bg-[#11253b] px-2.5 py-1 text-[10px] text-[#cfe1f3]"
-                                  >
-                                    {tag}
-                                  </span>
-                                ))}
-                                {strategy.tags.length > visibleTags.length ? (
-                                  <span className="rounded-full border border-[#e1eeff]/12 px-2.5 py-1 text-[10px] text-[#8fb0cc]">
-                                    +{strategy.tags.length - visibleTags.length}
-                                  </span>
-                                ) : null}
-                              </div>
-                            ) : null}
-
-                            <p className="mt-3 text-[11px] text-[#7f99b4]">
-                              更新于 {formatDate(strategy.updatedAt)}
-                            </p>
-
-                            <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  executeStrategyMutation.mutate({
-                                    strategyId: strategy.id,
-                                  })
-                                }
-                                className="rounded-full border border-[#2fa889]/25 bg-[#103830] px-3 py-1 text-[#5cefc4]"
-                              >
-                                加入执行队列
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  deleteStrategyMutation.mutate({
-                                    id: strategy.id,
-                                  })
-                                }
-                                className="rounded-full border border-[#ff8d9b]/25 bg-[#4b2331] px-3 py-1 text-[#ff8d9b]"
-                              >
-                                删除
-                              </button>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  )}
-                </section>
-              </aside>
-              <section className="app-section min-w-0 p-5 sm:p-6">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
-                      筛选器设置
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-[#97afc7]">
-                      {strategyMode === "create"
-                        ? "从零搭建新的筛选器。保存后会自动进入左侧策略库，便于后续复用与执行。"
-                        : `正在编辑：${selectedStrategySummary?.name ?? (strategyForm.name.trim() || "当前筛选器")}`}
-                    </p>
-                  </div>
-                  <span className="rounded-full border border-[#e1eeff]/20 px-3 py-1 text-[11px] text-[#cfe4f8]">
-                    {strategyMode === "create" ? "新建" : "编辑中"}
-                  </span>
-                </div>
-                <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                  <input
-                    value={strategyForm.name}
-                    onChange={(event) =>
-                      setStrategyForm((current) => ({
-                        ...current,
-                        name: event.target.value,
-                      }))
-                    }
-                    className="rounded-xl border border-[#e1eeff]/28 bg-[#0a1a2d] px-3 py-2 text-sm text-[#e1eeff]"
-                    placeholder="筛选器名称"
-                  />
-                  <input
-                    value={strategyForm.tagsText}
-                    onChange={(event) =>
-                      setStrategyForm((current) => ({
-                        ...current,
-                        tagsText: event.target.value,
-                      }))
-                    }
-                    className="rounded-xl border border-[#e1eeff]/28 bg-[#0a1a2d] px-3 py-2 text-sm text-[#e1eeff]"
-                    placeholder="标签"
-                  />
-                  <textarea
-                    value={strategyForm.description}
-                    onChange={(event) =>
-                      setStrategyForm((current) => ({
-                        ...current,
-                        description: event.target.value,
-                      }))
-                    }
-                    rows={3}
-                    className="rounded-xl border border-[#e1eeff]/28 bg-[#0a1a2d] px-3 py-2 text-sm text-[#e1eeff] lg:col-span-2"
-                    placeholder="备注"
-                  />
-                </div>
-                <label className="mt-3 flex items-center gap-2 text-xs text-[#97b0c9]">
-                  <input
-                    type="checkbox"
-                    checked={strategyForm.isTemplate}
-                    onChange={(event) =>
-                      setStrategyForm((current) => ({
-                        ...current,
-                        isTemplate: event.target.checked,
-                      }))
-                    }
-                    className="h-4 w-4"
-                  />
-                  设为模板
-                </label>
-                <section className="mt-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold text-[#eef6ff]">
-                      筛选规则
-                    </h3>
-                    <span className="rounded-full border border-[#e1eeff]/20 px-3 py-1 text-[11px] text-[#8fb0cc]">
-                      {countConditions(strategyForm.filters)} 个条件
-                    </span>
-                  </div>
-                  <div className="mt-3">
-                    <FilterGroupEditor
-                      group={strategyForm.filters}
-                      isRoot
-                      onChange={(group: FilterGroupInput) =>
-                        setStrategyForm((current) => ({
-                          ...current,
-                          filters: group,
-                        }))
-                      }
-                      onRemove={() => undefined}
-                    />
-                  </div>
-                </section>
-                <ScoringRulesEditor
-                  rules={strategyForm.scoringRules}
-                  normalizationMethod={strategyForm.normalizationMethod}
-                  onRulesChange={(rules) =>
-                    setStrategyForm((current) => ({
-                      ...current,
-                      scoringRules: rules,
-                    }))
-                  }
-                  onNormalizationMethodChange={(method) =>
-                    setStrategyForm((current) => ({
-                      ...current,
-                      normalizationMethod: method as NormalizationMethod,
-                    }))
-                  }
-                  onNormalize={() =>
-                    setStrategyForm((current) => ({
-                      ...current,
-                      scoringRules: normalizeRuleWeights(current.scoringRules),
-                    }))
-                  }
-                  weightSum={scoringWeightSum}
-                />
-                <button
-                  type="button"
-                  onClick={handleSubmitStrategy}
-                  className="mt-5 rounded-xl border border-[#e1eeff]/34 bg-[#0f8468] px-4 py-2 text-sm font-semibold text-[#eefef8]"
-                >
-                  {strategyMode === "create" ? "保存筛选器" : "保存更新"}
-                </button>
-              </section>
-            </section>
-          </div>
-        </details>
-
-        <details
-          className="app-panel p-4 sm:p-5 xl:col-start-3"
-          id="sessions-panel"
-          open
-        >
-          <summary className="cursor-pointer text-sm font-medium text-[var(--app-text)]">
-            会话历史与详情
-            <span className="ml-2 text-xs text-[var(--app-text-soft)]">
-              {sessions.length} 条会话 · {liveSessionCount} 进行中
-            </span>
-          </summary>
-          <div className="mt-4">
-            <section className="app-section p-5 sm:p-6">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
-                最近结果与候选机会
-              </h2>
-              <div className="mt-4 grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-                <div className="space-y-3">
-                  {sessions.map((session: SessionListItem) => (
-                    <article
-                      key={session.id}
-                      className={`rounded-[10px] border p-4 ${
-                        session.id === selectedSessionId
-                          ? "border-[var(--app-border-strong)] bg-[var(--app-bg-floating)]"
-                          : "border-[var(--app-border-soft)] bg-[var(--app-bg-inset)]"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setSelectedSessionId(session.id)}
-                        className="w-full text-left"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="truncate text-sm font-medium text-[var(--app-text-strong)]">
-                            {session.strategyName}
-                          </p>
-                          <StatusPill
-                            tone={statusTone(session.status)}
-                            label={
-                              sessionStatusLabelMap[session.status] ??
-                              session.status
-                            }
-                          />
+                        <div className="truncate text-sm text-[var(--app-text)]">
+                          {formula.name}
                         </div>
-                        <p className="mt-1 text-xs text-[var(--app-text-muted)]">
-                          {session.currentStep ?? "等待状态更新"} ·{" "}
-                          {session.progressPercent}%
-                        </p>
-                      </button>
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                        {isLiveSession(session.status) ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              cancelSessionMutation.mutate({
-                                sessionId: session.id,
-                              })
-                            }
-                            className="app-button"
-                          >
-                            取消
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              retrySessionMutation.mutate({
-                                sessionId: session.id,
-                              })
-                            }
-                            className="app-button app-button-primary"
-                          >
-                            重试
-                          </button>
-                        )}
-                        {!isLiveSession(session.status) ? (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              deleteSessionMutation.mutate({ id: session.id })
-                            }
-                            className="app-button app-button-danger"
-                          >
-                            删除
-                          </button>
-                        ) : null}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-                <div className="app-subpanel p-4">
-                  {sessionDetailQuery.data ? (
-                    <>
-                      <div className="grid gap-3 md:grid-cols-2">
-                        <article className="app-subpanel px-3 py-3 text-xs text-[var(--app-text-muted)]">
-                          <p>状态</p>
-                          <div className="mt-2">
-                            <StatusPill
-                              tone={statusTone(sessionDetailQuery.data.status)}
-                              label={
-                                sessionStatusLabelMap[
-                                  sessionDetailQuery.data.status
-                                ] ?? sessionDetailQuery.data.status
-                              }
-                            />
-                          </div>
-                          <p className="mt-2 text-[11px] text-[var(--app-text-subtle)]">
-                            {sessionDetailQuery.data.currentStep ?? "等待执行"}
-                          </p>
-                        </article>
-                        <article className="app-subpanel px-3 py-3 text-xs text-[var(--app-text-muted)]">
-                          <p>执行耗时</p>
-                          <p className="mt-2 text-sm font-semibold text-[var(--app-text-strong)]">
-                            {formatDuration(
-                              sessionDetailQuery.data.executionTime,
-                            )}
-                          </p>
-                          <p className="mt-2 text-[11px] text-[var(--app-text-subtle)]">
-                            {formatDate(sessionDetailQuery.data.executedAt)}
-                          </p>
-                        </article>
-                      </div>
-                      {sessionDetailQuery.data.status === "SUCCEEDED" ? (
-                        <div className="mt-5 overflow-hidden rounded-2xl border border-[#35526f]/35">
-                          <table className="min-w-full border-collapse text-left text-xs">
-                            <thead className="bg-[#122b42] text-[#b7cee5]">
-                              <tr>
-                                <th className="px-3 py-2 font-medium">代码</th>
-                                <th className="px-3 py-2 font-medium">名称</th>
-                                <th className="px-3 py-2 font-medium">评分</th>
-                                <th className="px-3 py-2 font-medium">动作</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {parsedTopStocks.map((stock: ParsedTopStock) => (
-                                <tr
-                                  key={stock.stockCode}
-                                  className="border-t border-[#35526f]/35"
-                                >
-                                  <td className="px-3 py-3 text-[#e1eeff]">
-                                    {stock.stockCode}
-                                  </td>
-                                  <td className="px-3 py-3 text-[#e1eeff]">
-                                    {stock.stockName}
-                                  </td>
-                                  <td className="px-3 py-3 text-[#58e8bf]">
-                                    {stock.score.toFixed(4)}
-                                  </td>
-                                  <td className="px-3 py-3">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        addStockMutation.mutate({
-                                          watchListId:
-                                            selectedWatchListId ?? "",
-                                          stockCode: stock.stockCode,
-                                          stockName: stock.stockName,
-                                          note: stock.explanations[0],
-                                          tags: parseTags("跟踪, 命中"),
-                                        })
-                                      }
-                                      disabled={!selectedWatchListId}
-                                      className="rounded-full border border-[#5cd5b8]/28 bg-[#12382f] px-3 py-1 text-[11px] text-[#9cf3d9] disabled:opacity-45"
-                                    >
-                                      加入当前清单
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                        <div className="truncate text-xs text-[var(--app-text-subtle)]">
+                          {formula.expression}
                         </div>
-                      ) : (
-                        <p className="mt-4 rounded-xl border border-[#e1eeff]/14 bg-[#10243a] px-3 py-3 text-sm text-[#97afc7]">
-                          暂无最终结果。
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-sm text-[#8ea8c1]">
-                      请选择一个会话查看详情。
-                    </p>
-                  )}
-                </div>
-              </div>
-            </section>
-          </div>
-        </details>
-
-        <details
-          className="app-panel p-4 sm:p-5 xl:col-start-3"
-          id="watchlist-panel"
-          open
-        >
-          <summary className="cursor-pointer text-sm font-medium text-[var(--app-text)]">
-            观察清单管理
-            <span className="ml-2 text-xs text-[var(--app-text-soft)]">
-              {watchLists.length} 个清单 · {parsedWatchStocks.length} 支股票
-            </span>
-          </summary>
-          <div className="mt-4">
-            <section className="app-section p-5 sm:p-6">
-              <h2 className="font-[family-name:var(--font-display)] text-2xl text-[#e9f4ff]">
-                跟踪清单
-              </h2>
-              <div className="mt-4 grid gap-4 xl:grid-cols-[0.85fr_1.15fr]">
-                <div className="grid gap-4">
-                  <section className="app-subpanel p-4">
-                    <input
-                      value={newWatchListName}
-                      onChange={(event) =>
-                        setNewWatchListName(event.target.value)
-                      }
-                      className="w-full rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm"
-                      placeholder="清单名称"
-                    />
-                    <input
-                      value={newWatchListDescription}
-                      onChange={(event) =>
-                        setNewWatchListDescription(event.target.value)
-                      }
-                      className="mt-2 w-full rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm"
-                      placeholder="备注"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        createWatchListMutation.mutate({
-                          name: newWatchListName,
-                          description: newWatchListDescription,
-                        })
-                      }
-                      className="mt-2 rounded-xl border border-[#e1eeff]/34 bg-[#2582b5] px-4 py-2 text-sm font-medium text-[#e8f6ff]"
-                    >
-                      创建清单
-                    </button>
-                  </section>
-                  <section className="app-subpanel p-4">
-                    {watchLists.map((item: WatchListItem) => (
-                      <article
-                        key={item.id}
-                        className={`mb-2 rounded-xl border p-3 ${item.id === selectedWatchListId ? "border-[#37a8df] bg-[#123346]" : "border-[#35526f]/35 bg-[#0a1a2d]"}`}
-                      >
+                      </div>
+                      <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => setSelectedWatchListId(item.id)}
-                          className="w-full text-left"
+                          className="app-button"
+                          onClick={() => {
+                            setEditingFormulaId(formula.id);
+                            setFormulaName(formula.name);
+                            setFormulaDescription(formula.description ?? "");
+                            setFormulaExpression(formula.expression);
+                            setFormulaTargetIndicators(
+                              formula.targetIndicators,
+                            );
+                            setFormulaValidation(null);
+                          }}
                         >
-                          <p className="truncate text-sm font-medium text-[#e1eeff]">
-                            {item.name}
-                          </p>
-                          <p className="mt-1 text-xs text-[#92abc3]">
-                            {item.stockCount} 支 · {formatDate(item.updatedAt)}
-                          </p>
+                          编辑
                         </button>
-                      </article>
-                    ))}
-                  </section>
-                </div>
-                <div className="app-subpanel p-4">
-                  {watchListDetailQuery.data ? (
-                    <>
-                      <div className="grid gap-2">
-                        <input
-                          value={watchMetaName}
-                          onChange={(event) =>
-                            setWatchMetaName(event.target.value)
-                          }
-                          className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm"
-                        />
-                        <input
-                          value={watchMetaDescription}
-                          onChange={(event) =>
-                            setWatchMetaDescription(event.target.value)
-                          }
-                          className="rounded-xl border border-[#e1eeff]/34 bg-[#0a1a2d] px-3 py-2 text-sm"
-                        />
                         <button
                           type="button"
+                          className="app-button"
                           onClick={() =>
-                            updateWatchMetaMutation.mutate({
-                              id: selectedWatchListId ?? "",
-                              name: watchMetaName,
-                              description: watchMetaDescription,
+                            void deleteFormulaMutation.mutateAsync({
+                              id: formula.id,
                             })
                           }
-                          className="rounded-xl border border-[#e1eeff]/34 bg-[#11916f] px-4 py-2 text-sm font-medium text-[#ecfff8]"
                         >
-                          更新清单信息
+                          删除
                         </button>
                       </div>
-                      <div className="mt-4 max-h-[360px] overflow-auto rounded-lg border border-[#35526f]/35">
-                        <table className="min-w-full border-collapse text-left text-xs">
-                          <thead className="bg-[#122b42] text-[#b7cee5]">
-                            <tr>
-                              <th className="px-3 py-2 font-medium">代码</th>
-                              <th className="px-3 py-2 font-medium">名称</th>
-                              <th className="px-3 py-2 font-medium">备注</th>
-                              <th className="px-3 py-2 font-medium">动作</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {parsedWatchStocks.map(
-                              (stock: ParsedWatchedStock) => (
-                                <tr
-                                  key={stock.stockCode}
-                                  className="border-t border-[#35526f]/35"
-                                >
-                                  <td className="px-3 py-2 text-[#e1eeff]">
-                                    {stock.stockCode}
-                                  </td>
-                                  <td className="px-3 py-2 text-[#e1eeff]">
-                                    {stock.stockName}
-                                  </td>
-                                  <td className="px-3 py-2 text-[#92abc3]">
-                                    {stock.note || "-"}
-                                  </td>
-                                  <td className="px-3 py-2">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        removeStockMutation.mutate({
-                                          watchListId:
-                                            selectedWatchListId ?? "",
-                                          stockCode: stock.stockCode,
-                                        })
-                                      }
-                                      className="rounded-full border border-[#ff8d9b]/25 bg-[#4b2331] px-2.5 py-1 text-[11px] text-[#ff8d9b]"
-                                    >
-                                      移除
-                                    </button>
-                                  </td>
-                                </tr>
-                              ),
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-sm text-[#8ea8c1]">未选择清单。</p>
-                  )}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </section>
+            ) : null}
           </div>
-        </details>
+        </SectionCard>
+
+        <SectionCard
+          title="期间设置"
+          description="改变期间设置不会自动取数，只有点击获取才会请求 iFinD。"
+          className="xl:col-span-4"
+        >
+          <div className="grid gap-3">
+            <input
+              value={workspaceName}
+              onChange={(event) => setWorkspaceName(event.target.value)}
+              placeholder="工作台名称"
+              className="app-input"
+            />
+            <input
+              value={workspaceDescription}
+              onChange={(event) => setWorkspaceDescription(event.target.value)}
+              placeholder="描述"
+              className="app-input"
+            />
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
+                报告类型
+                <select
+                  value={timeConfig.periodType}
+                  onChange={(event) =>
+                    setTimeConfig({
+                      periodType: event.target.value as "ANNUAL" | "QUARTERLY",
+                      rangeMode: "PRESET",
+                      presetKey: event.target.value === "ANNUAL" ? "3Y" : "8Q",
+                    })
+                  }
+                  className="app-input"
+                >
+                  <option value="ANNUAL">年报</option>
+                  <option value="QUARTERLY">季报</option>
+                </select>
+              </label>
+              <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
+                回溯方式
+                <select
+                  value={timeConfig.rangeMode}
+                  onChange={(event) =>
+                    setTimeConfig((current) => ({
+                      ...current,
+                      rangeMode: event.target.value as "PRESET" | "CUSTOM",
+                    }))
+                  }
+                  className="app-input"
+                >
+                  <option value="PRESET">预设</option>
+                  <option value="CUSTOM">自定义</option>
+                </select>
+              </label>
+            </div>
+            {timeConfig.rangeMode === "PRESET" ? (
+              <label className="grid gap-2 text-sm text-[var(--app-text-muted)]">
+                预设区间
+                <select
+                  value={timeConfig.presetKey}
+                  onChange={(event) =>
+                    setTimeConfig((current) => ({
+                      ...current,
+                      presetKey: event.target.value as typeof current.presetKey,
+                    }))
+                  }
+                  className="app-input"
+                >
+                  {(timeConfig.periodType === "ANNUAL"
+                    ? annualPresetOptions
+                    : quarterlyPresetOptions
+                  ).map((preset) => (
+                    <option key={preset} value={preset}>
+                      {preset}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                <input
+                  value={timeConfig.customStart ?? ""}
+                  onChange={(event) =>
+                    setTimeConfig((current) => ({
+                      ...current,
+                      customStart: event.target.value,
+                    }))
+                  }
+                  placeholder="customStart"
+                  className="app-input"
+                />
+                <input
+                  value={timeConfig.customEnd ?? ""}
+                  onChange={(event) =>
+                    setTimeConfig((current) => ({
+                      ...current,
+                      customEnd: event.target.value,
+                    }))
+                  }
+                  placeholder="customEnd"
+                  className="app-input"
+                />
+              </div>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => void handleFetchDataset()}
+                className="app-button app-button-primary"
+                disabled={queryDatasetMutation.isPending}
+              >
+                {queryDatasetMutation.isPending ? "获取中..." : "获取"}
+              </button>
+              <StatusPill
+                label={`股票 ${selectedStocks.length}/20`}
+                tone={selectedStocks.length > 0 ? "success" : "neutral"}
+              />
+              <StatusPill
+                label={`指标 ${selectedIndicatorIds.length + selectedFormulaIds.length}`}
+                tone={
+                  selectedIndicatorIds.length + selectedFormulaIds.length > 0
+                    ? "info"
+                    : "neutral"
+                }
+              />
+            </div>
+            <div className="text-sm text-[var(--app-text-muted)]">
+              最近获取：{formatDateTime(lastFetchedAt)}
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="本地筛选与排序"
+          description="默认始终基于每只股票最新可用一期的值，不触发任何网络请求。"
+          className="xl:col-span-4"
+        >
+          <div className="grid gap-3">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={addFilterRule}
+                className="app-button"
+              >
+                添加规则
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterRules([])}
+                className="app-button"
+              >
+                清空规则
+              </button>
+            </div>
+            {filterRules.length === 0 ? (
+              <div className="text-sm text-[var(--app-text-muted)]">
+                还没有本地筛选规则。
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {filterRules.map((rule, index) => (
+                  <div
+                    key={rule.clientId}
+                    className="grid gap-2 rounded-[12px] border border-[var(--app-border-soft)] p-3"
+                  >
+                    <select
+                      value={rule.metricId}
+                      onChange={(event) =>
+                        updateFilterRule(index, {
+                          metricId: event.target.value,
+                        })
+                      }
+                      className="app-input"
+                    >
+                      <option value="">选择指标</option>
+                      {filterMetricOptions.map((metricId) => (
+                        <option key={metricId} value={metricId}>
+                          {metricNameMap.get(metricId) ?? metricId}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="grid gap-2 md:grid-cols-[120px_minmax(0,1fr)_120px]">
+                      <select
+                        value={rule.operator}
+                        onChange={(event) =>
+                          updateFilterRule(index, {
+                            operator: event.target
+                              .value as WorkspaceFilterRule["operator"],
+                          })
+                        }
+                        className="app-input"
+                      >
+                        <option value=">=">{">="}</option>
+                        <option value=">">{">"}</option>
+                        <option value="<=">{"<="}</option>
+                        <option value="<">{"<"}</option>
+                        <option value="=">{"="}</option>
+                        <option value="!=">{"!="}</option>
+                      </select>
+                      <input
+                        value={String(rule.value)}
+                        onChange={(event) =>
+                          updateFilterRule(index, { value: event.target.value })
+                        }
+                        placeholder="过滤值"
+                        className="app-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeFilterRule(index)}
+                        className="app-button"
+                      >
+                        删除
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="rounded-[12px] border border-[var(--app-border-soft)] p-3">
+              <div className="text-xs text-[var(--app-text-subtle)]">排序</div>
+              <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_140px]">
+                <select
+                  value={sortState?.metricId ?? ""}
+                  onChange={(event) =>
+                    setSortState(
+                      event.target.value
+                        ? {
+                            metricId: event.target.value,
+                            direction: sortState?.direction ?? "desc",
+                          }
+                        : null,
+                    )
+                  }
+                  className="app-input"
+                >
+                  <option value="">不排序</option>
+                  {filterMetricOptions.map((metricId) => (
+                    <option key={metricId} value={metricId}>
+                      {metricNameMap.get(metricId) ?? metricId}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={sortState?.direction ?? "desc"}
+                  onChange={(event) =>
+                    setSortState((current) =>
+                      current
+                        ? {
+                            ...current,
+                            direction: event.target.value as "asc" | "desc",
+                          }
+                        : null,
+                    )
+                  }
+                  className="app-input"
+                  disabled={!sortState}
+                >
+                  <option value="desc">降序</option>
+                  <option value="asc">升序</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="结果表格"
+          description="财报类指标按期间展开，latest-only 指标放在最新列。"
+          className="xl:col-span-8"
+        >
+          {!resultSnapshot ? (
+            <EmptyState
+              title="还没有加载结果"
+              description="先完成股票、指标与期间选择，再点击“获取”从 iFinD 拉取数据。"
+            />
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusPill
+                  label={`provider: ${resultSnapshot.provider}`}
+                  tone="info"
+                />
+                <StatusPill
+                  label={`状态: ${resultSnapshot.dataStatus}`}
+                  tone="success"
+                />
+                <StatusPill
+                  label={`可见 ${visibleRows.length} / ${resultSnapshot.rows.length}`}
+                  tone="neutral"
+                />
+              </div>
+              {resultSnapshot.warnings.length > 0 ? (
+                <div className="mt-3 grid gap-2">
+                  {resultSnapshot.warnings.map((warning) => (
+                    <InlineNotice
+                      key={warning}
+                      tone="warning"
+                      description={warning}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              <div className="mt-4 overflow-auto rounded-[12px] border border-[var(--app-border-soft)]">
+                <table className="app-table min-w-[980px]">
+                  <thead>
+                    <tr>
+                      <th>股票</th>
+                      <th>代码</th>
+                      {resultColumns.map((column) => (
+                        <th key={column.key}>{column.label}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleRows.map((row) => (
+                      <tr key={row.stockCode}>
+                        <td>{row.stockName}</td>
+                        <td>{row.stockCode}</td>
+                        {resultColumns.map((column) => {
+                          const seriesMetric = row.metrics[column.metricId];
+                          const latestValue = getLatestMetricValue(
+                            resultSnapshot,
+                            row.stockCode,
+                            column.metricId,
+                          );
+                          const cellValue =
+                            column.period === null
+                              ? latestValue
+                              : (seriesMetric?.byPeriod[column.period] ?? null);
+
+                          return (
+                            <td key={`${row.stockCode}-${column.key}`}>
+                              {cellValue ?? "-"}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </SectionCard>
       </div>
     </WorkspaceShell>
   );

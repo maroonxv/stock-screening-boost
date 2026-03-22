@@ -1,209 +1,332 @@
 import { z } from "zod";
-import { ComparisonOperator } from "~/server/domain/screening/enums/comparison-operator";
-import type { IndicatorCategory } from "~/server/domain/screening/enums/indicator-category";
-import {
-  getIndicatorLookbackYears,
-  INDICATOR_FIELD_METADATA,
-  IndicatorField,
-  type IndicatorFieldMetadata,
-  isTimeSeriesIndicator,
-} from "~/server/domain/screening/enums/indicator-field";
-import { LogicalOperator } from "~/server/domain/screening/enums/logical-operator";
-import {
-  NormalizationMethod,
-  ScoringDirection,
-} from "~/server/domain/screening/value-objects/scoring-config";
 
-export const screeningSessionStatusValues = [
-  "PENDING",
-  "RUNNING",
-  "SUCCEEDED",
-  "FAILED",
-  "CANCELLED",
-] as const;
+export const stockCodeSchema = z.string().regex(/^\d{6}$/, "股票代码必须为 6 位数字");
 
-export const screeningSessionStatusSchema = z.enum(
-  screeningSessionStatusValues,
-);
-
-export const numericIndicatorValueSchema = z.object({
-  type: z.literal("numeric"),
-  value: z.number(),
-  unit: z.string().optional(),
+export const searchStocksInputSchema = z.object({
+  keyword: z.string().trim().min(1, "keyword 不能为空"),
+  limit: z.number().int().min(1).max(20).default(20),
 });
 
-export const textIndicatorValueSchema = z.object({
-  type: z.literal("text"),
-  value: z.string(),
+export const searchStockResultSchema = z.object({
+  stockCode: stockCodeSchema,
+  stockName: z.string().min(1),
+  market: z.string().min(1),
+  matchField: z.enum(["CODE", "NAME"]),
 });
 
-export const listIndicatorValueSchema = z.object({
-  type: z.literal("list"),
-  values: z.array(z.string()),
-});
-
-export const rangeIndicatorValueSchema = z.object({
-  type: z.literal("range"),
-  min: z.number(),
-  max: z.number(),
-});
-
-export const timeSeriesIndicatorValueSchema = z.object({
-  type: z.literal("timeSeries"),
-  years: z.number().int().positive(),
-  threshold: z.number().optional(),
-});
-
-export const indicatorValueSchema = z.discriminatedUnion("type", [
-  numericIndicatorValueSchema,
-  textIndicatorValueSchema,
-  listIndicatorValueSchema,
-  rangeIndicatorValueSchema,
-  timeSeriesIndicatorValueSchema,
+export const indicatorValueTypeSchema = z.enum([
+  "NUMBER",
+  "PERCENT",
+  "CURRENCY",
+  "TEXT",
 ]);
 
-export const filterConditionInputSchema = z
-  .object({
-    field: z.nativeEnum(IndicatorField),
-    operator: z.nativeEnum(ComparisonOperator),
-    value: indicatorValueSchema,
+export const indicatorPeriodScopeSchema = z.enum(["series", "latest_only"]);
+
+export const indicatorRetrievalModeSchema = z.enum([
+  "statement_series",
+  "latest_only",
+  "formula",
+]);
+
+export const indicatorCatalogItemSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  categoryId: z.string().min(1),
+  providerField: z.string().min(1).optional(),
+  valueType: indicatorValueTypeSchema,
+  periodScope: indicatorPeriodScopeSchema,
+  retrievalMode: indicatorRetrievalModeSchema,
+  description: z.string().optional(),
+});
+
+export const indicatorCategorySchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().optional(),
+  indicatorCount: z.number().int().nonnegative().default(0),
+});
+
+export const customFormulaSpecSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  expression: z.string().trim().min(1),
+  targetIndicators: z.array(z.string().min(1)).max(5),
+  description: z.string().optional(),
+  categoryId: z.string().min(1),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export const createFormulaInputSchema = z.object({
+  name: z.string().trim().min(1, "公式名称不能为空"),
+  expression: z.string().trim().min(1, "公式表达式不能为空"),
+  targetIndicators: z
+    .array(z.string().trim().min(1))
+    .max(5, "最多只能绑定 5 个目标指标"),
+  description: z.string().trim().optional(),
+  categoryId: z.string().trim().min(1).default("custom"),
+});
+
+export const updateFormulaInputSchema = createFormulaInputSchema.partial()
+  .extend({
+    id: z.string().min(1),
   })
-  .superRefine((condition, ctx) => {
-    if (
-      condition.value.type === "timeSeries" &&
-      condition.operator !== ComparisonOperator.GREATER_THAN &&
-      condition.operator !== ComparisonOperator.LESS_THAN
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["operator"],
-        message: "时间序列条件仅支持大于或小于比较",
-      });
+  .refine(
+    (value) =>
+      value.name !== undefined ||
+      value.expression !== undefined ||
+      value.targetIndicators !== undefined ||
+      value.description !== undefined ||
+      value.categoryId !== undefined,
+    "至少需要提供一个待更新字段",
+  );
+
+export const validateFormulaInputSchema = z.object({
+  expression: z.string().trim().min(1),
+  targetIndicators: z.array(z.string().trim().min(1)).max(5),
+});
+
+export const workspacePeriodTypeSchema = z.enum(["ANNUAL", "QUARTERLY"]);
+export const workspaceRangeModeSchema = z.enum(["PRESET", "CUSTOM"]);
+
+export const workspaceAnnualPresetSchema = z.enum(["1Y", "3Y", "5Y"]);
+export const workspaceQuarterlyPresetSchema = z.enum(["4Q", "8Q", "12Q"]);
+export const workspacePresetSchema = z.enum([
+  "1Y",
+  "3Y",
+  "5Y",
+  "4Q",
+  "8Q",
+  "12Q",
+]);
+
+export const workspaceTimeConfigSchema = z
+  .object({
+    periodType: workspacePeriodTypeSchema,
+    rangeMode: workspaceRangeModeSchema,
+    presetKey: workspacePresetSchema.optional(),
+    customStart: z.string().trim().min(1).optional(),
+    customEnd: z.string().trim().min(1).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.rangeMode === "PRESET") {
+      if (!value.presetKey) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["presetKey"],
+          message: "预设模式需要 presetKey",
+        });
+        return;
+      }
+
+      const allowedPresets =
+        value.periodType === "ANNUAL"
+          ? workspaceAnnualPresetSchema.options
+          : workspaceQuarterlyPresetSchema.options;
+
+      if (!allowedPresets.includes(value.presetKey as never)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["presetKey"],
+          message: "presetKey 与 periodType 不匹配",
+        });
+      }
     }
 
-    if (condition.value.type !== "timeSeries") {
-      return;
-    }
+    if (value.rangeMode === "CUSTOM") {
+      if (!value.customStart) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["customStart"],
+          message: "自定义范围需要 customStart",
+        });
+      }
 
-    if (!isTimeSeriesIndicator(condition.field)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["field"],
-        message: "timeSeries 值仅能用于时间序列指标字段",
-      });
-    }
-
-    if (condition.value.threshold === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["value", "threshold"],
-        message: "时间序列条件必须提供 threshold",
-      });
-    }
-
-    const expectedYears = getIndicatorLookbackYears(condition.field);
-    if (
-      expectedYears !== undefined &&
-      condition.value.years !== expectedYears
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["value", "years"],
-        message: `该指标固定使用 ${expectedYears} 年窗口`,
-      });
+      if (!value.customEnd) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["customEnd"],
+          message: "自定义范围需要 customEnd",
+        });
+      }
     }
   });
 
-export type FilterGroupInput = {
-  groupId: string;
-  operator: LogicalOperator;
-  conditions: z.infer<typeof filterConditionInputSchema>[];
-  subGroups: FilterGroupInput[];
-};
+export const workspaceQuerySchema = z.object({
+  stockCodes: z.array(stockCodeSchema).min(1).max(20),
+  indicatorIds: z.array(z.string().min(1)),
+  formulaIds: z.array(z.string().min(1)).default([]),
+  timeConfig: workspaceTimeConfigSchema,
+});
 
-export const filterGroupInputSchema: z.ZodType<FilterGroupInput> = z.lazy(() =>
-  z.object({
-    groupId: z.string(),
-    operator: z.nativeEnum(LogicalOperator),
-    conditions: z.array(filterConditionInputSchema),
-    subGroups: z.array(filterGroupInputSchema),
+export const workspaceFilterOperatorSchema = z.enum([
+  ">",
+  ">=",
+  "<",
+  "<=",
+  "=",
+  "!=",
+]);
+
+export const workspaceFilterValueTypeSchema = z.enum(["NUMBER", "TEXT"]);
+export const workspaceFilterApplyScopeSchema = z.enum(["LATEST_DEFAULT"]);
+
+export const workspaceFilterRuleSchema = z.object({
+  metricId: z.string().min(1),
+  operator: workspaceFilterOperatorSchema,
+  value: z.union([z.number(), z.string()]),
+  valueType: workspaceFilterValueTypeSchema,
+  applyScope: workspaceFilterApplyScopeSchema,
+});
+
+export const workspaceSortDirectionSchema = z.enum(["asc", "desc"]);
+
+export const workspaceSortStateSchema = z.object({
+  metricId: z.string().min(1),
+  direction: workspaceSortDirectionSchema,
+});
+
+export const workspaceColumnStateSchema = z.object({
+  hiddenMetricIds: z.array(z.string().min(1)).default([]),
+  pinnedMetricIds: z.array(z.string().min(1)).default([]),
+});
+
+export const workspaceMetricPeriodValueSchema = z.object({
+  byPeriod: z.record(z.string(), z.union([z.number(), z.string(), z.null()])),
+});
+
+export const workspaceMetricLatestValueSchema = z.object({
+  value: z.union([z.number(), z.string(), z.null()]),
+  period: z.string().min(1).nullable().optional(),
+});
+
+export const workspaceResultIndicatorMetaSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  valueType: indicatorValueTypeSchema,
+  periodScope: indicatorPeriodScopeSchema,
+  retrievalMode: indicatorRetrievalModeSchema,
+});
+
+export const workspaceResultRowSchema = z.object({
+  stockCode: stockCodeSchema,
+  stockName: z.string().min(1),
+  metrics: z.record(z.string(), workspaceMetricPeriodValueSchema),
+});
+
+export const workspaceLatestSnapshotRowSchema = z.object({
+  stockCode: stockCodeSchema,
+  stockName: z.string().min(1),
+  metrics: z.record(z.string(), workspaceMetricLatestValueSchema),
+});
+
+export const workspaceResultSchema = z.object({
+  periods: z.array(z.string()),
+  indicatorMeta: z.array(workspaceResultIndicatorMetaSchema),
+  rows: z.array(workspaceResultRowSchema),
+  latestSnapshotRows: z.array(workspaceLatestSnapshotRowSchema),
+  warnings: z.array(z.string()).default([]),
+  dataStatus: z.enum(["READY", "PARTIAL", "EMPTY", "ERROR"]),
+  provider: z.literal("ifind"),
+});
+
+export const workspacePersistedStateSchema = z.object({
+  stockCodes: z.array(stockCodeSchema).max(20),
+  indicatorIds: z.array(z.string().min(1)).default([]),
+  formulaIds: z.array(z.string().min(1)).default([]),
+  timeConfig: workspaceTimeConfigSchema,
+  filterRules: z.array(workspaceFilterRuleSchema).default([]),
+  sortState: workspaceSortStateSchema.nullable().optional(),
+  columnState: workspaceColumnStateSchema.default({
+    hiddenMetricIds: [],
+    pinnedMetricIds: [],
   }),
-);
-
-export const scoringConfigInputSchema = z.object({
-  weights: z.record(z.nativeEnum(IndicatorField), z.number()),
-  directions: z
-    .record(z.nativeEnum(IndicatorField), z.nativeEnum(ScoringDirection))
-    .optional(),
-  normalizationMethod: z.nativeEnum(NormalizationMethod),
+  resultSnapshot: workspaceResultSchema.nullable().optional(),
+  lastFetchedAt: z.string().optional(),
 });
 
-export const createStrategyInputSchema = z.object({
-  name: z.string().min(1, "策略名称不能为空"),
-  description: z.string().optional(),
-  filters: filterGroupInputSchema,
-  scoringConfig: scoringConfigInputSchema,
-  tags: z.array(z.string()).default([]),
-  isTemplate: z.boolean().default(false),
+export const createWorkspaceInputSchema = z.object({
+  name: z.string().trim().min(1, "工作台名称不能为空"),
+  description: z.string().trim().optional(),
+  stockCodes: z.array(stockCodeSchema).max(20).default([]),
+  indicatorIds: z.array(z.string().min(1)).default([]),
+  formulaIds: z.array(z.string().min(1)).default([]),
+  timeConfig: workspaceTimeConfigSchema,
+  filterRules: z.array(workspaceFilterRuleSchema).default([]),
+  sortState: workspaceSortStateSchema.nullable().optional(),
+  columnState: workspaceColumnStateSchema.default({
+    hiddenMetricIds: [],
+    pinnedMetricIds: [],
+  }),
+  resultSnapshot: workspaceResultSchema.nullable().optional(),
+  lastFetchedAt: z.string().optional(),
 });
 
-export const updateStrategyInputSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, "策略名称不能为空").optional(),
-  description: z.string().optional(),
-  filters: filterGroupInputSchema.optional(),
-  scoringConfig: scoringConfigInputSchema.optional(),
-  tags: z.array(z.string()).optional(),
-  isTemplate: z.boolean().optional(),
+export const updateWorkspaceInputSchema = createWorkspaceInputSchema
+  .partial()
+  .extend({
+    id: z.string().min(1),
+  })
+  .refine(
+    (value) =>
+      value.name !== undefined ||
+      value.description !== undefined ||
+      value.stockCodes !== undefined ||
+      value.indicatorIds !== undefined ||
+      value.formulaIds !== undefined ||
+      value.timeConfig !== undefined ||
+      value.filterRules !== undefined ||
+      value.sortState !== undefined ||
+      value.columnState !== undefined ||
+      value.resultSnapshot !== undefined ||
+      value.lastFetchedAt !== undefined,
+    "至少需要提供一个待更新字段",
+  );
+
+export const listWorkspacesInputSchema = z.object({
+  limit: z.number().int().min(1).max(100).default(20),
+  offset: z.number().int().min(0).default(0),
 });
 
-export const screeningPaginationSchema = z.object({
-  limit: z.number().min(1).max(100).default(20),
-  offset: z.number().min(0).default(0),
+export const workspaceSummarySchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  description: z.string().nullable().optional(),
+  stockCount: z.number().int().nonnegative(),
+  indicatorCount: z.number().int().nonnegative(),
+  formulaCount: z.number().int().nonnegative(),
+  lastFetchedAt: z.string().nullable().optional(),
+  updatedAt: z.string(),
+  createdAt: z.string(),
 });
 
-export type CreateStrategyInput = z.infer<typeof createStrategyInputSchema>;
-export type UpdateStrategyInput = z.infer<typeof updateStrategyInputSchema>;
-export type FilterConditionInput = z.infer<typeof filterConditionInputSchema>;
-export type ScoringConfigInput = z.infer<typeof scoringConfigInputSchema>;
-export type ScreeningSessionStatusValue = z.infer<
-  typeof screeningSessionStatusSchema
+export const workspaceDetailSchema = workspaceSummarySchema.extend({
+  state: workspacePersistedStateSchema,
+});
+
+export const deleteWorkspaceInputSchema = z.object({
+  id: z.string().min(1),
+});
+
+export const listFormulasInputSchema = z.object({
+  limit: z.number().int().min(1).max(100).default(100),
+  offset: z.number().int().min(0).default(0),
+});
+
+export type SearchStocksInput = z.infer<typeof searchStocksInputSchema>;
+export type SearchStockResult = z.infer<typeof searchStockResultSchema>;
+export type IndicatorCatalogItem = z.infer<typeof indicatorCatalogItemSchema>;
+export type IndicatorCategory = z.infer<typeof indicatorCategorySchema>;
+export type CustomFormulaSpec = z.infer<typeof customFormulaSpecSchema>;
+export type WorkspaceTimeConfig = z.infer<typeof workspaceTimeConfigSchema>;
+export type WorkspaceQuery = z.infer<typeof workspaceQuerySchema>;
+export type WorkspaceFilterRule = z.infer<typeof workspaceFilterRuleSchema>;
+export type WorkspaceResult = z.infer<typeof workspaceResultSchema>;
+export type WorkspacePersistedState = z.infer<
+  typeof workspacePersistedStateSchema
 >;
-
-export type ScreeningIndicatorOption = {
-  field: IndicatorField;
-  category: IndicatorCategory;
-  description: string;
-  unit?: string;
-  lookbackYears?: number;
-};
-
-function toIndicatorOption(
-  field: IndicatorField,
-  metadata: IndicatorFieldMetadata,
-): ScreeningIndicatorOption {
-  return {
-    field,
-    category: metadata.category,
-    description: metadata.description,
-    unit: metadata.unit,
-    lookbackYears: metadata.lookbackYears,
-  };
-}
-
-export const screeningIndicatorOptions = Object.entries(
-  INDICATOR_FIELD_METADATA,
-).map(([field, metadata]) =>
-  toIndicatorOption(field as IndicatorField, metadata),
-);
-
-export function createEmptyFilterGroup(
-  operator: LogicalOperator = LogicalOperator.AND,
-): FilterGroupInput {
-  return {
-    groupId: crypto.randomUUID(),
-    operator,
-    conditions: [],
-    subGroups: [],
-  };
-}
+export type CreateWorkspaceInput = z.infer<typeof createWorkspaceInputSchema>;
+export type UpdateWorkspaceInput = z.infer<typeof updateWorkspaceInputSchema>;
+export type CreateFormulaInput = z.infer<typeof createFormulaInputSchema>;
+export type UpdateFormulaInput = z.infer<typeof updateFormulaInputSchema>;

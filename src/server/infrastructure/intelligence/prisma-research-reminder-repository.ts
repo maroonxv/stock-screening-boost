@@ -14,7 +14,6 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
       create: {
         id: reminder.id,
         userId: reminder.userId,
-        screeningInsightId: reminder.screeningInsightId,
         timingReviewRecordId: reminder.timingReviewRecordId,
         stockCode: reminder.stockCode,
         reminderType: reminder.reminderType,
@@ -27,7 +26,6 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
         updatedAt: reminder.updatedAt,
       },
       update: {
-        screeningInsightId: reminder.screeningInsightId,
         timingReviewRecordId: reminder.timingReviewRecordId,
         scheduledAt: reminder.scheduledAt,
         status: reminder.status,
@@ -45,21 +43,6 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
     });
 
     return record ? this.toDomain(record) : null;
-  }
-
-  async findByInsightId(insightId: string): Promise<ResearchReminder[]> {
-    return this.findByScreeningInsightId(insightId);
-  }
-
-  async findByScreeningInsightId(
-    insightId: string,
-  ): Promise<ResearchReminder[]> {
-    const records = await this.prisma.researchReminder.findMany({
-      where: { screeningInsightId: insightId },
-      orderBy: { scheduledAt: "asc" },
-    });
-
-    return records.map((record) => this.toDomain(record));
   }
 
   async findByTimingReviewRecordId(
@@ -94,7 +77,6 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
   private toDomain(record: {
     id: string;
     userId: string;
-    screeningInsightId: string | null;
     timingReviewRecordId: string | null;
     stockCode: string;
     reminderType: string;
@@ -109,7 +91,6 @@ export class PrismaResearchReminderRepository implements IReminderRepository {
     return ResearchReminder.create({
       id: record.id,
       userId: record.userId,
-      screeningInsightId: record.screeningInsightId ?? undefined,
       timingReviewRecordId: record.timingReviewRecordId ?? undefined,
       stockCode: record.stockCode,
       reminderType: record.reminderType as ResearchReminder["reminderType"],

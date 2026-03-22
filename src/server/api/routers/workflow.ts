@@ -1,4 +1,4 @@
-import { WorkflowRunStatus } from "@prisma/client";
+﻿import { WorkflowRunStatus } from "@prisma/client";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
@@ -60,7 +60,7 @@ function mapWorkflowError(error: unknown): TRPCError {
     });
   }
 
-  return new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "未知错误" });
+  return new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "鏈煡閿欒" });
 }
 
 async function assertTimingPresetExists(params: {
@@ -116,7 +116,7 @@ const startQuickResearchInput = z.object({
       freshnessWindowDays: z.number().int().min(1).max(3650).optional(),
     })
     .optional(),
-  query: z.string().min(1, "query 不能为空"),
+  query: z.string().min(1, "query 涓嶈兘涓虹┖"),
   templateCode: z.string().default(QUICK_RESEARCH_TEMPLATE_CODE),
   templateVersion: z.number().int().positive().optional(),
   idempotencyKey: z.string().min(8).max(128).optional(),
@@ -145,7 +145,7 @@ const startCompanyResearchInput = z.object({
       freshnessWindowDays: z.number().int().min(1).max(3650).optional(),
     })
     .optional(),
-  companyName: z.string().min(1, "companyName 不能为空"),
+  companyName: z.string().min(1, "companyName 涓嶈兘涓虹┖"),
   stockCode: z.string().trim().min(1).optional(),
   officialWebsite: z.string().url().optional(),
   focusConcepts: z.array(z.string().min(1)).max(8).optional(),
@@ -165,7 +165,7 @@ const startScreeningInsightPipelineInput = z.object({
 });
 
 const startTimingSignalPipelineInput = z.object({
-  stockCode: z.string().regex(/^\d{6}$/, "stockCode 必须是 6 位数字"),
+  stockCode: z.string().regex(/^\\d{6}$/, "stockCode 必须是 6 位数字"),
   asOfDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -297,46 +297,12 @@ export const workflowRouter = createTRPCRouter({
 
   startScreeningInsightPipeline: protectedProcedure
     .input(startScreeningInsightPipelineInput)
-    .mutation(async ({ ctx, input }) => {
-      try {
-        const session = await ctx.db.screeningSession.findFirst({
-          where: {
-            id: input.screeningSessionId,
-            userId: ctx.session.user.id,
-          },
-          select: {
-            id: true,
-            strategyName: true,
-          },
-        });
-
-        if (!session) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "筛选会话不存在",
-          });
-        }
-
-        const repository = new PrismaWorkflowRunRepository(ctx.db);
-        const commandService = new WorkflowCommandService(repository);
-
-        return await commandService.startScreeningInsightPipeline({
-          userId: ctx.session.user.id,
-          screeningSessionId: input.screeningSessionId,
-          strategyName: input.strategyName ?? session.strategyName ?? undefined,
-          maxInsightsPerSession: input.maxInsightsPerSession,
-          templateVersion: input.templateVersion,
-          idempotencyKey: input.idempotencyKey,
-        });
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-
-        throw mapWorkflowError(error);
-      }
+    .mutation(async () => {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "旧 screening insight 流水线已下线，请改用新的筛选工作台。",
+      });
     }),
-
   startTimingSignalPipeline: protectedProcedure
     .input(startTimingSignalPipelineInput)
     .mutation(async ({ ctx, input }) => {
@@ -484,55 +450,12 @@ export const workflowRouter = createTRPCRouter({
 
   startScreeningToTimingPipeline: protectedProcedure
     .input(startScreeningToTimingPipelineInput)
-    .mutation(async ({ ctx, input }) => {
-      try {
-        const [screeningSession] = await Promise.all([
-          ctx.db.screeningSession.findFirst({
-            where: {
-              id: input.screeningSessionId,
-              userId: ctx.session.user.id,
-            },
-            select: {
-              id: true,
-              strategyName: true,
-            },
-          }),
-          assertTimingPresetExists({
-            db: ctx.db,
-            userId: ctx.session.user.id,
-            presetId: input.presetId,
-          }),
-        ]);
-
-        if (!screeningSession) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "筛选会话不存在",
-          });
-        }
-
-        const repository = new PrismaWorkflowRunRepository(ctx.db);
-        const commandService = new WorkflowCommandService(repository);
-
-        return await commandService.startScreeningToTimingPipeline({
-          userId: ctx.session.user.id,
-          screeningSessionId: input.screeningSessionId,
-          strategyName: screeningSession.strategyName,
-          candidateLimit: input.candidateLimit,
-          asOfDate: input.asOfDate,
-          presetId: input.presetId,
-          templateVersion: input.templateVersion,
-          idempotencyKey: input.idempotencyKey,
-        });
-      } catch (error) {
-        if (error instanceof TRPCError) {
-          throw error;
-        }
-
-        throw mapWorkflowError(error);
-      }
+    .mutation(async () => {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "screening_to_timing 已下线，请从 timing 模块独立发起流程。",
+      });
     }),
-
   startTimingReviewLoop: protectedProcedure
     .input(startTimingReviewLoopInput)
     .mutation(async ({ ctx, input }) => {
@@ -615,3 +538,5 @@ export const workflowRouter = createTRPCRouter({
       }
     }),
 });
+
+

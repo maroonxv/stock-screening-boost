@@ -1,131 +1,172 @@
 import { describe, expect, it } from "vitest";
 import {
-  type CreateStrategyInput,
-  createStrategyInputSchema,
-  filterGroupInputSchema,
-  screeningPaginationSchema,
-  updateStrategyInputSchema,
+  createFormulaInputSchema,
+  createWorkspaceInputSchema,
+  searchStocksInputSchema,
+  updateWorkspaceInputSchema,
+  workspaceFilterRuleSchema,
+  workspaceQuerySchema,
+  workspaceTimeConfigSchema,
 } from "~/contracts/screening";
-import { ComparisonOperator } from "~/server/domain/screening/enums/comparison-operator";
-import { IndicatorField } from "~/server/domain/screening/enums/indicator-field";
-import { LogicalOperator } from "~/server/domain/screening/enums/logical-operator";
-import {
-  NormalizationMethod,
-  ScoringDirection,
-} from "~/server/domain/screening/value-objects/scoring-config";
-
-function createTestStrategyInput(): CreateStrategyInput {
-  return {
-    name: "测试策略",
-    description: "测试描述",
-    filters: {
-      groupId: "group-1",
-      operator: LogicalOperator.AND,
-      conditions: [
-        {
-          field: IndicatorField.PE,
-          operator: ComparisonOperator.LESS_THAN,
-          value: { type: "numeric" as const, value: 30 },
-        },
-      ],
-      subGroups: [],
-    },
-    scoringConfig: {
-      weights: {
-        [IndicatorField.PE]: 0.6,
-        [IndicatorField.PB]: 0.4,
-      },
-      directions: {
-        [IndicatorField.PE]: ScoringDirection.DESC,
-        [IndicatorField.PB]: ScoringDirection.DESC,
-      },
-      normalizationMethod: NormalizationMethod.MIN_MAX,
-    },
-    tags: ["测试"],
-    isTemplate: false,
-  };
-}
 
 describe("screening contracts", () => {
-  it("接受有效的创建策略输入", () => {
-    const result = createStrategyInputSchema.safeParse(
-      createTestStrategyInput(),
-    );
+  it("accepts valid stock search input", () => {
+    const result = searchStocksInputSchema.safeParse({
+      keyword: "茅台",
+      limit: 10,
+    });
+
     expect(result.success).toBe(true);
   });
 
-  it("拒绝空策略名称", () => {
-    const input = createTestStrategyInput();
-    input.name = "";
-    expect(createStrategyInputSchema.safeParse(input).success).toBe(false);
+  it("rejects workspace queries above the 20-stock limit", () => {
+    const result = workspaceQuerySchema.safeParse({
+      stockCodes: Array.from({ length: 21 }, (_, index) => `${600000 + index}`),
+      indicatorIds: ["ths_revenue_stock"],
+      formulaIds: [],
+      timeConfig: {
+        periodType: "ANNUAL",
+        rangeMode: "PRESET",
+        presetKey: "3Y",
+      },
+    });
+
+    expect(result.success).toBe(false);
   });
 
-  it("支持嵌套 FilterGroup", () => {
-    const input = createTestStrategyInput();
-    input.filters.subGroups.push({
-      groupId: "sub-group-1",
-      operator: LogicalOperator.OR,
-      conditions: [
+  it("requires preset keys compatible with the selected period type", () => {
+    const annualResult = workspaceTimeConfigSchema.safeParse({
+      periodType: "ANNUAL",
+      rangeMode: "PRESET",
+      presetKey: "8Q",
+    });
+
+    const quarterlyResult = workspaceTimeConfigSchema.safeParse({
+      periodType: "QUARTERLY",
+      rangeMode: "PRESET",
+      presetKey: "8Q",
+    });
+
+    expect(annualResult.success).toBe(false);
+    expect(quarterlyResult.success).toBe(true);
+  });
+
+  it("requires complete custom time ranges", () => {
+    const result = workspaceTimeConfigSchema.safeParse({
+      periodType: "QUARTERLY",
+      rangeMode: "CUSTOM",
+      customStart: "2024Q1",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects formulas with more than five target indicators", () => {
+    const result = createFormulaInputSchema.safeParse({
+      name: "超长公式",
+      expression: "var[0] + var[1]",
+      targetIndicators: ["A", "B", "C", "D", "E", "F"],
+      categoryId: "custom",
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("locks local filters to latest snapshot scope", () => {
+    const result = workspaceFilterRuleSchema.safeParse({
+      metricId: "ths_revenue_stock",
+      operator: ">=",
+      value: 10,
+      valueType: "NUMBER",
+      applyScope: "LATEST_DEFAULT",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a complete workspace payload with saved snapshot metadata", () => {
+    const result = createWorkspaceInputSchema.safeParse({
+      name: "高质量成长",
+      description: "小批量筛选工作台",
+      stockCodes: ["600519", "000001"],
+      indicatorIds: ["ths_revenue_stock", "ths_np_atoopc_stock"],
+      formulaIds: [],
+      timeConfig: {
+        periodType: "ANNUAL",
+        rangeMode: "PRESET",
+        presetKey: "5Y",
+      },
+      filterRules: [
         {
-          field: IndicatorField.INDUSTRY,
-          operator: ComparisonOperator.IN,
-          value: {
-            type: "list",
-            values: ["半导体", "人工智能"],
-          },
+          metricId: "ths_revenue_stock",
+          operator: ">",
+          value: 100,
+          valueType: "NUMBER",
+          applyScope: "LATEST_DEFAULT",
         },
       ],
-      subGroups: [],
+      sortState: {
+        metricId: "ths_revenue_stock",
+        direction: "desc",
+      },
+      columnState: {
+        hiddenMetricIds: [],
+        pinnedMetricIds: ["stockCode", "stockName"],
+      },
+      resultSnapshot: {
+        periods: ["2022", "2023", "2024"],
+        indicatorMeta: [
+          {
+            id: "ths_revenue_stock",
+            name: "营业收入",
+            valueType: "NUMBER",
+            periodScope: "series",
+            retrievalMode: "statement_series",
+          },
+        ],
+        rows: [
+          {
+            stockCode: "600519",
+            stockName: "贵州茅台",
+            metrics: {
+              ths_revenue_stock: {
+                byPeriod: {
+                  "2022": 1200,
+                  "2023": 1300,
+                  "2024": 1400,
+                },
+              },
+            },
+          },
+        ],
+        latestSnapshotRows: [
+          {
+            stockCode: "600519",
+            stockName: "贵州茅台",
+            metrics: {
+              ths_revenue_stock: {
+                value: 1400,
+                period: "2024",
+              },
+            },
+          },
+        ],
+        warnings: [],
+        dataStatus: "READY",
+        provider: "ifind",
+      },
+      lastFetchedAt: "2026-03-20T10:00:00.000Z",
     });
 
-    expect(filterGroupInputSchema.safeParse(input.filters).success).toBe(true);
-  });
-
-  it("时间序列条件必须带 threshold 且年份匹配", () => {
-    const input = createTestStrategyInput();
-    input.filters.conditions = [
-      {
-        field: IndicatorField.REVENUE_CAGR_3Y,
-        operator: ComparisonOperator.GREATER_THAN,
-        value: {
-          type: "timeSeries",
-          years: 3,
-          threshold: 0.2,
-        },
-      },
-    ];
-
-    expect(createStrategyInputSchema.safeParse(input).success).toBe(true);
-
-    input.filters.conditions = [
-      {
-        field: IndicatorField.REVENUE_CAGR_3Y,
-        operator: ComparisonOperator.GREATER_THAN,
-        value: {
-          type: "timeSeries",
-          years: 2,
-          threshold: 0.2,
-        },
-      },
-    ];
-
-    expect(createStrategyInputSchema.safeParse(input).success).toBe(false);
-  });
-
-  it("允许部分更新", () => {
-    const result = updateStrategyInputSchema.safeParse({
-      id: "strategy-1",
-      description: "更新说明",
-    });
     expect(result.success).toBe(true);
   });
 
-  it("分页默认值有效", () => {
-    const result = screeningPaginationSchema.safeParse({});
+  it("allows partial workspace updates", () => {
+    const result = updateWorkspaceInputSchema.safeParse({
+      id: "workspace-1",
+      name: "更新后的工作台",
+    });
+
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.limit).toBe(20);
-      expect(result.data.offset).toBe(0);
-    }
   });
 });

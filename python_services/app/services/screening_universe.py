@@ -1,0 +1,76 @@
+"""Cached stock universe search for the screening workbench."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Callable
+
+
+@dataclass(frozen=True)
+class StockSearchMatch:
+    stockCode: str
+    stockName: str
+    market: str
+    matchField: str
+
+
+class ScreeningStockSearcher:
+    def __init__(
+        self,
+        *,
+        universe_loader: Callable[[], list[dict[str, str]]],
+        ttl_seconds: int = 300,
+        now_fn: Callable[[], float] | None = None,
+    ) -> None:
+        self._universe_loader = universe_loader
+        self._ttl_seconds = ttl_seconds
+        self._now_fn = now_fn or (lambda: __import__("time").time())
+        self._cache: tuple[float, list[dict[str, str]]] | None = None
+
+    def search(self, keyword: str, limit: int) -> list[dict[str, str]]:
+        normalized = keyword.strip().lower()
+        if not normalized:
+            return []
+
+        results: list[dict[str, str]] = []
+        for item in self._get_universe():
+            stock_code = item["stockCode"]
+            stock_name = item["stockName"]
+            market = item.get("market", "")
+
+            if normalized in stock_code.lower():
+                results.append(
+                    StockSearchMatch(
+                        stockCode=stock_code,
+                        stockName=stock_name,
+                        market=market,
+                        matchField="CODE",
+                    ).__dict__
+                )
+                continue
+
+            if normalized in stock_name.lower():
+                results.append(
+                    StockSearchMatch(
+                        stockCode=stock_code,
+                        stockName=stock_name,
+                        market=market,
+                        matchField="NAME",
+                    ).__dict__
+                )
+
+            if len(results) >= limit:
+                break
+
+        return results[:limit]
+
+    def _get_universe(self) -> list[dict[str, str]]:
+        cached = self._cache
+        now = self._now_fn()
+
+        if cached and now - cached[0] < self._ttl_seconds:
+            return cached[1]
+
+        loaded = self._universe_loader()
+        self._cache = (now, loaded)
+        return loaded

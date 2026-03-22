@@ -55,28 +55,27 @@ model Session {
 }
 
 model User {
-    id               String              @id @default(cuid())
-    name             String?
-    email            String?             @unique
-    emailVerified    DateTime?
-    image            String?
-    accounts         Account[]
-    sessions         Session[]
-    posts            Post[]
-    strategies       ScreeningStrategy[]
-    screeningSessions ScreeningSession[]
-    screeningInsights ScreeningInsight[]
-    researchReminders ResearchReminder[]
-    watchLists       WatchList[]
-    timingSignalSnapshots TimingSignalSnapshot[]
-    timingAnalysisCards TimingAnalysisCard[]
-    portfolioSnapshots PortfolioSnapshot[]
-    timingRecommendations TimingRecommendation[]
-    timingReviewRecords TimingReviewRecord[]
-    timingPresets     TimingPreset[]
-    timingFeedbackObservations TimingFeedbackObservation[]
+    id                                String                             @id @default(cuid())
+    name                              String?
+    email                             String?                            @unique
+    emailVerified                     DateTime?
+    image                             String?
+    accounts                          Account[]
+    sessions                          Session[]
+    posts                             Post[]
+    screeningWorkspaces               ScreeningWorkspace[]
+    screeningFormulas                 ScreeningFormula[]
+    researchReminders                 ResearchReminder[]
+    watchLists                        WatchList[]
+    timingSignalSnapshots             TimingSignalSnapshot[]
+    timingAnalysisCards               TimingAnalysisCard[]
+    portfolioSnapshots                PortfolioSnapshot[]
+    timingRecommendations             TimingRecommendation[]
+    timingReviewRecords               TimingReviewRecord[]
+    timingPresets                     TimingPreset[]
+    timingFeedbackObservations        TimingFeedbackObservation[]
     timingPresetAdjustmentSuggestions TimingPresetAdjustmentSuggestion[]
-    workflowRuns     WorkflowRun[]
+    workflowRuns                      WorkflowRun[]
 }
 
 model VerificationToken {
@@ -87,86 +86,62 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
-model ScreeningStrategy {
-    id            String             @id @default(cuid())
-    name          String
-    description   String?
-    filters       Json               // FilterGroup 序列化
-    scoringConfig Json               // ScoringConfig 序列化
-    tags          String[]           // PostgreSQL 数组
-    isTemplate    Boolean            @default(false)
-    createdAt     DateTime           @default(now())
-    updatedAt     DateTime           @updatedAt
+model ScreeningWorkspace {
+    id             String   @id @default(cuid())
+    userId         String
+    name           String
+    description    String?
+    stockCodes     String[] @default([])
+    indicatorIds   String[] @default([])
+    formulaIds     String[] @default([])
+    timeConfig     Json
+    filterRules    Json
+    sortState      Json?
+    columnState    Json
+    resultSnapshot Json?
+    lastFetchedAt  DateTime?
+    createdAt      DateTime @default(now())
+    updatedAt      DateTime @updatedAt
 
-    userId        String
-    user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-    sessions      ScreeningSession[]
+    user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([userId])
-    @@index([isTemplate])
-    @@index([name])
+    @@index([userId, updatedAt])
+    @@index([userId, createdAt])
+    @@index([userId, name])
 }
 
-model ScreeningSession {
-    id                    String             @id @default(cuid())
-    strategyId            String?
-    strategyName          String
-    executedAt            DateTime           @default(now())
-    status                ScreeningSessionStatus @default(PENDING)
-    progressPercent       Int                @default(0)
-    currentStep           String?
-    errorMessage          String?
-    cancellationRequestedAt DateTime?
-    startedAt             DateTime?
-    completedAt           DateTime?
-    totalScanned          Int
-    executionTime         Float
-    topStocks             Json               // ScoredStock[] 序列化
-    otherStockCodes       String[]           // StockCode 数组
-    filtersSnapshot       Json               // FilterGroup 快照
-    scoringConfigSnapshot Json               // ScoringConfig 快照
+model ScreeningFormula {
+    id               String   @id @default(cuid())
+    userId           String
+    name             String
+    expression       String
+    targetIndicators Json
+    description      String?
+    categoryId       String
+    createdAt        DateTime @default(now())
+    updatedAt        DateTime @updatedAt
 
-    strategy              ScreeningStrategy? @relation(fields: [strategyId], references: [id], onDelete: SetNull)
-    userId                String
-    user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-    insights              ScreeningInsight[]
+    user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    @@index([userId])
-    @@index([strategyId])
-    @@index([executedAt])
-    @@index([status, executedAt])
-}
-
-enum ScreeningSessionStatus {
-    PENDING
-    RUNNING
-    SUCCEEDED
-    FAILED
-    CANCELLED
+    @@index([userId, updatedAt])
+    @@unique([userId, name])
 }
 
 model WatchList {
-    id          String   @id @default(cuid())
-    name        String
-    description String?
-    stocks      Json     @default("[]") // WatchedStock[] 序列化
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
+    id                    String   @id @default(cuid())
+    name                  String
+    description           String?
+    stocks                Json     @default("[]")
+    createdAt             DateTime @default(now())
+    updatedAt             DateTime @updatedAt
 
-    userId      String
-    user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    insights    ScreeningInsight[]
-    timingAnalysisCards TimingAnalysisCard[]
+    userId                String
+    user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    timingAnalysisCards   TimingAnalysisCard[]
     timingRecommendations TimingRecommendation[]
 
     @@index([userId])
     @@index([name])
-}
-
-enum ScreeningInsightStatus {
-    ACTIVE
-    NEEDS_REVIEW
-    ARCHIVED
 }
 
 enum ResearchReminderType {
@@ -174,7 +149,6 @@ enum ResearchReminderType {
 }
 
 enum ResearchReminderTargetType {
-    SCREENING_INSIGHT
     TIMING_REVIEW
 }
 
@@ -184,63 +158,9 @@ enum ResearchReminderStatus {
     CANCELLED
 }
 
-model ScreeningInsight {
-    id                String                 @id @default(cuid())
-    userId            String
-    screeningSessionId String
-    watchListId       String?
-    stockCode         String
-    stockName         String
-    score             Float
-    status            ScreeningInsightStatus @default(ACTIVE)
-    summary           String
-    nextReviewAt      DateTime?
-    qualityFlags      String[]
-    confidenceScore   Float?
-    confidenceLevel   String                 @default("unknown")
-    confidenceStatus  String                 @default("UNAVAILABLE")
-    supportedClaimCount Int                  @default(0)
-    insufficientClaimCount Int               @default(0)
-    contradictedClaimCount Int               @default(0)
-    latestVersionId   String?
-    currentVersion    Int                    @default(1)
-    createdAt         DateTime               @default(now())
-    updatedAt         DateTime               @updatedAt
-    user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-    screeningSession  ScreeningSession       @relation(fields: [screeningSessionId], references: [id], onDelete: Cascade)
-    watchList         WatchList?             @relation(fields: [watchListId], references: [id], onDelete: SetNull)
-    versions          ScreeningInsightVersion[]
-    reminders         ResearchReminder[]
-
-    @@unique([screeningSessionId, stockCode])
-    @@index([userId, updatedAt])
-    @@index([screeningSessionId])
-    @@index([stockCode])
-}
-
-model ScreeningInsightVersion {
-    id               String           @id @default(cuid())
-    insightId        String
-    version          Int
-    summary          String
-    thesisJson       Json
-    risksJson        Json
-    catalystsJson    Json
-    reviewPlanJson   Json
-    evidenceRefsJson Json
-    qualityFlagsJson Json
-    confidenceAnalysisJson Json?
-    createdAt        DateTime         @default(now())
-    insight          ScreeningInsight @relation(fields: [insightId], references: [id], onDelete: Cascade)
-
-    @@unique([insightId, version])
-    @@index([insightId, createdAt])
-}
-
 model ResearchReminder {
     id                   String                     @id @default(cuid())
     userId               String
-    screeningInsightId   String?
     timingReviewRecordId String?
     stockCode            String
     reminderType         ResearchReminderType
@@ -252,13 +172,10 @@ model ResearchReminder {
     createdAt            DateTime                   @default(now())
     updatedAt            DateTime                   @updatedAt
     user                 User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-    screeningInsight     ScreeningInsight?          @relation(fields: [screeningInsightId], references: [id], onDelete: Cascade)
     timingReviewRecord   TimingReviewRecord?        @relation(fields: [timingReviewRecordId], references: [id], onDelete: Cascade)
 
-    @@unique([screeningInsightId, reminderType, scheduledAt])
     @@unique([timingReviewRecordId, reminderType, scheduledAt])
     @@index([userId, targetType, status, scheduledAt])
-    @@index([screeningInsightId])
     @@index([timingReviewRecordId])
 }
 
@@ -627,3 +544,4 @@ model WorkflowEvent {
     @@unique([runId, sequence])
     @@index([runId, occurredAt])
 }
+

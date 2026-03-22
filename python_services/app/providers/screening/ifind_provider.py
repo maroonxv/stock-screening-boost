@@ -7,6 +7,7 @@ from importlib.util import find_spec
 import logging
 import math
 import os
+from pathlib import Path
 import re
 from typing import Any
 
@@ -83,6 +84,71 @@ def _ensure_ifind_symbols_loaded() -> None:
     THS_DS = THS_DS or loaded_ths_ds
     THS_RQ = THS_RQ or loaded_ths_rq
     THS_iFinDLogin = THS_iFinDLogin or loaded_ifind_login
+
+
+def _get_ifind_package_root() -> Path | None:
+    package_spec = find_spec("iFinDAPI")
+    if package_spec is None or package_spec.origin is None:
+        return None
+
+    return Path(package_spec.origin).resolve().parent
+
+
+def _read_ifind_login_error_from_log(error_code: int) -> str | None:
+    package_root = _get_ifind_package_root()
+    if package_root is None:
+        return None
+
+    log_dirs = [
+        package_root / "Linux" / "bin64" / "logs",
+        package_root / "Windows" / "bin" / "x64" / "logs",
+    ]
+
+    for log_dir in log_dirs:
+        if not log_dir.exists():
+            continue
+
+        log_files = sorted(
+            log_dir.glob("FTDataInterFace*.log"),
+            key=lambda item: item.stat().st_mtime,
+            reverse=True,
+        )
+
+        for log_file in log_files[:3]:
+            try:
+                contents = log_file.read_text(encoding="gb2312", errors="ignore")
+            except OSError:
+                continue
+
+            for line in reversed(contents.splitlines()):
+                if (
+                    f'code="{error_code}"' not in line
+                    and "认证中心返回内容" not in line
+                    and "登录失败" not in line
+                ):
+                    continue
+
+                xml_match = re.search(r"(<ret code=\"-?\d+\" msg=\".*?\"/>)", line)
+                if xml_match:
+                    return xml_match.group(1)
+
+                message = line.split("认证中心返回内容:", 1)[-1].strip()
+                if message:
+                    return message
+
+    return None
+
+
+def _format_ifind_login_error(result: Any, error_code: int) -> str:
+    error_message = getattr(result, "errmsg", None)
+    if isinstance(error_message, str) and error_message.strip():
+        return error_message.strip()
+
+    log_message = _read_ifind_login_error_from_log(error_code)
+    if log_message:
+        return log_message
+
+    return str(error_code)
 
 
 class IFindScreeningProvider(ScreeningDataProvider):
@@ -321,7 +387,9 @@ class IFindScreeningProvider(ScreeningDataProvider):
         result = THS_iFinDLogin(username, password)
         error_code = result if isinstance(result, int) else getattr(result, "errorcode", None)
         if error_code not in {0, -201}:
-            raise RuntimeError(f"iFinD 登录失败: {getattr(result, 'errmsg', error_code)}")
+            raise RuntimeError(
+                f"iFinD 登录失败: {_format_ifind_login_error(result, int(error_code))}",
+            )
 
         self._is_logged_in = True
 

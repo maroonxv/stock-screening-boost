@@ -43,6 +43,31 @@ function normalizeBaseUrl(rawBaseUrl: string) {
   return rawBaseUrl.replace(/\/$/, "");
 }
 
+function extractPythonServiceErrorMessage(
+  errorBody: string,
+  response: Response,
+): string {
+  try {
+    const parsed = JSON.parse(errorBody) as { detail?: unknown; message?: unknown };
+
+    if (typeof parsed.detail === "string" && parsed.detail.trim()) {
+      return parsed.detail;
+    }
+
+    if (typeof parsed.message === "string" && parsed.message.trim()) {
+      return parsed.message;
+    }
+  } catch {
+    // Fall through to raw body handling.
+  }
+
+  if (errorBody.trim()) {
+    return errorBody.trim();
+  }
+
+  return `Python screening service error: ${response.status} ${response.statusText}`;
+}
+
 export class PythonScreeningWorkbenchClient {
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
@@ -80,7 +105,7 @@ export class PythonScreeningWorkbenchClient {
       if (!response.ok) {
         const errorBody = await response.text().catch(() => "Unknown error");
         throw new DataNotAvailableError(
-          `Python screening service error: ${response.status} ${response.statusText}`,
+          extractPythonServiceErrorMessage(errorBody, response),
           response.status,
           errorBody,
         );

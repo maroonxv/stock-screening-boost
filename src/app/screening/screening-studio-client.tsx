@@ -566,7 +566,7 @@ export function ScreeningStudioClient() {
       <div className="grid gap-6 xl:grid-cols-12">
         <SectionCard
           title="股票搜索多选"
-          description="搜索只调用本地股票池匹配；选中后不会自动取数。"
+          description="搜索只走 iFinD 股票池；若账号被锁定或登录失败，会直接显示错误。"
           className="xl:col-span-4"
         >
           <input
@@ -590,11 +590,22 @@ export function ScreeningStudioClient() {
           <div className="mt-4 max-h-[280px] overflow-auto rounded-[12px] border border-[var(--app-border-soft)]">
             {deferredStockKeyword.length === 0 ? (
               <div className="p-4 text-sm text-[var(--app-text-muted)]">
-                输入关键词后可从缓存股票池中搜索，最多选择 20 只。
+                输入关键词后从 iFinD 股票池搜索，最多选择 20 只。
               </div>
             ) : searchStocksQuery.isLoading ? (
               <div className="p-4 text-sm text-[var(--app-text-muted)]">
                 搜索中...
+              </div>
+            ) : searchStocksQuery.isError ? (
+              <div className="p-4">
+                <InlineNotice
+                  tone="danger"
+                  description={searchStocksQuery.error.message}
+                />
+              </div>
+            ) : (searchStocksQuery.data?.length ?? 0) === 0 ? (
+              <div className="p-4 text-sm text-[var(--app-text-muted)]">
+                未找到匹配的股票。
               </div>
             ) : (
               <div className="grid">

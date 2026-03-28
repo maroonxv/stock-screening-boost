@@ -4,8 +4,8 @@
  * 表示经过筛选和评分后的股票，包含评分详情和匹配的筛选条件。
  */
 
-import { StockCode } from "./stock-code";
 import type { IndicatorField } from "../enums/indicator-field";
+import { StockCode } from "./stock-code";
 
 /**
  * 筛选条件简化表示（用于 matchedConditions）
@@ -37,7 +37,7 @@ export class ScoredStock {
     indicatorValues: Map<IndicatorField, unknown>,
     matchedConditions: MatchedCondition[],
     scoreContributions?: Map<IndicatorField, number>,
-    scoreExplanations?: string[]
+    scoreExplanations?: string[],
   ) {
     this._stockCode = stockCode;
     this._stockName = stockName;
@@ -89,7 +89,7 @@ export class ScoredStock {
     indicatorValues: Map<IndicatorField, unknown>,
     matchedConditions: MatchedCondition[],
     scoreContributions?: Map<IndicatorField, number>,
-    scoreExplanations?: string[]
+    scoreExplanations?: string[],
   ): ScoredStock {
     if (score < 0 || score > 1) {
       throw new Error(`评分必须在 [0, 1] 区间内，当前值为 ${score}`);
@@ -98,7 +98,7 @@ export class ScoredStock {
     for (const [field, breakdownScore] of scoreBreakdown.entries()) {
       if (breakdownScore < 0 || breakdownScore > 1) {
         throw new Error(
-          `指标 ${field} 的归一化得分必须在 [0, 1] 区间内，当前值为 ${breakdownScore}`
+          `指标 ${field} 的归一化得分必须在 [0, 1] 区间内，当前值为 ${breakdownScore}`,
         );
       }
     }
@@ -107,7 +107,7 @@ export class ScoredStock {
       for (const [field, contribution] of scoreContributions.entries()) {
         if (contribution < 0 || contribution > 1) {
           throw new Error(
-            `指标 ${field} 的贡献值必须在 [0, 1] 区间内，当前值为 ${contribution}`
+            `指标 ${field} 的贡献值必须在 [0, 1] 区间内，当前值为 ${contribution}`,
           );
         }
       }
@@ -121,7 +121,7 @@ export class ScoredStock {
       indicatorValues,
       matchedConditions,
       scoreContributions,
-      scoreExplanations
+      scoreExplanations,
     );
   }
 
@@ -228,7 +228,7 @@ export class ScoredStock {
       indicatorValues,
       matchedConditionsData,
       scoreContributions,
-      scoreExplanations
+      scoreExplanations,
     );
   }
 }

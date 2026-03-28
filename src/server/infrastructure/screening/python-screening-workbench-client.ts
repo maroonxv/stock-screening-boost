@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { env } from "~/env";
 import {
   customFormulaSpecSchema,
   indicatorCatalogItemSchema,
@@ -8,6 +7,7 @@ import {
   workspaceQuerySchema,
   workspaceResultSchema,
 } from "~/contracts/screening";
+import { env } from "~/env";
 import { DataNotAvailableError } from "~/server/domain/screening/errors";
 
 const DEFAULT_TIMEOUT_MS = 60_000;
@@ -48,7 +48,10 @@ function extractPythonServiceErrorMessage(
   response: Response,
 ): string {
   try {
-    const parsed = JSON.parse(errorBody) as { detail?: unknown; message?: unknown };
+    const parsed = JSON.parse(errorBody) as {
+      detail?: unknown;
+      message?: unknown;
+    };
 
     if (typeof parsed.detail === "string" && parsed.detail.trim()) {
       return parsed.detail;
@@ -147,7 +150,11 @@ export class PythonScreeningWorkbenchClient {
 
   async listIndicatorCatalog(): Promise<PythonScreeningCatalogResponse> {
     const [items, categories] = await Promise.all([
-      this.fetchJson("/indicators", undefined, z.array(indicatorCatalogItemSchema)),
+      this.fetchJson(
+        "/indicators",
+        undefined,
+        z.array(indicatorCatalogItemSchema),
+      ),
       this.fetchJson(
         "/indicator-categories",
         undefined,

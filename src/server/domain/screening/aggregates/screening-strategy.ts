@@ -19,12 +19,12 @@
 
 import { v4 as uuidv4 } from "uuid";
 import { FilterGroup } from "../entities/filter-group";
+import type { Stock } from "../entities/stock";
+import { InvalidStrategyError } from "../errors";
+import type { IIndicatorCalculationService } from "../services/indicator-calculation-service";
+import type { ScoredStock } from "../value-objects/scored-stock";
 import { ScoringConfig } from "../value-objects/scoring-config";
 import { ScreeningResult } from "../value-objects/screening-result";
-import { InvalidStrategyError } from "../errors";
-import type { Stock } from "../entities/stock";
-import type { ScoredStock } from "../value-objects/scored-stock";
-import type { IIndicatorCalculationService } from "../services/indicator-calculation-service";
 
 // Re-export IIndicatorCalculationService for convenience
 export type { IIndicatorCalculationService } from "../services/indicator-calculation-service";
@@ -37,7 +37,7 @@ export interface IScoringService {
   scoreStocks(
     stocks: Stock[],
     config: ScoringConfig,
-    calcService: IIndicatorCalculationService
+    calcService: IIndicatorCalculationService,
   ): Promise<ScoredStock[]>;
 }
 
@@ -192,11 +192,11 @@ export class ScreeningStrategy {
   cloneWithModifications(
     newName: string,
     userId: string,
-    modifications?: Partial<UpdateScreeningStrategyParams>
+    modifications?: Partial<UpdateScreeningStrategyParams>,
   ): ScreeningStrategy {
     const clonedFilters = FilterGroup.fromDict(this._filters.toDict());
     const clonedScoringConfig = ScoringConfig.fromDict(
-      this._scoringConfig.toDict()
+      this._scoringConfig.toDict(),
     );
 
     return ScreeningStrategy.create({
@@ -213,7 +213,7 @@ export class ScreeningStrategy {
   async execute(
     candidateStocks: Stock[],
     scoringService: IScoringService,
-    calcService: IIndicatorCalculationService
+    calcService: IIndicatorCalculationService,
   ): Promise<ScreeningResult> {
     const startTime = performance.now();
 
@@ -221,7 +221,7 @@ export class ScreeningStrategy {
       candidateStocks.map(async (stock) => ({
         stock,
         matched: await this._filters.matchAsync(stock, calcService),
-      }))
+      })),
     );
     const matchedStocks = matchResults
       .filter((result) => result.matched)
@@ -230,7 +230,7 @@ export class ScreeningStrategy {
     const scoredStocks = await scoringService.scoreStocks(
       matchedStocks,
       this._scoringConfig,
-      calcService
+      calcService,
     );
 
     scoredStocks.sort((a, b) => b.score - a.score);
@@ -241,7 +241,7 @@ export class ScreeningStrategy {
     return ScreeningResult.create(
       scoredStocks,
       candidateStocks.length,
-      executionTime
+      executionTime,
     );
   }
 
@@ -255,12 +255,10 @@ export class ScreeningStrategy {
     }
 
     const validation = ScoringConfig.validate(
-      new Map(this._scoringConfig.weights)
+      new Map(this._scoringConfig.weights),
     );
     if (!validation.isValid) {
-      throw new InvalidStrategyError(
-        `评分配置无效: ${validation.error}`
-      );
+      throw new InvalidStrategyError(`评分配置无效: ${validation.error}`);
     }
   }
 
@@ -286,7 +284,7 @@ export class ScreeningStrategy {
       description: data.description as string,
       filters: FilterGroup.fromDict(data.filters as Record<string, unknown>),
       scoringConfig: ScoringConfig.fromDict(
-        data.scoringConfig as Record<string, unknown>
+        data.scoringConfig as Record<string, unknown>,
       ),
       tags: data.tags as string[],
       isTemplate: data.isTemplate as boolean,

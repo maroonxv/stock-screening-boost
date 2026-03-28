@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createUnavailableConfidenceAnalysis } from "~/server/domain/intelligence/confidence";
 import { ScreeningInsight } from "~/server/domain/intelligence/aggregates/screening-insight";
+import { createUnavailableConfidenceAnalysis } from "~/server/domain/intelligence/confidence";
 import { EvidenceReference } from "~/server/domain/intelligence/entities/evidence-reference";
 import { Catalyst } from "~/server/domain/intelligence/value-objects/catalyst";
 import { InvestmentThesis } from "~/server/domain/intelligence/value-objects/investment-thesis";

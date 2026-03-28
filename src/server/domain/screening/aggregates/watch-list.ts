@@ -20,9 +20,9 @@
  */
 
 import { v4 as uuidv4 } from "uuid";
-import { WatchedStock } from "../value-objects/watched-stock";
-import { StockCode } from "../value-objects/stock-code";
 import { DuplicateStockError, StockNotFoundError } from "../errors";
+import type { StockCode } from "../value-objects/stock-code";
+import { WatchedStock } from "../value-objects/watched-stock";
 
 /**
  * WatchList 创建参数
@@ -143,7 +143,7 @@ export class WatchList {
     code: StockCode,
     name: string,
     note?: string,
-    tags: string[] = []
+    tags: string[] = [],
   ): void {
     if (this._stocks.has(code.value)) {
       throw new DuplicateStockError(code.value);
@@ -154,7 +154,7 @@ export class WatchList {
       name,
       new Date(),
       note,
-      tags
+      tags,
     );
 
     this._stocks.set(code.value, watchedStock);
@@ -235,7 +235,7 @@ export class WatchList {
    */
   getStocksByTag(tag: string): WatchedStock[] {
     return Array.from(this._stocks.values()).filter((stock) =>
-      stock.hasTag(tag)
+      stock.hasTag(tag),
     );
   }
 
@@ -248,9 +248,7 @@ export class WatchList {
       id: this._id,
       name: this._name,
       description: this._description,
-      stocks: Array.from(this._stocks.values()).map((stock) =>
-        stock.toDict()
-      ),
+      stocks: Array.from(this._stocks.values()).map((stock) => stock.toDict()),
       userId: this._userId,
       createdAt: this._createdAt.toISOString(),
       updatedAt: this._updatedAt.toISOString(),
@@ -264,7 +262,7 @@ export class WatchList {
    */
   static fromDict(data: Record<string, unknown>): WatchList {
     const stocks = (data.stocks as Array<Record<string, unknown>>).map(
-      (stockData) => WatchedStock.fromDict(stockData)
+      (stockData) => WatchedStock.fromDict(stockData),
     );
 
     return WatchList.create({

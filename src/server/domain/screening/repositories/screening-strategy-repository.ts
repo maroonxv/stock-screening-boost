@@ -50,7 +50,7 @@ export interface IScreeningStrategyRepository {
   findByUserId(
     userId: string,
     limit?: number,
-    offset?: number
+    offset?: number,
   ): Promise<ScreeningStrategy[]>;
 
   /**

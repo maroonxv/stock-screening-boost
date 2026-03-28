@@ -14,11 +14,11 @@
  */
 
 import type { PrismaClient } from "@prisma/client";
+import { WatchList } from "~/server/domain/screening/aggregates/watch-list";
 import type {
   IWatchListRepository,
   WatchListQueryOptions,
 } from "~/server/domain/screening/repositories/watch-list-repository";
-import { WatchList } from "~/server/domain/screening/aggregates/watch-list";
 import { WatchedStock } from "~/server/domain/screening/value-objects/watched-stock";
 
 /**
@@ -97,7 +97,7 @@ export class PrismaWatchListRepository implements IWatchListRepository {
    */
   async findByUserId(
     userId: string,
-    options?: WatchListQueryOptions
+    options?: WatchListQueryOptions,
   ): Promise<WatchList[]> {
     const limit = options?.limit;
     const offset = options?.offset ?? 0;
@@ -123,9 +123,10 @@ export class PrismaWatchListRepository implements IWatchListRepository {
       where: { userId },
       take: limit,
       skip: offset,
-      orderBy: sortBy === "updatedAt"
-        ? { updatedAt: sortDirection }
-        : { createdAt: sortDirection },
+      orderBy:
+        sortBy === "updatedAt"
+          ? { updatedAt: sortDirection }
+          : { createdAt: sortDirection },
     });
 
     return records.map((record) => this.toDomain(record));
@@ -165,7 +166,7 @@ export class PrismaWatchListRepository implements IWatchListRepository {
     // 反序列化 stocks
     const stocksData = record.stocks as Array<Record<string, unknown>>;
     const stocks = stocksData.map((stockData) =>
-      WatchedStock.fromDict(stockData)
+      WatchedStock.fromDict(stockData),
     );
 
     // 创建领域对象

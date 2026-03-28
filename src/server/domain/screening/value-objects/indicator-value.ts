@@ -139,7 +139,7 @@ export function isRangeValue(value: IndicatorValue): value is RangeValue {
  * @returns 是否为 TimeSeriesValue
  */
 export function isTimeSeriesValue(
-  value: IndicatorValue
+  value: IndicatorValue,
 ): value is TimeSeriesValue {
   return value.type === "timeSeries";
 }
@@ -197,7 +197,7 @@ export function createRangeValue(min: number, max: number): RangeValue {
  */
 export function createTimeSeriesValue(
   years: number,
-  threshold?: number
+  threshold?: number,
 ): TimeSeriesValue {
   if (years <= 0) {
     throw new Error(`时间序列年数必须大于 0，当前值为 ${years}`);
@@ -213,7 +213,7 @@ export function createTimeSeriesValue(
  * @returns 序列化后的对象
  */
 export function indicatorValueToDict(
-  value: IndicatorValue
+  value: IndicatorValue,
 ): Record<string, unknown> {
   switch (value.type) {
     case "numeric":
@@ -254,7 +254,7 @@ export function indicatorValueToDict(
  * @throws Error 如果数据格式无效
  */
 export function indicatorValueFromDict(
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
 ): IndicatorValue {
   const type = data.type as string;
 
@@ -310,7 +310,7 @@ export function indicatorValueFromDict(
  */
 export function indicatorValueEquals(
   a: IndicatorValue,
-  b: IndicatorValue
+  b: IndicatorValue,
 ): boolean {
   if (a.type !== b.type) {
     return false;
@@ -338,7 +338,9 @@ export function indicatorValueEquals(
     }
     case "timeSeries": {
       const bTimeSeries = b as TimeSeriesValue;
-      return a.years === bTimeSeries.years && a.threshold === bTimeSeries.threshold;
+      return (
+        a.years === bTimeSeries.years && a.threshold === bTimeSeries.threshold
+      );
     }
   }
 }

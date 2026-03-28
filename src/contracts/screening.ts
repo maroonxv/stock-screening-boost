@@ -1,6 +1,8 @@
 import { z } from "zod";
 
-export const stockCodeSchema = z.string().regex(/^\d{6}$/, "股票代码必须为 6 位数字");
+export const stockCodeSchema = z
+  .string()
+  .regex(/^\d{6}$/, "股票代码必须为 6 位数字");
 
 export const searchStocksInputSchema = z.object({
   keyword: z.string().trim().min(1, "keyword 不能为空"),
@@ -68,7 +70,8 @@ export const createFormulaInputSchema = z.object({
   categoryId: z.string().trim().min(1).default("custom"),
 });
 
-export const updateFormulaInputSchema = createFormulaInputSchema.partial()
+export const updateFormulaInputSchema = createFormulaInputSchema
+  .partial()
   .extend({
     id: z.string().min(1),
   })

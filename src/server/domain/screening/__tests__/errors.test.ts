@@ -1,12 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  InvalidStrategyError,
-  DuplicateStockError,
-  StockNotFoundError,
-  InvalidFilterConditionError,
-  ScoringError,
-  IndicatorCalculationError,
   DataNotAvailableError,
+  DuplicateStockError,
+  IndicatorCalculationError,
+  InvalidFilterConditionError,
+  InvalidStrategyError,
+  ScoringError,
+  StockNotFoundError,
 } from "../errors";
 
 describe("Domain Errors", () => {
@@ -63,22 +63,20 @@ describe("Domain Errors", () => {
   describe("InvalidFilterConditionError", () => {
     it("应该正确创建异常实例", () => {
       const error = new InvalidFilterConditionError(
-        "IndicatorField 与 IndicatorValue 类型不匹配"
+        "IndicatorField 与 IndicatorValue 类型不匹配",
       );
       expect(error).toBeInstanceOf(Error);
       expect(error).toBeInstanceOf(InvalidFilterConditionError);
       expect(error.name).toBe("InvalidFilterConditionError");
-      expect(error.message).toBe(
-        "IndicatorField 与 IndicatorValue 类型不匹配"
-      );
+      expect(error.message).toBe("IndicatorField 与 IndicatorValue 类型不匹配");
     });
 
     it("应该支持自定义错误消息", () => {
       const error = new InvalidFilterConditionError(
-        "ComparisonOperator 与 IndicatorValue 类型不兼容"
+        "ComparisonOperator 与 IndicatorValue 类型不兼容",
       );
       expect(error.message).toBe(
-        "ComparisonOperator 与 IndicatorValue 类型不兼容"
+        "ComparisonOperator 与 IndicatorValue 类型不兼容",
       );
     });
   });
@@ -113,7 +111,7 @@ describe("Domain Errors", () => {
       const error1 = new IndicatorCalculationError("PE", "必需数据缺失");
       const error2 = new IndicatorCalculationError(
         "REVENUE_CAGR_3Y",
-        "历史数据不足"
+        "历史数据不足",
       );
       expect(error1.message).toContain("PE");
       expect(error1.message).toContain("必需数据缺失");
@@ -134,10 +132,7 @@ describe("Domain Errors", () => {
     });
 
     it("应该支持包含 HTTP 状态码", () => {
-      const error = new DataNotAvailableError(
-        "Python 数据服务返回错误",
-        500
-      );
+      const error = new DataNotAvailableError("Python 数据服务返回错误", 500);
       expect(error.message).toBe("Python 数据服务返回错误");
       expect(error.statusCode).toBe(500);
     });
@@ -148,11 +143,7 @@ describe("Domain Errors", () => {
         endpoint: "/stocks/codes",
         timestamp: "2024-01-15T10:00:00Z",
       };
-      const error = new DataNotAvailableError(
-        "外部数据源不可用",
-        503,
-        details
-      );
+      const error = new DataNotAvailableError("外部数据源不可用", 503, details);
       expect(error.message).toBe("外部数据源不可用");
       expect(error.statusCode).toBe(503);
       expect(error.details).toEqual(details);
@@ -160,11 +151,9 @@ describe("Domain Errors", () => {
 
     it("应该支持不同的错误场景", () => {
       const error1 = new DataNotAvailableError("网络连接失败", 0);
-      const error2 = new DataNotAvailableError(
-        "AkShare 数据源不可用",
-        502,
-        { upstream: "akshare" }
-      );
+      const error2 = new DataNotAvailableError("AkShare 数据源不可用", 502, {
+        upstream: "akshare",
+      });
       expect(error1.message).toContain("网络连接失败");
       expect(error1.statusCode).toBe(0);
       expect(error2.message).toContain("AkShare");

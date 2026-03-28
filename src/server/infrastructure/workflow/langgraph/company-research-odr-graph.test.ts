@@ -288,7 +288,9 @@ describe("company-research-odr-graph", () => {
     expect(graph.templateVersion).toBe(3);
     expect(finalState.researchBrief?.companyName).toBe("绀轰緥鍏徃");
     expect(finalState.compressedFindings?.summary).toBe("compressed");
-    expect(finalState.finalReport?.runtimeConfigSummary?.maxUnitsPerPlan).toBe(6);
+    expect(finalState.finalReport?.runtimeConfigSummary?.maxUnitsPerPlan).toBe(
+      6,
+    );
   });
 
   it("pauses the v3 company graph when clarification is required", async () => {

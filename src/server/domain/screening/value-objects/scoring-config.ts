@@ -68,7 +68,7 @@ export class ScoringConfig {
   private constructor(
     weights: Map<IndicatorField, number>,
     normalizationMethod: NormalizationMethod,
-    directions?: Map<IndicatorField, ScoringDirection>
+    directions?: Map<IndicatorField, ScoringDirection>,
   ) {
     this._weights = new Map(weights);
     this._directions = ScoringConfig.resolveDirections(weights, directions);
@@ -106,11 +106,13 @@ export class ScoringConfig {
   static create(
     weights: Map<IndicatorField, number>,
     normalizationMethod: NormalizationMethod = NormalizationMethod.MIN_MAX,
-    directions?: Map<IndicatorField, ScoringDirection>
+    directions?: Map<IndicatorField, ScoringDirection>,
   ): ScoringConfig {
     const validation = ScoringConfig.validate(weights, directions);
     if (!validation.isValid) {
-      throw new InvalidScoringConfigError(validation.error!);
+      throw new InvalidScoringConfigError(
+        validation.error ?? "未知评分配置错误",
+      );
     }
     return new ScoringConfig(weights, normalizationMethod, directions);
   }
@@ -124,7 +126,7 @@ export class ScoringConfig {
   static tryCreate(
     weights: Map<IndicatorField, number>,
     normalizationMethod: NormalizationMethod = NormalizationMethod.MIN_MAX,
-    directions?: Map<IndicatorField, ScoringDirection>
+    directions?: Map<IndicatorField, ScoringDirection>,
   ): ScoringConfig | null {
     const validation = ScoringConfig.validate(weights, directions);
     if (!validation.isValid) {
@@ -140,7 +142,7 @@ export class ScoringConfig {
    */
   static validate(
     weights: Map<IndicatorField, number>,
-    directions?: Map<IndicatorField, ScoringDirection>
+    directions?: Map<IndicatorField, ScoringDirection>,
   ): ScoringConfigValidationResult {
     // 检查是否为空
     if (weights.size === 0) {
@@ -285,7 +287,9 @@ export class ScoringConfig {
 
     for (const [field, weight] of Object.entries(weightsObj)) {
       if (typeof weight !== "number") {
-        throw new Error(`指标 ${field} 的权重必须为数字，当前类型为 ${typeof weight}`);
+        throw new Error(
+          `指标 ${field} 的权重必须为数字，当前类型为 ${typeof weight}`,
+        );
       }
       // 验证是否为有效的 IndicatorField
       if (!Object.values(IndicatorField).includes(field as IndicatorField)) {
@@ -294,7 +298,7 @@ export class ScoringConfig {
       weights.set(field as IndicatorField, weight);
     }
 
-    let directions: Map<IndicatorField, ScoringDirection> | undefined = undefined;
+    let directions: Map<IndicatorField, ScoringDirection> | undefined;
     if (data.directions !== undefined) {
       if (typeof data.directions !== "object" || data.directions === null) {
         throw new Error("ScoringConfig 的 directions 必须为对象");
@@ -306,7 +310,11 @@ export class ScoringConfig {
         if (!Object.values(IndicatorField).includes(field as IndicatorField)) {
           throw new Error(`未知的指标字段: ${field}`);
         }
-        if (!Object.values(ScoringDirection).includes(direction as ScoringDirection)) {
+        if (
+          !Object.values(ScoringDirection).includes(
+            direction as ScoringDirection,
+          )
+        ) {
           throw new Error(`指标 ${field} 的评分方向无效: ${direction}`);
         }
         directions.set(field as IndicatorField, direction as ScoringDirection);
@@ -361,7 +369,7 @@ export class ScoringConfig {
 
   private static resolveDirections(
     weights: Map<IndicatorField, number>,
-    directions?: Map<IndicatorField, ScoringDirection>
+    directions?: Map<IndicatorField, ScoringDirection>,
   ): ReadonlyMap<IndicatorField, ScoringDirection> {
     const resolved = new Map<IndicatorField, ScoringDirection>();
     for (const field of weights.keys()) {

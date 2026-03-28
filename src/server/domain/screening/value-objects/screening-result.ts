@@ -32,7 +32,7 @@ export class ScreeningResult {
   private constructor(
     matchedStocks: ScoredStock[],
     totalScanned: number,
-    executionTime: number
+    executionTime: number,
   ) {
     this._matchedStocks = [...matchedStocks];
     this._totalScanned = totalScanned;
@@ -71,7 +71,7 @@ export class ScreeningResult {
   static create(
     matchedStocks: ScoredStock[],
     totalScanned: number,
-    executionTime: number
+    executionTime: number,
   ): ScreeningResult {
     // 验证 totalScanned 为非负整数
     if (totalScanned < 0 || !Number.isInteger(totalScanned)) {
@@ -86,16 +86,22 @@ export class ScreeningResult {
     // 验证 matchedStocks 数量不超过 totalScanned
     if (matchedStocks.length > totalScanned) {
       throw new Error(
-        `匹配股票数量 (${matchedStocks.length}) 不能超过扫描总数 (${totalScanned})`
+        `匹配股票数量 (${matchedStocks.length}) 不能超过扫描总数 (${totalScanned})`,
       );
     }
 
     // 验证 matchedStocks 按评分降序排列
     for (let i = 0; i < matchedStocks.length - 1; i++) {
-      if (matchedStocks[i]!.score < matchedStocks[i + 1]!.score) {
+      const currentStock = matchedStocks[i];
+      const nextStock = matchedStocks[i + 1];
+      if (!currentStock || !nextStock) {
+        continue;
+      }
+
+      if (currentStock.score < nextStock.score) {
         throw new Error(
           `匹配股票列表必须按评分降序排列，但在索引 ${i} 处发现逆序：` +
-            `${matchedStocks[i]!.score} < ${matchedStocks[i + 1]!.score}`
+            `${currentStock.score} < ${nextStock.score}`,
         );
       }
     }
@@ -173,10 +179,11 @@ export class ScreeningResult {
     }
 
     // Lazy import to avoid circular dependency
-    const { ScoredStock: ScoredStockClass } = require("./scored-stock") as typeof import("./scored-stock");
+    const { ScoredStock: ScoredStockClass } =
+      require("./scored-stock") as typeof import("./scored-stock");
 
     const matchedStocks = matchedStocksData.map((stockData) =>
-      ScoredStockClass.fromDict(stockData)
+      ScoredStockClass.fromDict(stockData),
     );
 
     return ScreeningResult.create(matchedStocks, totalScanned, executionTime);

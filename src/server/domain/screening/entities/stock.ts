@@ -1,6 +1,6 @@
-import { StockCode } from "../value-objects/stock-code";
-import { IndicatorField, getIndicatorCategory } from "../enums/indicator-field";
 import { IndicatorCategory } from "../enums/indicator-category";
+import { getIndicatorCategory, IndicatorField } from "../enums/indicator-field";
+import { StockCode } from "../value-objects/stock-code";
 
 /**
  * Stock 实体属性接口

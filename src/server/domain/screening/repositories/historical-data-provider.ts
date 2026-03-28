@@ -7,8 +7,8 @@
  * Requirements: 3.2, 6.3
  */
 
-import type { StockCode } from "../value-objects/stock-code";
 import type { IndicatorField } from "../enums/indicator-field";
+import type { StockCode } from "../value-objects/stock-code";
 
 /**
  * 指标数据点
@@ -51,6 +51,6 @@ export interface IHistoricalDataProvider {
   getIndicatorHistory(
     stockCode: StockCode,
     indicator: IndicatorField,
-    years: number
+    years: number,
   ): Promise<IndicatorDataPoint[]>;
 }

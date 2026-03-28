@@ -67,13 +67,13 @@ export abstract class BaseWorkflowLangGraph<
 {
   abstract readonly templateCode: string;
 
-  protected readonly graph: CompiledStateGraph<any, any, any>;
+  protected readonly graph: CompiledStateGraph<unknown, unknown, string>;
   protected readonly nodeOrder: readonly NodeKey[];
   private readonly nodeIndex: Map<NodeKey, number>;
   private readonly nodeKeySet: Set<string>;
 
   protected constructor(params: {
-    graph: CompiledStateGraph<any, any, any>;
+    graph: CompiledStateGraph<unknown, unknown, string>;
     nodeOrder: readonly NodeKey[];
   }) {
     this.graph = params.graph;

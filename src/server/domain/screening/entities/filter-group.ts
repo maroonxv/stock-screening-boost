@@ -159,11 +159,13 @@ export class FilterGroup {
 
       case LogicalOperator.NOT:
         if (this.conditions.length === 1) {
-          return !this.conditions[0]!.evaluate(stock, calcService);
+          const condition = this.conditions[0];
+          return condition ? !condition.evaluate(stock, calcService) : false;
         }
 
         if (this.subGroups.length === 1) {
-          return !this.subGroups[0]!.match(stock, calcService);
+          const subGroup = this.subGroups[0];
+          return subGroup ? !subGroup.match(stock, calcService) : false;
         }
 
         return false;
@@ -215,11 +217,17 @@ export class FilterGroup {
 
       case LogicalOperator.NOT:
         if (this.conditions.length === 1) {
-          return !(await this.conditions[0]!.evaluateAsync(stock, calcService));
+          const condition = this.conditions[0];
+          return condition
+            ? !(await condition.evaluateAsync(stock, calcService))
+            : false;
         }
 
         if (this.subGroups.length === 1) {
-          return !(await this.subGroups[0]!.matchAsync(stock, calcService));
+          const subGroup = this.subGroups[0];
+          return subGroup
+            ? !(await subGroup.matchAsync(stock, calcService))
+            : false;
         }
 
         return false;

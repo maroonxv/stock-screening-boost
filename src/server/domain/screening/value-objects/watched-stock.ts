@@ -59,7 +59,7 @@ export class WatchedStock {
     stockName: string,
     addedAt: Date,
     note?: string,
-    tags: string[] = []
+    tags: string[] = [],
   ) {
     this._stockCode = stockCode;
     this._stockName = stockName;
@@ -117,7 +117,7 @@ export class WatchedStock {
     stockName: string,
     addedAt: Date,
     note?: string,
-    tags: string[] = []
+    tags: string[] = [],
   ): WatchedStock {
     return new WatchedStock(stockCode, stockName, addedAt, note, tags);
   }
@@ -142,7 +142,7 @@ export class WatchedStock {
       this._stockName,
       this._addedAt,
       note,
-      [...this._tags]
+      [...this._tags],
     );
   }
 
@@ -157,7 +157,7 @@ export class WatchedStock {
       this._stockName,
       this._addedAt,
       this._note,
-      normalizeTags(tags)
+      normalizeTags(tags),
     );
   }
 
@@ -206,7 +206,7 @@ export class WatchedStock {
       stockName,
       new Date(addedAt),
       note,
-      tags ?? []
+      tags ?? [],
     );
   }
 

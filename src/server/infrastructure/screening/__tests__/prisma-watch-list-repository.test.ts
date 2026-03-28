@@ -6,11 +6,11 @@
  * Requirements: 5.1
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { PrismaClient } from "@prisma/client";
-import { PrismaWatchListRepository } from "../prisma-watch-list-repository";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WatchList } from "../../../domain/screening/aggregates/watch-list";
 import { StockCode } from "../../../domain/screening/value-objects/stock-code";
+import { PrismaWatchListRepository } from "../prisma-watch-list-repository";
 
 describe("PrismaWatchListRepository", () => {
   let mockPrisma: any;
@@ -29,7 +29,7 @@ describe("PrismaWatchListRepository", () => {
       },
     };
     repository = new PrismaWatchListRepository(
-      mockPrisma as unknown as PrismaClient
+      mockPrisma as unknown as PrismaClient,
     );
   });
 
@@ -44,18 +44,13 @@ describe("PrismaWatchListRepository", () => {
     });
 
     // 添加一些股票
-    watchList.addStock(
-      StockCode.create("600519"),
-      "贵州茅台",
-      "白酒龙头",
-      ["白酒", "消费"]
-    );
-    watchList.addStock(
-      StockCode.create("000858"),
-      "五粮液",
-      "白酒第二",
-      ["白酒"]
-    );
+    watchList.addStock(StockCode.create("600519"), "贵州茅台", "白酒龙头", [
+      "白酒",
+      "消费",
+    ]);
+    watchList.addStock(StockCode.create("000858"), "五粮液", "白酒第二", [
+      "白酒",
+    ]);
 
     return watchList;
   }
@@ -316,7 +311,7 @@ describe("PrismaWatchListRepository", () => {
 
       expect(result).toHaveLength(2);
       expect(result[0]?.stocks.length).toBeGreaterThanOrEqual(
-        result[1]?.stocks.length ?? 0
+        result[1]?.stocks.length ?? 0,
       );
       expect(mockPrisma.watchList.findMany).toHaveBeenCalledWith({
         where: { userId: testUserId },
@@ -337,20 +332,15 @@ describe("PrismaWatchListRepository", () => {
         StockCode.create("600519"),
         "贵州茅台",
         "白酒龙头，长期持有",
-        ["白酒", "消费", "核心资产"]
+        ["白酒", "消费", "核心资产"],
       );
-      watchList.addStock(
-        StockCode.create("000858"),
-        "五粮液",
-        undefined,
-        ["白酒"]
-      );
-      watchList.addStock(
-        StockCode.create("600036"),
-        "招商银行",
-        "银行股首选",
-        ["银行", "金融"]
-      );
+      watchList.addStock(StockCode.create("000858"), "五粮液", undefined, [
+        "白酒",
+      ]);
+      watchList.addStock(StockCode.create("600036"), "招商银行", "银行股首选", [
+        "银行",
+        "金融",
+      ]);
 
       // Mock 返回序列化后再反序列化的数据
       const mockRecord = {
@@ -380,27 +370,21 @@ describe("PrismaWatchListRepository", () => {
       expect(found!.stocks.length).toBe(3);
 
       // 验证第一只股票（完整信息）
-      const stock1 = found!.stocks.find(
-        (s) => s.stockCode.value === "600519"
-      );
+      const stock1 = found!.stocks.find((s) => s.stockCode.value === "600519");
       expect(stock1).toBeDefined();
       expect(stock1!.stockName).toBe("贵州茅台");
       expect(stock1!.note).toBe("白酒龙头，长期持有");
       expect(stock1!.tags).toEqual(["白酒", "消费", "核心资产"]);
 
       // 验证第二只股票（无备注）
-      const stock2 = found!.stocks.find(
-        (s) => s.stockCode.value === "000858"
-      );
+      const stock2 = found!.stocks.find((s) => s.stockCode.value === "000858");
       expect(stock2).toBeDefined();
       expect(stock2!.stockName).toBe("五粮液");
       expect(stock2!.note).toBeUndefined();
       expect(stock2!.tags).toEqual(["白酒"]);
 
       // 验证第三只股票
-      const stock3 = found!.stocks.find(
-        (s) => s.stockCode.value === "600036"
-      );
+      const stock3 = found!.stocks.find((s) => s.stockCode.value === "600036");
       expect(stock3).toBeDefined();
       expect(stock3!.stockName).toBe("招商银行");
       expect(stock3!.note).toBe("银行股首选");

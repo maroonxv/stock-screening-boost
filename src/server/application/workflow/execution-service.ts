@@ -276,7 +276,9 @@ export class WorkflowExecutionService {
     const nodeRunIds = new Map<WorkflowNodeKey, string>();
     const nodeStartedAt = new Map<WorkflowNodeKey, number>();
     let activeNodeKey: WorkflowNodeKey | undefined =
-      typeof state.currentNodeKey === "string" ? state.currentNodeKey : undefined;
+      typeof state.currentNodeKey === "string"
+        ? state.currentNodeKey
+        : undefined;
 
     try {
       const executedState = await graph.execute({
@@ -501,7 +503,8 @@ export class WorkflowExecutionService {
 
       if (failedNodeKey) {
         const nodeRunId =
-          nodeRunIds.get(failedNodeKey) ?? existingNodeRunIds.get(failedNodeKey);
+          nodeRunIds.get(failedNodeKey) ??
+          existingNodeRunIds.get(failedNodeKey);
 
         if (nodeRunId) {
           await this.repository.markNodeFailed({
@@ -510,7 +513,8 @@ export class WorkflowExecutionService {
             nodeKey: failedNodeKey,
             errorCode,
             errorMessage,
-            durationMs: Date.now() - (nodeStartedAt.get(failedNodeKey) ?? Date.now()),
+            durationMs:
+              Date.now() - (nodeStartedAt.get(failedNodeKey) ?? Date.now()),
           });
           await this.publishLatestEvent(
             runId,

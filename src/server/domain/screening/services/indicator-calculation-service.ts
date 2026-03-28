@@ -10,14 +10,10 @@
  */
 
 import type { Stock } from "../entities/stock";
-import { IndicatorField } from "../enums/indicator-field";
-import type { IHistoricalDataProvider } from "../repositories/historical-data-provider";
-import {
-  getIndicatorCategory,
-  getIndicatorFieldMetadata,
-} from "../enums/indicator-field";
 import { IndicatorCategory } from "../enums/indicator-category";
+import { getIndicatorCategory, IndicatorField } from "../enums/indicator-field";
 import { IndicatorCalculationError } from "../errors";
+import type { IHistoricalDataProvider } from "../repositories/historical-data-provider";
 
 /**
  * 指标计算服务接口
@@ -36,7 +32,7 @@ export interface IIndicatorCalculationService {
    */
   calculateIndicator(
     indicator: IndicatorField,
-    stock: Stock
+    stock: Stock,
   ): Promise<number | string | null>;
 
   /**
@@ -55,7 +51,7 @@ export interface IIndicatorCalculationService {
    */
   calculateBatch(
     indicators: IndicatorField[],
-    stock: Stock
+    stock: Stock,
   ): Promise<Map<IndicatorField, number | string | null>>;
 
   /**
@@ -77,7 +73,7 @@ export class IndicatorCalculationService
   implements IIndicatorCalculationService
 {
   constructor(
-    private readonly historicalDataProvider: IHistoricalDataProvider
+    private readonly historicalDataProvider: IHistoricalDataProvider,
   ) {}
 
   /**
@@ -85,7 +81,7 @@ export class IndicatorCalculationService
    */
   async calculateIndicator(
     indicator: IndicatorField,
-    stock: Stock
+    stock: Stock,
   ): Promise<number | string | null> {
     const category = getIndicatorCategory(indicator);
 
@@ -117,7 +113,7 @@ export class IndicatorCalculationService
    */
   async calculateBatch(
     indicators: IndicatorField[],
-    stock: Stock
+    stock: Stock,
   ): Promise<Map<IndicatorField, number | string | null>> {
     const result = new Map<IndicatorField, number | string | null>();
 
@@ -162,7 +158,7 @@ export class IndicatorCalculationService
    */
   private calculateBasicIndicator(
     indicator: IndicatorField,
-    stock: Stock
+    stock: Stock,
   ): number | string | null {
     return stock.getValue(indicator);
   }
@@ -173,7 +169,7 @@ export class IndicatorCalculationService
    */
   private async calculateTimeSeriesIndicator(
     indicator: IndicatorField,
-    stock: Stock
+    stock: Stock,
   ): Promise<number | null> {
     switch (indicator) {
       case IndicatorField.REVENUE_CAGR_3Y:
@@ -186,10 +182,7 @@ export class IndicatorCalculationService
         return await this.calculateAverage(stock, IndicatorField.ROE, 3);
 
       default:
-        throw new IndicatorCalculationError(
-          indicator,
-          "未知的时间序列指标"
-        );
+        throw new IndicatorCalculationError(indicator, "未知的时间序列指标");
     }
   }
 
@@ -199,7 +192,7 @@ export class IndicatorCalculationService
    */
   private calculateDerivedIndicator(
     indicator: IndicatorField,
-    stock: Stock
+    stock: Stock,
   ): number | null {
     switch (indicator) {
       case IndicatorField.PEG:
@@ -226,13 +219,13 @@ export class IndicatorCalculationService
   private async calculateCAGR(
     stock: Stock,
     baseIndicator: IndicatorField,
-    years: number
+    years: number,
   ): Promise<number | null> {
     try {
       const dataPoints = await this.historicalDataProvider.getIndicatorHistory(
         stock.code,
         baseIndicator,
-        years + 1
+        years + 1,
       );
 
       // 需要至少 years + 1 个数据点（包括起始年和结束年）
@@ -256,14 +249,14 @@ export class IndicatorCalculationService
       }
 
       // 计算 CAGR
-      const cagr = Math.pow(endValue / startValue, 1 / years) - 1;
+      const cagr = (endValue / startValue) ** (1 / years) - 1;
 
       // 返回百分比形式（如 0.15 表示 15%）
       return cagr;
     } catch (error) {
       throw new IndicatorCalculationError(
         `${baseIndicator}_CAGR_${years}Y`,
-        `历史数据获取失败: ${error instanceof Error ? error.message : String(error)}`
+        `历史数据获取失败: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }
@@ -279,13 +272,13 @@ export class IndicatorCalculationService
   private async calculateAverage(
     stock: Stock,
     baseIndicator: IndicatorField,
-    years: number
+    years: number,
   ): Promise<number | null> {
     try {
       const dataPoints = await this.historicalDataProvider.getIndicatorHistory(
         stock.code,
         baseIndicator,
-        years
+        years,
       );
 
       if (dataPoints.length === 0) {
@@ -294,8 +287,9 @@ export class IndicatorCalculationService
 
       const validValues = dataPoints
         .map((point) => point.value)
-        .filter((value): value is number =>
-          typeof value === "number" && Number.isFinite(value)
+        .filter(
+          (value): value is number =>
+            typeof value === "number" && Number.isFinite(value),
         );
 
       if (validValues.length === 0) {
@@ -309,7 +303,7 @@ export class IndicatorCalculationService
     } catch (error) {
       throw new IndicatorCalculationError(
         `${baseIndicator}_AVG_${years}Y`,
-        `历史数据获取失败: ${error instanceof Error ? error.message : String(error)}`
+        `历史数据获取失败: ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

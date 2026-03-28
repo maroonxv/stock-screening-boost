@@ -4,11 +4,11 @@
  * 测试 WatchList 的核心行为和业务规则
  */
 
-import { describe, it, expect } from "vitest";
-import { WatchList } from "../watch-list";
+import { describe, expect, it } from "vitest";
+import { DuplicateStockError, StockNotFoundError } from "../../errors";
 import { StockCode } from "../../value-objects/stock-code";
 import { WatchedStock } from "../../value-objects/watched-stock";
-import { DuplicateStockError, StockNotFoundError } from "../../errors";
+import { WatchList } from "../watch-list";
 
 describe("WatchList", () => {
   describe("create", () => {
@@ -38,12 +38,12 @@ describe("WatchList", () => {
       const stock1 = WatchedStock.create(
         StockCode.create("600519"),
         "贵州茅台",
-        new Date()
+        new Date(),
       );
       const stock2 = WatchedStock.create(
         StockCode.create("000001"),
         "平安银行",
-        new Date()
+        new Date(),
       );
 
       const watchList = WatchList.create({
@@ -224,42 +224,35 @@ describe("WatchList", () => {
         userId: "user-1",
       });
 
-      watchList.addStock(
-        StockCode.create("600519"),
-        "贵州茅台",
-        undefined,
-        ["白酒", "高ROE"]
-      );
-      watchList.addStock(
-        StockCode.create("000858"),
-        "五粮液",
-        undefined,
-        ["白酒"]
-      );
-      watchList.addStock(
-        StockCode.create("000001"),
-        "平安银行",
-        undefined,
-        ["金融", "高ROE"]
-      );
+      watchList.addStock(StockCode.create("600519"), "贵州茅台", undefined, [
+        "白酒",
+        "高ROE",
+      ]);
+      watchList.addStock(StockCode.create("000858"), "五粮液", undefined, [
+        "白酒",
+      ]);
+      watchList.addStock(StockCode.create("000001"), "平安银行", undefined, [
+        "金融",
+        "高ROE",
+      ]);
 
       const whiteWineStocks = watchList.getStocksByTag("白酒");
       expect(whiteWineStocks).toHaveLength(2);
-      expect(
-        whiteWineStocks.some((s) => s.stockCode.value === "600519")
-      ).toBe(true);
-      expect(
-        whiteWineStocks.some((s) => s.stockCode.value === "000858")
-      ).toBe(true);
+      expect(whiteWineStocks.some((s) => s.stockCode.value === "600519")).toBe(
+        true,
+      );
+      expect(whiteWineStocks.some((s) => s.stockCode.value === "000858")).toBe(
+        true,
+      );
 
       const highROEStocks = watchList.getStocksByTag("高ROE");
       expect(highROEStocks).toHaveLength(2);
-      expect(
-        highROEStocks.some((s) => s.stockCode.value === "600519")
-      ).toBe(true);
-      expect(
-        highROEStocks.some((s) => s.stockCode.value === "000001")
-      ).toBe(true);
+      expect(highROEStocks.some((s) => s.stockCode.value === "600519")).toBe(
+        true,
+      );
+      expect(highROEStocks.some((s) => s.stockCode.value === "000001")).toBe(
+        true,
+      );
     });
 
     it("应该在没有匹配标签时返回空数组", () => {
@@ -268,12 +261,9 @@ describe("WatchList", () => {
         userId: "user-1",
       });
 
-      watchList.addStock(
-        StockCode.create("600519"),
-        "贵州茅台",
-        undefined,
-        ["白酒"]
-      );
+      watchList.addStock(StockCode.create("600519"), "贵州茅台", undefined, [
+        "白酒",
+      ]);
 
       const result = watchList.getStocksByTag("科技");
       expect(result).toHaveLength(0);
@@ -298,18 +288,13 @@ describe("WatchList", () => {
         userId: "user-1",
       });
 
-      watchList.addStock(
-        StockCode.create("600519"),
-        "贵州茅台",
-        "长期看好",
-        ["白酒", "高ROE"]
-      );
-      watchList.addStock(
-        StockCode.create("000001"),
-        "平安银行",
-        undefined,
-        ["金融"]
-      );
+      watchList.addStock(StockCode.create("600519"), "贵州茅台", "长期看好", [
+        "白酒",
+        "高ROE",
+      ]);
+      watchList.addStock(StockCode.create("000001"), "平安银行", undefined, [
+        "金融",
+      ]);
 
       const dict = watchList.toDict();
       const restored = WatchList.fromDict(dict);

@@ -56,7 +56,7 @@ export interface IWatchListRepository {
    */
   findByUserId(
     userId: string,
-    options?: WatchListQueryOptions
+    options?: WatchListQueryOptions,
   ): Promise<WatchList[]>;
 
   /**

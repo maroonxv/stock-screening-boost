@@ -13,14 +13,14 @@
  */
 
 import type { Stock } from "../entities/stock";
+import type { IndicatorField } from "../enums/indicator-field";
+import { ScoredStock } from "../value-objects/scored-stock";
 import {
-  type ScoringConfig,
   NormalizationMethod,
+  type ScoringConfig,
   ScoringDirection,
 } from "../value-objects/scoring-config";
 import type { IIndicatorCalculationService } from "./indicator-calculation-service";
-import { ScoredStock } from "../value-objects/scored-stock";
-import type { IndicatorField } from "../enums/indicator-field";
 
 /**
  * 评分服务接口
@@ -37,7 +37,7 @@ export interface IScoringService {
   scoreStocks(
     stocks: Stock[],
     config: ScoringConfig,
-    calcService: IIndicatorCalculationService
+    calcService: IIndicatorCalculationService,
   ): Promise<ScoredStock[]>;
 }
 
@@ -51,7 +51,7 @@ export class ScoringService implements IScoringService {
   async scoreStocks(
     stocks: Stock[],
     config: ScoringConfig,
-    calcService: IIndicatorCalculationService
+    calcService: IIndicatorCalculationService,
   ): Promise<ScoredStock[]> {
     if (stocks.length === 0) {
       return [];
@@ -61,20 +61,20 @@ export class ScoringService implements IScoringService {
     const stockIndicatorValues = await this.calculateAllIndicators(
       stocks,
       fields,
-      calcService
+      calcService,
     );
 
     const normalizedValues = this.normalizeIndicators(
       stockIndicatorValues,
       fields,
-      config
+      config,
     );
 
     const scoredStocks = this.calculateWeightedScores(
       stocks,
       normalizedValues,
       stockIndicatorValues,
-      config
+      config,
     );
 
     scoredStocks.sort((a, b) => b.score - a.score);
@@ -87,7 +87,7 @@ export class ScoringService implements IScoringService {
   private async calculateAllIndicators(
     stocks: Stock[],
     fields: IndicatorField[],
-    calcService: IIndicatorCalculationService
+    calcService: IIndicatorCalculationService,
   ): Promise<Map<number, Map<IndicatorField, number | string | null>>> {
     const result = new Map<
       number,
@@ -116,7 +116,7 @@ export class ScoringService implements IScoringService {
       Map<IndicatorField, number | string | null>
     >,
     fields: IndicatorField[],
-    config: ScoringConfig
+    config: ScoringConfig,
   ): Map<number, Map<IndicatorField, number>> {
     const normalizedValues = new Map<number, Map<IndicatorField, number>>();
 
@@ -147,7 +147,7 @@ export class ScoringService implements IScoringService {
           normalizedValues,
           field,
           values,
-          direction
+          direction,
         );
         continue;
       }
@@ -157,7 +157,7 @@ export class ScoringService implements IScoringService {
         normalizedValues,
         field,
         values,
-        direction
+        direction,
       );
     }
 
@@ -175,14 +175,20 @@ export class ScoringService implements IScoringService {
     normalizedValues: Map<number, Map<IndicatorField, number>>,
     field: IndicatorField,
     values: number[],
-    direction: ScoringDirection
+    direction: ScoringDirection,
   ): void {
     const min = Math.min(...values);
     const max = Math.max(...values);
 
-    for (const [stockIndex, indicatorValues] of stockIndicatorValues.entries()) {
+    for (const [
+      stockIndex,
+      indicatorValues,
+    ] of stockIndicatorValues.entries()) {
       const value = indicatorValues.get(field);
-      const normalizedMap = normalizedValues.get(stockIndex)!;
+      const normalizedMap = normalizedValues.get(stockIndex);
+      if (!normalizedMap) {
+        continue;
+      }
 
       if (typeof value !== "number" || !Number.isFinite(value)) {
         normalizedMap.set(field, 0);
@@ -192,7 +198,7 @@ export class ScoringService implements IScoringService {
       const normalizedRaw = max === min ? 1 : (value - min) / (max - min);
       normalizedMap.set(
         field,
-        this.applyDirection(this.clampToUnitInterval(normalizedRaw), direction)
+        this.applyDirection(this.clampToUnitInterval(normalizedRaw), direction),
       );
     }
   }
@@ -208,7 +214,7 @@ export class ScoringService implements IScoringService {
     normalizedValues: Map<number, Map<IndicatorField, number>>,
     field: IndicatorField,
     values: number[],
-    direction: ScoringDirection
+    direction: ScoringDirection,
   ): void {
     const mean = values.reduce((acc, value) => acc + value, 0) / values.length;
     const variance =
@@ -216,9 +222,15 @@ export class ScoringService implements IScoringService {
       values.length;
     const std = Math.sqrt(variance);
 
-    for (const [stockIndex, indicatorValues] of stockIndicatorValues.entries()) {
+    for (const [
+      stockIndex,
+      indicatorValues,
+    ] of stockIndicatorValues.entries()) {
       const value = indicatorValues.get(field);
-      const normalizedMap = normalizedValues.get(stockIndex)!;
+      const normalizedMap = normalizedValues.get(stockIndex);
+      if (!normalizedMap) {
+        continue;
+      }
 
       if (typeof value !== "number" || !Number.isFinite(value)) {
         normalizedMap.set(field, 0);
@@ -229,7 +241,7 @@ export class ScoringService implements IScoringService {
         std === 0 ? 1 : 1 / (1 + Math.exp(-(value - mean) / std));
       normalizedMap.set(
         field,
-        this.applyDirection(this.clampToUnitInterval(normalizedRaw), direction)
+        this.applyDirection(this.clampToUnitInterval(normalizedRaw), direction),
       );
     }
   }
@@ -244,14 +256,17 @@ export class ScoringService implements IScoringService {
       number,
       Map<IndicatorField, number | string | null>
     >,
-    config: ScoringConfig
+    config: ScoringConfig,
   ): ScoredStock[] {
     const scoredStocks: ScoredStock[] = [];
 
     for (let i = 0; i < stocks.length; i++) {
-      const stock = stocks[i]!;
-      const normalizedMap = normalizedValues.get(i)!;
-      const indicatorValuesMap = stockIndicatorValues.get(i)!;
+      const stock = stocks[i];
+      const normalizedMap = normalizedValues.get(i);
+      const indicatorValuesMap = stockIndicatorValues.get(i);
+      if (!stock || !normalizedMap || !indicatorValuesMap) {
+        continue;
+      }
 
       let totalScore = 0;
       const scoreBreakdown = new Map<IndicatorField, number>();
@@ -274,16 +289,16 @@ export class ScoringService implements IScoringService {
         if (typeof rawValue === "number" && Number.isFinite(rawValue)) {
           scoreExplanations.push(
             `${field}: raw=${rawValue}, normalized=${normalizedScore.toFixed(
-              4
+              4,
             )}, weight=${weight.toFixed(4)}, direction=${direction}, contribution=${contribution.toFixed(
-              4
-            )}`
+              4,
+            )}`,
           );
         } else {
           scoreExplanations.push(
             `${field}: raw=missing, normalized=0.0000, weight=${weight.toFixed(
-              4
-            )}, direction=${direction}, contribution=0.0000`
+              4,
+            )}, direction=${direction}, contribution=0.0000`,
           );
         }
       }
@@ -299,8 +314,8 @@ export class ScoringService implements IScoringService {
           indicatorValues,
           [],
           scoreContributions,
-          scoreExplanations
-        )
+          scoreExplanations,
+        ),
       );
     }
 
@@ -309,7 +324,7 @@ export class ScoringService implements IScoringService {
 
   private applyDirection(
     normalized: number,
-    direction: ScoringDirection
+    direction: ScoringDirection,
   ): number {
     if (direction === ScoringDirection.DESC) {
       return this.clampToUnitInterval(1 - normalized);

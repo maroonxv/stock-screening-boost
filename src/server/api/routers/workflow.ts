@@ -60,7 +60,10 @@ function mapWorkflowError(error: unknown): TRPCError {
     });
   }
 
-  return new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "鏈煡閿欒" });
+  return new TRPCError({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "鏈煡閿欒",
+  });
 }
 
 async function assertTimingPresetExists(params: {
@@ -538,5 +541,3 @@ export const workflowRouter = createTRPCRouter({
       }
     }),
 });
-
-

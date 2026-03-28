@@ -653,7 +653,7 @@ export function BentoGrid(props: {
         "grid gap-4 auto-rows-[minmax(180px,auto)]",
         cols === 4 && "grid-cols-1 md:grid-cols-2 xl:grid-cols-4",
         cols === 3 && "grid-cols-1 md:grid-cols-3",
-        className
+        className,
       )}
     >
       {children}
@@ -677,14 +677,22 @@ export function BentoCard(props: {
         span === 2 && "md:col-span-2",
         span === 3 && "md:col-span-3",
         span === 4 && "md:col-span-2 xl:col-span-4",
-        className
+        className,
       )}
     >
       {(title || actions) && (
         <div className="mb-4 flex items-start justify-between gap-4">
           <div>
-             {title && <h3 className="text-lg font-semibold text-[var(--app-text-strong)]">{title}</h3>}
-             {description && <p className="mt-1 text-xs text-[var(--app-text-muted)]">{description}</p>}
+            {title && (
+              <h3 className="text-lg font-semibold text-[var(--app-text-strong)]">
+                {title}
+              </h3>
+            )}
+            {description && (
+              <p className="mt-1 text-xs text-[var(--app-text-muted)]">
+                {description}
+              </p>
+            )}
           </div>
           {actions && <div className="flex gap-2">{actions}</div>}
         </div>

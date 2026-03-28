@@ -33,7 +33,11 @@ export class WorkflowPauseError extends Error {
   readonly reason: string;
   readonly state?: Record<string, unknown>;
 
-  constructor(message: string, reason: string, state?: Record<string, unknown>) {
+  constructor(
+    message: string,
+    reason: string,
+    state?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = "WorkflowPauseError";
     this.reason = reason;

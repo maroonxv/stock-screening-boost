@@ -11,6 +11,42 @@ import { ScoredStock } from "~/server/domain/screening/value-objects/scored-stoc
 import { ScoringConfig } from "~/server/domain/screening/value-objects/scoring-config";
 import { StockCode } from "~/server/domain/screening/value-objects/stock-code";
 
+type ScreeningSessionRecord = {
+  id: string;
+  strategyId: string | null;
+  strategyName: string;
+  executedAt: Date;
+  status: string;
+  progressPercent: number;
+  currentStep: string | null;
+  errorMessage: string | null;
+  cancellationRequestedAt: Date | null;
+  startedAt: Date | null;
+  completedAt: Date | null;
+  totalScanned: number;
+  executionTime: number;
+  topStocks: unknown;
+  otherStockCodes: string[];
+  filtersSnapshot: unknown;
+  scoringConfigSnapshot: unknown;
+  userId: string;
+};
+
+type ScreeningSessionClient = {
+  screeningSession: {
+    upsert(args: unknown): Promise<ScreeningSessionRecord>;
+    findUnique(args: unknown): Promise<ScreeningSessionRecord | null>;
+    delete(args: unknown): Promise<ScreeningSessionRecord>;
+    findMany(args: unknown): Promise<ScreeningSessionRecord[]>;
+    findFirst(args: unknown): Promise<ScreeningSessionRecord | null>;
+    updateMany(args: unknown): Promise<{ count: number }>;
+  };
+};
+
+function asScreeningSessionClient(client: unknown): ScreeningSessionClient {
+  return client as ScreeningSessionClient;
+}
+
 export class PrismaScreeningSessionRepository
   implements IScreeningSessionRepository
 {
@@ -89,6 +125,7 @@ export class PrismaScreeningSessionRepository
   }
 
   async save(session: ScreeningSession): Promise<void> {
+    const prismaClient = asScreeningSessionClient(this.prisma);
     const data = {
       strategyId: session.strategyId,
       strategyName: session.strategyName,
@@ -109,7 +146,7 @@ export class PrismaScreeningSessionRepository
       userId: session.userId,
     };
 
-    await this.prisma.screeningSession.upsert({
+    await prismaClient.screeningSession.upsert({
       where: { id: session.id },
       create: {
         id: session.id,
@@ -120,7 +157,8 @@ export class PrismaScreeningSessionRepository
   }
 
   async findById(id: string): Promise<ScreeningSession | null> {
-    const record = await this.prisma.screeningSession.findUnique({
+    const prismaClient = asScreeningSessionClient(this.prisma);
+    const record = await prismaClient.screeningSession.findUnique({
       where: { id },
     });
 
@@ -132,7 +170,8 @@ export class PrismaScreeningSessionRepository
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.screeningSession.delete({
+    const prismaClient = asScreeningSessionClient(this.prisma);
+    await prismaClient.screeningSession.delete({
       where: { id },
     });
   }
@@ -142,7 +181,8 @@ export class PrismaScreeningSessionRepository
     limit?: number,
     offset?: number,
   ): Promise<ScreeningSession[]> {
-    const records = await this.prisma.screeningSession.findMany({
+    const prismaClient = asScreeningSessionClient(this.prisma);
+    const records = await prismaClient.screeningSession.findMany({
       where: { strategyId },
       take: limit,
       skip: offset,
@@ -158,7 +198,8 @@ export class PrismaScreeningSessionRepository
     limit?: number,
     offset?: number,
   ): Promise<ScreeningSession[]> {
-    const records = await this.prisma.screeningSession.findMany({
+    const prismaClient = asScreeningSessionClient(this.prisma);
+    const records = await prismaClient.screeningSession.findMany({
       where: { strategyId, userId },
       take: limit,
       skip: offset,
@@ -172,7 +213,8 @@ export class PrismaScreeningSessionRepository
     limit?: number,
     offset?: number,
   ): Promise<ScreeningSession[]> {
-    const records = await this.prisma.screeningSession.findMany({
+    const prismaClient = asScreeningSessionClient(this.prisma);
+    const records = await prismaClient.screeningSession.findMany({
       take: limit,
       skip: offset,
       orderBy: [{ executedAt: "desc" }, { id: "desc" }],
@@ -186,7 +228,8 @@ export class PrismaScreeningSessionRepository
     limit?: number,
     offset?: number,
   ): Promise<ScreeningSession[]> {
-    const records = await this.prisma.screeningSession.findMany({
+    const prismaClient = asScreeningSessionClient(this.prisma);
+    const records = await prismaClient.screeningSession.findMany({
       where: { userId },
       take: limit,
       skip: offset,
@@ -198,7 +241,8 @@ export class PrismaScreeningSessionRepository
 
   async claimNextPendingSession(): Promise<ScreeningSession | null> {
     return this.prisma.$transaction(async (tx) => {
-      const candidate = await tx.screeningSession.findFirst({
+      const txClient = asScreeningSessionClient(tx);
+      const candidate = await txClient.screeningSession.findFirst({
         where: {
           status: ScreeningSessionStatus.PENDING,
         },
@@ -209,7 +253,7 @@ export class PrismaScreeningSessionRepository
         return null;
       }
 
-      const claimResult = await tx.screeningSession.updateMany({
+      const claimResult = await txClient.screeningSession.updateMany({
         where: {
           id: candidate.id,
           status: ScreeningSessionStatus.PENDING,
@@ -226,7 +270,7 @@ export class PrismaScreeningSessionRepository
         return null;
       }
 
-      const claimed = await tx.screeningSession.findUnique({
+      const claimed = await txClient.screeningSession.findUnique({
         where: { id: candidate.id },
       });
 
@@ -235,7 +279,8 @@ export class PrismaScreeningSessionRepository
   }
 
   async findRunningSessions(limit = 20): Promise<ScreeningSession[]> {
-    const records = await this.prisma.screeningSession.findMany({
+    const prismaClient = asScreeningSessionClient(this.prisma);
+    const records = await prismaClient.screeningSession.findMany({
       where: {
         status: ScreeningSessionStatus.RUNNING,
       },
@@ -246,26 +291,7 @@ export class PrismaScreeningSessionRepository
     return records.map((record) => this.toDomain(record));
   }
 
-  private toDomain(record: {
-    id: string;
-    strategyId: string | null;
-    strategyName: string;
-    executedAt: Date;
-    status: string;
-    progressPercent: number;
-    currentStep: string | null;
-    errorMessage: string | null;
-    cancellationRequestedAt: Date | null;
-    startedAt: Date | null;
-    completedAt: Date | null;
-    totalScanned: number;
-    executionTime: number;
-    topStocks: unknown;
-    otherStockCodes: string[];
-    filtersSnapshot: unknown;
-    scoringConfigSnapshot: unknown;
-    userId: string;
-  }): ScreeningSession {
+  private toDomain(record: ScreeningSessionRecord): ScreeningSession {
     const topStocksData = record.topStocks as Record<string, unknown>[];
     const topStocks = topStocksData.map((stockData) =>
       ScoredStock.fromDict(stockData),

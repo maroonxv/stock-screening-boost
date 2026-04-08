@@ -19,6 +19,7 @@ import {
   workspaceQuerySchema,
   workspaceSummarySchema,
 } from "~/contracts/screening";
+import { normalizeFormulaExpression } from "~/server/api/routers/screening-formula-normalizer";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { PythonCapabilityGatewayClient } from "~/server/infrastructure/capabilities/python-capability-gateway-client";
 import { LocalStockSearchService } from "~/server/infrastructure/screening/local-stock-search-service";
@@ -197,6 +198,27 @@ function buildFormula(record: {
   });
 }
 
+async function normalizeFormulaForValidation(params: {
+  client: PythonCapabilityGatewayClient;
+  expression: string;
+  targetIndicators: string[];
+}) {
+  const catalog = await params.client.listIndicatorCatalog();
+
+  try {
+    return normalizeFormulaExpression({
+      expression: params.expression,
+      targetIndicatorIds: params.targetIndicators,
+      catalogItems: catalog.items,
+    });
+  } catch (error) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: (error as Error).message,
+    });
+  }
+}
+
 export const screeningRouter = createTRPCRouter({
   searchStocks: protectedProcedure
     .input(
@@ -241,7 +263,16 @@ export const screeningRouter = createTRPCRouter({
     .input(validateFormulaInputSchema)
     .mutation(async ({ input }) => {
       const client = new PythonCapabilityGatewayClient();
-      return client.validateFormula(input);
+      const expression = await normalizeFormulaForValidation({
+        client,
+        expression: input.expression,
+        targetIndicators: input.targetIndicators,
+      });
+
+      return client.validateFormula({
+        expression,
+        targetIndicators: input.targetIndicators,
+      });
     }),
 
   createFormula: protectedProcedure
@@ -249,8 +280,13 @@ export const screeningRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const db = withScreeningDb(ctx.db);
       const client = new PythonCapabilityGatewayClient();
-      const validation = await client.validateFormula({
+      const normalizedInputExpression = await normalizeFormulaForValidation({
+        client,
         expression: input.expression,
+        targetIndicators: input.targetIndicators,
+      });
+      const validation = await client.validateFormula({
+        expression: normalizedInputExpression,
         targetIndicators: input.targetIndicators,
       });
 
@@ -265,7 +301,8 @@ export const screeningRouter = createTRPCRouter({
         data: {
           userId: ctx.session.user.id,
           name: input.name,
-          expression: validation.normalizedExpression ?? input.expression,
+          expression:
+            validation.normalizedExpression ?? normalizedInputExpression,
           targetIndicators: input.targetIndicators,
           description: input.description,
           categoryId: input.categoryId,
@@ -295,8 +332,13 @@ export const screeningRouter = createTRPCRouter({
         input.targetIndicators ?? (existing.targetIndicators as string[]);
 
       const client = new PythonCapabilityGatewayClient();
-      const validation = await client.validateFormula({
+      const normalizedInputExpression = await normalizeFormulaForValidation({
+        client,
         expression: nextExpression,
+        targetIndicators: nextTargets,
+      });
+      const validation = await client.validateFormula({
+        expression: normalizedInputExpression,
         targetIndicators: nextTargets,
       });
 
@@ -311,7 +353,8 @@ export const screeningRouter = createTRPCRouter({
         where: { id: existing.id },
         data: {
           name: input.name,
-          expression: validation.normalizedExpression ?? nextExpression,
+          expression:
+            validation.normalizedExpression ?? normalizedInputExpression,
           targetIndicators: nextTargets,
           description: input.description,
           categoryId: input.categoryId,

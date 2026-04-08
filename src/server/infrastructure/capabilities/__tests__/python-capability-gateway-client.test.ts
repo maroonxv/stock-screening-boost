@@ -145,4 +145,39 @@ describe("PythonCapabilityGatewayClient", () => {
 
     expect(Reflect.get(client, "screeningTimeoutMs")).toBe(60_000);
   });
+
+  it("accepts invalid formula validation responses with null normalizedExpression", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          valid: false,
+          normalizedExpression: null,
+          referencedMetrics: [],
+          errors: ["unsupported syntax: List"],
+        }),
+      }),
+    );
+
+    const PythonCapabilityGatewayClient = await loadClient({
+      pythonServiceTimeoutMs: "60000",
+    });
+    const client = new PythonCapabilityGatewayClient({
+      baseUrl: "http://127.0.0.1:8000",
+      screeningTimeoutMs: 500,
+      intelligenceTimeoutMs: 500,
+    });
+
+    await expect(
+      client.validateFormula({
+        expression: "[ROE(TTM)] + [EPS(TTM)]",
+        targetIndicators: ["roe_ttm", "eps_ttm"],
+      }),
+    ).resolves.toMatchObject({
+      valid: false,
+      normalizedExpression: null,
+      errors: ["unsupported syntax: List"],
+    });
+  });
 });

@@ -48,7 +48,7 @@ const screeningCatalogResponseSchema = z.object({
 
 const formulaValidationResponseSchema = z.object({
   valid: z.boolean(),
-  normalizedExpression: z.string().optional(),
+  normalizedExpression: z.string().nullable().optional(),
   referencedMetrics: z.array(z.string()).default([]),
   errors: z.array(z.string()).default([]),
 });

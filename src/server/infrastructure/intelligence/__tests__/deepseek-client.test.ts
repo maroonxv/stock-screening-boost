@@ -38,6 +38,56 @@ afterEach(() => {
 });
 
 describe("DeepSeekClient", () => {
+  it("extends timeout budget for deepseek-chat beyond a 15s client timeout", async () => {
+    process.env.DEEPSEEK_TIMEOUT_MS = "15000";
+    vi.useFakeTimers();
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(
+        (_url: string, init?: RequestInit) =>
+          new Promise((_, reject) => {
+            init?.signal?.addEventListener("abort", () => {
+              const abortError = new Error("Aborted");
+              abortError.name = "AbortError";
+              reject(abortError);
+            });
+          }),
+      ),
+    );
+
+    const DeepSeekClient = await loadDeepSeekClient();
+    const client = new DeepSeekClient();
+
+    let settled = false;
+    const request = client.complete(
+      [{ role: "user", content: "Clarify the research scope." }],
+      "fallback",
+      { model: "deepseek-chat" },
+    );
+    void request.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+
+    await vi.advanceTimersByTimeAsync(15_000);
+    await Promise.resolve();
+
+    expect(settled).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    await expect(request).rejects.toMatchObject({
+      code: WORKFLOW_ERROR_CODES.INTELLIGENCE_DATA_UNAVAILABLE,
+      name: "WorkflowDomainError",
+    });
+    await expect(request).rejects.toThrow("45000ms");
+  });
+
   it("extends timeout budget for deepseek-reasoner beyond the default client timeout", async () => {
     process.env.DEEPSEEK_TIMEOUT_MS = "15000";
     vi.useFakeTimers();
@@ -79,12 +129,12 @@ describe("DeepSeekClient", () => {
 
     expect(settled).toBe(false);
 
-    await vi.advanceTimersByTimeAsync(30_000);
+    await vi.advanceTimersByTimeAsync(45_000);
 
     await expect(request).rejects.toMatchObject({
       code: WORKFLOW_ERROR_CODES.INTELLIGENCE_DATA_UNAVAILABLE,
       name: "WorkflowDomainError",
     });
-    await expect(request).rejects.toThrow("45000ms");
+    await expect(request).rejects.toThrow("60000ms");
   });
 });

@@ -1,6 +1,8 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+const DEFAULT_DEEPSEEK_TIMEOUT_MS = 45_000;
+
 /**
  * Keep fallback behavior consistent even when env validation is skipped.
  * @param {string | number | undefined} value
@@ -58,7 +60,11 @@ export const env = createEnv({
     SCREENING_ENABLE_AKSHARE_FALLBACK: z.string().optional(),
     DEEPSEEK_API_KEY: z.string().optional(),
     DEEPSEEK_BASE_URL: z.string().url().default("https://api.deepseek.com"),
-    DEEPSEEK_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
+    DEEPSEEK_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(DEFAULT_DEEPSEEK_TIMEOUT_MS),
     FIRECRAWL_API_KEY: z.string().optional(),
     FIRECRAWL_BASE_URL: z.string().url().default("https://api.firecrawl.dev"),
     FIRECRAWL_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
@@ -126,7 +132,7 @@ export const env = createEnv({
       process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com",
     DEEPSEEK_TIMEOUT_MS: readPositiveNumberEnv(
       process.env.DEEPSEEK_TIMEOUT_MS,
-      15_000,
+      DEFAULT_DEEPSEEK_TIMEOUT_MS,
     ),
     FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
     FIRECRAWL_BASE_URL:

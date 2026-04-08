@@ -29,6 +29,6 @@ describe("env defaults", () => {
     const { env } = await import("~/env");
 
     expect(env.DEEPSEEK_BASE_URL).toBe("https://api.deepseek.com");
-    expect(env.DEEPSEEK_TIMEOUT_MS).toBe(15_000);
+    expect(env.DEEPSEEK_TIMEOUT_MS).toBe(45_000);
   });
 });

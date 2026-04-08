@@ -50,7 +50,8 @@ const MODEL_CONTEXT_LIMIT_HINTS: Record<string, number> = {
 };
 
 const MODEL_TIMEOUT_MINIMUMS: Partial<Record<string, number>> = {
-  "deepseek-reasoner": 45_000,
+  "deepseek-chat": 45_000,
+  "deepseek-reasoner": 60_000,
 };
 
 function extractJsonCandidate(content: string): string {

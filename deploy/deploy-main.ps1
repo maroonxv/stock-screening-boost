@@ -59,17 +59,39 @@ function Resolve-RepositoryRoot {
 function Invoke-Compose {
   param([string[]]$ComposeArgs)
 
-  $output = & docker compose `
-    --project-directory $script:ProjectDirectory `
-    -f $script:ComposeFile `
-    --env-file $script:EnvFile `
-    @ComposeArgs 2>&1
+  $stdoutPath = [System.IO.Path]::GetTempFileName()
+  $stderrPath = [System.IO.Path]::GetTempFileName()
 
-  if ($LASTEXITCODE -ne 0) {
-    throw "docker compose failed: $($output -join [Environment]::NewLine)"
+  try {
+    $process = Start-Process -FilePath "docker" `
+      -ArgumentList (@(
+        "compose",
+        "--project-directory", $script:ProjectDirectory,
+        "-f", $script:ComposeFile,
+        "--env-file", $script:EnvFile
+      ) + $ComposeArgs) `
+      -NoNewWindow `
+      -Wait `
+      -PassThru `
+      -RedirectStandardOutput $stdoutPath `
+      -RedirectStandardError $stderrPath
+
+    $output = @()
+    if (Test-Path -LiteralPath $stdoutPath) {
+      $output += Get-Content -LiteralPath $stdoutPath
+    }
+    if (Test-Path -LiteralPath $stderrPath) {
+      $output += Get-Content -LiteralPath $stderrPath
+    }
+
+    if ($process.ExitCode -ne 0) {
+      throw "docker compose failed: $($output -join [Environment]::NewLine)"
+    }
+
+    return @($output)
+  } finally {
+    Remove-Item -LiteralPath $stdoutPath, $stderrPath -ErrorAction SilentlyContinue
   }
-
-  return @($output)
 }
 
 $Services = Split-ListArgument -Values $Services

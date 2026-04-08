@@ -79,6 +79,7 @@ function createSandbox(options?: {
       "  exit 0",
       "}",
       'if ($joined -match "(^| )compose " -and $joined -match " up -d") {',
+      '  [Console]::Error.WriteLine("Image stock-screening-boost-web Building")',
       "  exit 0",
       "}",
       'if ($joined -match "(^| )compose " -and $joined -match " ps --services --status running") {',

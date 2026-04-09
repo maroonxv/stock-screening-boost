@@ -253,10 +253,7 @@ export function ScreeningStudioClient() {
           return row ? { ...stock, stockName: row.stockName } : stock;
         }),
       );
-      setNotice({
-        tone: "success",
-        text: "iFinD 数据已获取，可本地筛选与排序",
-      });
+      setNotice(null);
     },
     onError: (error) => setNotice({ tone: "error", text: error.message }),
   });
@@ -519,8 +516,8 @@ export function ScreeningStudioClient() {
   return (
     <WorkspaceShell
       section="screening"
-      title="iFinD 小批量筛选工作台"
-      description="先搜股票，再选指标/公式与报告期；只有点击“获取”时才会请求 iFinD。结果获取后，筛选、排序和保存都在本地工作台内完成。"
+      title="小批量筛选工作台"
+      description="先搜股票，再选指标、公式与报告期；只有点击“获取”时才会请求数据。结果获取后，筛选、排序和保存都在本地工作台内完成。"
       actions={
         <>
           <select
@@ -902,7 +899,7 @@ export function ScreeningStudioClient() {
 
         <SectionCard
           title="期间设置"
-          description="改变期间设置不会自动取数，只有点击获取才会请求 iFinD。"
+          description="改变期间设置不会自动取数，只有点击获取才会请求数据。"
           className="xl:col-span-4"
         >
           <div className="grid gap-3">
@@ -1172,7 +1169,7 @@ export function ScreeningStudioClient() {
           {!resultSnapshot ? (
             <EmptyState
               title="还没有加载结果"
-              description="先完成股票、指标与期间选择，再点击“获取”从 iFinD 拉取数据。"
+              description="先完成股票、指标与期间选择，再点击“获取”拉取数据。"
             />
           ) : (
             <>

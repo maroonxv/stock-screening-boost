@@ -49,6 +49,54 @@ def test_get_v1_stock_evidence_batch_success():
     assert payload["data"]["errors"] == []
 
 
+def test_get_v1_stock_evidence_batch_fetches_stocks_concurrently():
+    import threading
+    import time
+
+    active_calls = 0
+    max_active_calls = 0
+    lock = threading.Lock()
+
+    def fake_get_stock_evidence(*args, **kwargs):
+        nonlocal active_calls, max_active_calls
+        stock_code = kwargs.get("stock_code") or args[-2]
+        concept = kwargs.get("concept")
+        with lock:
+            active_calls += 1
+            max_active_calls = max(max_active_calls, active_calls)
+
+        time.sleep(0.05)
+
+        with lock:
+            active_calls -= 1
+
+        return {
+            "stockCode": stock_code,
+            "companyName": f"Company {stock_code}",
+            "concept": concept or "AI",
+            "evidenceSummary": "Test evidence summary",
+            "catalysts": [],
+            "risks": [],
+            "credibilityScore": 70,
+            "updatedAt": "2026-03-10T08:00:00+00:00",
+        }
+
+    with patch(
+        "app.providers.akshare.client.AkShareProviderClient.get_stock_evidence",
+        side_effect=fake_get_stock_evidence,
+    ):
+        response = client.post(
+            "/api/v1/intelligence/stocks/evidence/batch",
+            json={
+                "stockCodes": ["603019", "300308", "002230"],
+                "concept": "AI",
+            },
+        )
+
+    assert response.status_code == 200
+    assert max_active_calls >= 2
+
+
 def test_intelligence_gateway_prefers_mock_fallback_over_stale_cache_when_provider_fails():
     cache_key = build_cache_key(
         dataset="theme_news",

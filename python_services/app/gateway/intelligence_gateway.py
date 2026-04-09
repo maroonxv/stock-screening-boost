@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 
 from app.contracts.common import BatchItemError
@@ -161,33 +162,45 @@ class IntelligenceGateway:
         force_refresh: bool = False,
     ) -> StockEvidenceBatchResponse:
         started_at = time.perf_counter()
-        items = []
-        errors: list[BatchItemError] = []
+        item_slots = [None] * len(stock_codes)
+        error_slots = [None] * len(stock_codes)
         warnings: list[GatewayWarning] = []
         cache_hits: list[bool] = []
         stale_hits: list[bool] = []
         as_of_values: list[str] = []
 
-        for stock_code in stock_codes:
-            try:
-                result = self._get_stock_evidence_result(
-                    stock_code=stock_code,
-                    concept=concept,
-                    force_refresh=force_refresh,
-                )
-                items.append(result.data)
-                cache_hits.append(result.cache_hit)
-                stale_hits.append(result.is_stale)
-                as_of_values.append(result.as_of)
-                warnings.extend(result.warnings)
-            except Exception as exc:  # noqa: BLE001
-                errors.append(
-                    BatchItemError(
-                        stockCode=stock_code,
-                        code=str(getattr(exc, "code", "company_evidence_unavailable")),
-                        message=str(getattr(exc, "message", exc)),
-                    )
-                )
+        if stock_codes:
+            max_workers = max(1, min(4, len(stock_codes)))
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                future_map = {
+                    executor.submit(
+                        self._get_stock_evidence_result,
+                        stock_code=stock_code,
+                        concept=concept,
+                        force_refresh=force_refresh,
+                    ): (index, stock_code)
+                    for index, stock_code in enumerate(stock_codes)
+                }
+                for future in as_completed(future_map):
+                    index, stock_code = future_map[future]
+                    try:
+                        result = future.result()
+                        item_slots[index] = result.data
+                        cache_hits.append(result.cache_hit)
+                        stale_hits.append(result.is_stale)
+                        as_of_values.append(result.as_of)
+                        warnings.extend(result.warnings)
+                    except Exception as exc:  # noqa: BLE001
+                        error_slots[index] = BatchItemError(
+                            stockCode=stock_code,
+                            code=str(
+                                getattr(exc, "code", "company_evidence_unavailable")
+                            ),
+                            message=str(getattr(exc, "message", exc)),
+                        )
+
+        items = [item for item in item_slots if item is not None]
+        errors = [error for error in error_slots if error is not None]
 
         if not items and errors:
             raise GatewayError(

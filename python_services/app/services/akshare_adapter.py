@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -221,15 +222,28 @@ class AkShareAdapter:
             raise Exception(f"获取股票代码列表失败: {exc}") from exc
 
     @staticmethod
-    def get_stocks_by_codes(codes: list[str]) -> list[dict[str, Any]]:
+    def get_stocks_by_codes(
+        codes: list[str],
+        *,
+        prefer_partial: bool = False,
+    ) -> list[dict[str, Any]]:
         normalized_codes = _normalize_requested_codes(codes)
         if not normalized_codes:
             return []
 
-        try:
-            spot_df = AkShareAdapter.get_a_share_spot_frame(stock_codes=normalized_codes)
-        except Exception as exc:  # noqa: BLE001
-            raise Exception(f"批量查询股票数据失败: {exc}") from exc
+        if prefer_partial:
+            spot_df = _apply_frame_metadata(
+                _build_fast_partial_a_share_spot_frame(normalized_codes),
+                data_quality="partial",
+                warnings=["spot_snapshot_partial"],
+            )
+        else:
+            try:
+                spot_df = AkShareAdapter.get_a_share_spot_frame(
+                    stock_codes=normalized_codes
+                )
+            except Exception as exc:  # noqa: BLE001
+                raise Exception(f"批量查询股票数据失败: {exc}") from exc
 
         if spot_df.empty or "代码" not in spot_df.columns:
             return []
@@ -785,6 +799,51 @@ def _build_partial_a_share_spot_frame(stock_codes: list[str]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _build_fast_partial_a_share_spot_frame(stock_codes: list[str]) -> pd.DataFrame:
+    if not stock_codes:
+        return pd.DataFrame()
+
+    def build_row(code: str) -> dict[str, Any]:
+        info = _get_individual_info(code)
+        stock_name = str(info.get("name") or "").strip() or code
+        industry = str(info.get("industry") or "").strip() or "未知"
+
+        return {
+            "\u4ee3\u7801": code,
+            "\u540d\u79f0": stock_name,
+            "\u884c\u4e1a": industry,
+            "\u5e02\u76c8\u7387": None,
+            "\u5e02\u51c0\u7387": None,
+            "\u603b\u5e02\u503c": info.get("marketCap"),
+            "\u6d41\u901a\u5e02\u503c": info.get("floatMarketCap"),
+            "\u6362\u624b\u7387": None,
+            "\u6da8\u8dcc\u5e45": None,
+        }
+
+    rows_by_code: dict[str, dict[str, Any]] = {}
+    max_workers = max(1, min(4, len(stock_codes)))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_map = {executor.submit(build_row, code): code for code in stock_codes}
+        for future in as_completed(future_map):
+            code = future_map[future]
+            try:
+                rows_by_code[code] = future.result()
+            except Exception:  # noqa: BLE001
+                rows_by_code[code] = {
+                    "\u4ee3\u7801": code,
+                    "\u540d\u79f0": code,
+                    "\u884c\u4e1a": "\u672a\u77e5",
+                    "\u5e02\u76c8\u7387": None,
+                    "\u5e02\u51c0\u7387": None,
+                    "\u603b\u5e02\u503c": None,
+                    "\u6d41\u901a\u5e02\u503c": None,
+                    "\u6362\u624b\u7387": None,
+                    "\u6da8\u8dcc\u5e45": None,
+                }
+
+    return pd.DataFrame([rows_by_code[code] for code in stock_codes])
+
+
 def _build_code_name_index() -> dict[str, str]:
     try:
         frame = AkShareAdapter.get_stock_code_name_frame()
@@ -1193,12 +1252,16 @@ def _infer_sector(code: str) -> str:
 
 
 def _get_individual_industry(code: str) -> str:
-    info = _get_cached_value(
+    info = _get_individual_info(code)
+    return str(info.get("industry") or "").strip()
+
+
+def _get_individual_info(code: str) -> dict[str, Any]:
+    return _get_cached_value(
         cache_key=f"individual-info:{code}",
         ttl_seconds=_INDIVIDUAL_INFO_CACHE_TTL_SECONDS,
         fetch_fn=lambda: _load_individual_info(code),
     )
-    return str(info.get("industry") or "").strip()
 
 
 def _load_individual_info(code: str) -> dict[str, Any]:
@@ -1216,8 +1279,16 @@ def _load_individual_info(code: str) -> dict[str, Any]:
         value = row.get("value")
         if not key:
             continue
+        if "股票简称" in key or "证券简称" in key or "名称" in key:
+            text = str(value or "").strip()
+            if text:
+                info["name"] = text
         if "行业" in key:
             info["industry"] = str(value).strip()
+        if "总市值" in key:
+            info["marketCap"] = _safe_float(value)
+        if "流通市值" in key:
+            info["floatMarketCap"] = _safe_float(value)
     return info
 
 

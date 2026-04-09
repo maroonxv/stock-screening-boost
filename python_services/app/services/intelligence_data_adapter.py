@@ -729,7 +729,10 @@ def _build_concept_snapshot_news(
 
 
 def _fetch_company_evidence_from_akshare(stock_code: str, concept: str) -> dict:
-    snapshots = AkShareAdapter.get_stocks_by_codes([stock_code])
+    snapshots = AkShareAdapter.get_stocks_by_codes(
+        [stock_code],
+        prefer_partial=True,
+    )
     if not snapshots:
         raise ValueError(f"Stock code not found in AkShare snapshot: {stock_code}")
 
@@ -829,7 +832,10 @@ def _fetch_company_evidence_from_akshare(stock_code: str, concept: str) -> dict:
 
 def _fetch_company_research_pack_from_akshare(stock_code: str, concept: str) -> dict:
     evidence = _fetch_company_evidence_from_akshare(stock_code, concept)
-    snapshots = AkShareAdapter.get_stocks_by_codes([stock_code])
+    snapshots = AkShareAdapter.get_stocks_by_codes(
+        [stock_code],
+        prefer_partial=True,
+    )
     snapshot = snapshots[0] if snapshots else {}
     warning_codes = _dedupe_warning_codes(
         [*list(evidence.get("warnings") or []), *list(snapshot.get("warnings") or [])]

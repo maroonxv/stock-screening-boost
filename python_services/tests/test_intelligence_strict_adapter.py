@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pandas as pd
 import pytest
@@ -161,6 +161,11 @@ def test_get_company_evidence_strict_raises_without_snapshot(mock_get_stocks_by_
     with pytest.raises(ValueError, match="spot unavailable"):
         IntelligenceDataAdapter.get_company_evidence_strict("603019", "AI")
 
+    mock_get_stocks_by_codes.assert_called_once_with(
+        ["603019"],
+        prefer_partial=True,
+    )
+
 
 @patch("app.services.intelligence_data_adapter._fetch_stock_news", return_value=[])
 @patch("app.services.intelligence_data_adapter.AkShareAdapter.get_stocks_by_codes")
@@ -187,6 +192,10 @@ def test_get_company_evidence_strict_returns_partial_metadata(
     assert payload["companyName"] == "中科曙光"
     assert payload["dataQuality"] == "partial"
     assert payload["warnings"] == ["spot_snapshot_partial"]
+    mock_get_stocks_by_codes.assert_called_once_with(
+        ["603019"],
+        prefer_partial=True,
+    )
 
 
 @patch("app.services.intelligence_data_adapter._fetch_stock_news", return_value=[])
@@ -217,3 +226,7 @@ def test_get_company_research_pack_strict_returns_partial_payload(
     assert payload["companyName"] == "中科曙光"
     assert payload["dataQuality"] == "partial"
     assert payload["warnings"] == ["spot_snapshot_partial"]
+    assert mock_get_stocks_by_codes.call_args_list == [
+        call(["603019"], prefer_partial=True),
+        call(["603019"], prefer_partial=True),
+    ]

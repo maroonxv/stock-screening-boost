@@ -443,6 +443,55 @@ class TestAkShareAdapter:
         assert stocks[0]["dataQuality"] == "partial"
         assert stocks[0]["warnings"] == ["spot_snapshot_partial"]
 
+    @patch.object(AkShareAdapter, "get_latest_financial_snapshot_frame")
+    @patch.object(AkShareAdapter, "get_stock_code_name_frame")
+    @patch("app.services.akshare_adapter.ak.stock_zh_a_spot")
+    @patch("app.services.akshare_adapter.ak.stock_zh_a_spot_em")
+    def test_get_stocks_by_codes_can_prefer_partial_snapshot_without_full_market_fetch(
+        self,
+        mock_em_spot,
+        mock_sina_spot,
+        mock_code_frame,
+        mock_financial_snapshot,
+    ):
+        mock_em_spot.side_effect = AssertionError(
+            "single-stock partial lookup should skip full-market EM spot fetch"
+        )
+        mock_sina_spot.side_effect = AssertionError(
+            "single-stock partial lookup should skip full-market Sina spot fetch"
+        )
+        mock_code_frame.return_value = pd.DataFrame(
+            {
+                "code": ["600519"],
+                "name": ["\u8d35\u5dde\u8305\u53f0"],
+            }
+        )
+        mock_financial_snapshot.return_value = pd.DataFrame(
+            {
+                "\u80a1\u7968\u4ee3\u7801": ["600519"],
+                "\u6240\u5904\u884c\u4e1a": ["\u767d\u9152"],
+                "\u51c0\u8d44\u4ea7\u6536\u76ca\u7387": [28.0],
+                "\u6bcf\u80a1\u6536\u76ca": [52.1],
+                "\u8425\u4e1a\u603b\u6536\u5165-\u8425\u4e1a\u603b\u6536\u5165": [1500.0],
+                "\u51c0\u5229\u6da6-\u51c0\u5229\u6da6": [700.0],
+            }
+        )
+
+        stocks = AkShareAdapter.get_stocks_by_codes(
+            ["600519"],
+            prefer_partial=True,
+        )
+
+        assert len(stocks) == 1
+        assert stocks[0]["code"] == "600519"
+        assert stocks[0]["name"] == "\u8d35\u5dde\u8305\u53f0"
+        assert stocks[0]["industry"] == "\u767d\u9152"
+        assert stocks[0]["roe"] == 28.0
+        assert stocks[0]["dataQuality"] == "partial"
+        assert stocks[0]["warnings"] == ["spot_snapshot_partial"]
+        mock_em_spot.assert_not_called()
+        mock_sina_spot.assert_not_called()
+
     @patch("app.services.akshare_adapter.ak.stock_yjbb_em")
     @patch("app.services.akshare_adapter.ak.stock_zh_a_spot_em")
     def test_get_stocks_by_codes_marks_partial_when_financial_snapshot_unavailable(

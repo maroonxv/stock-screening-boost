@@ -14,8 +14,6 @@ import {
   COMPANY_RESEARCH_V4_NODE_KEYS,
   QUICK_RESEARCH_NODE_KEYS,
   QUICK_RESEARCH_TEMPLATE_CODE,
-  QUICK_RESEARCH_V2_NODE_KEYS,
-  QUICK_RESEARCH_V3_NODE_KEYS,
   SCREENING_INSIGHT_PIPELINE_NODE_KEYS,
   SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
   SCREENING_TO_TIMING_NODE_KEYS,
@@ -122,44 +120,14 @@ export class PrismaWorkflowRunRepository {
       },
     } as const;
 
-    await this.prisma.workflowTemplate.upsert({
+    await this.prisma.workflowTemplate.updateMany({
       where: {
-        code_version: {
-          code: QUICK_RESEARCH_TEMPLATE_CODE,
-          version: 1,
+        code: QUICK_RESEARCH_TEMPLATE_CODE,
+        version: {
+          not: 3,
         },
       },
-      create: {
-        code: QUICK_RESEARCH_TEMPLATE_CODE,
-        version: 1,
-        graphConfig: buildResearchGraphConfig(QUICK_RESEARCH_NODE_KEYS),
-        inputSchema,
-        isActive: true,
-      },
-      update: {
-        graphConfig: buildResearchGraphConfig(QUICK_RESEARCH_NODE_KEYS),
-        inputSchema,
-        isActive: true,
-      },
-    });
-
-    await this.prisma.workflowTemplate.upsert({
-      where: {
-        code_version: {
-          code: QUICK_RESEARCH_TEMPLATE_CODE,
-          version: 2,
-        },
-      },
-      create: {
-        code: QUICK_RESEARCH_TEMPLATE_CODE,
-        version: 2,
-        graphConfig: buildResearchGraphConfig(QUICK_RESEARCH_V2_NODE_KEYS),
-        inputSchema,
-        isActive: false,
-      },
-      update: {
-        graphConfig: buildResearchGraphConfig(QUICK_RESEARCH_V2_NODE_KEYS),
-        inputSchema,
+      data: {
         isActive: false,
       },
     });
@@ -174,12 +142,12 @@ export class PrismaWorkflowRunRepository {
       create: {
         code: QUICK_RESEARCH_TEMPLATE_CODE,
         version: 3,
-        graphConfig: buildResearchGraphConfig(QUICK_RESEARCH_V3_NODE_KEYS),
+        graphConfig: buildResearchGraphConfig(QUICK_RESEARCH_NODE_KEYS),
         inputSchema,
         isActive: true,
       },
       update: {
-        graphConfig: buildResearchGraphConfig(QUICK_RESEARCH_V3_NODE_KEYS),
+        graphConfig: buildResearchGraphConfig(QUICK_RESEARCH_NODE_KEYS),
         inputSchema,
         isActive: true,
       },

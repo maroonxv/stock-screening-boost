@@ -8,10 +8,12 @@ import { WorkflowCommandService } from "~/server/application/workflow/command-se
 import { WorkflowExecutionService } from "~/server/application/workflow/execution-service";
 import { WorkflowPauseError } from "~/server/domain/workflow/errors";
 import {
+  COMPANY_RESEARCH_TEMPLATE_CODE,
   QUICK_RESEARCH_TEMPLATE_CODE,
   SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
   type WorkflowGraphState,
 } from "~/server/domain/workflow/types";
+import { CompanyResearchContractLangGraph } from "~/server/infrastructure/workflow/langgraph/company-research-graph";
 import type { WorkflowGraphRunner } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
 import type { PrismaWorkflowRunRepository } from "~/server/infrastructure/workflow/prisma/workflow-run-repository";
 import type { RedisWorkflowRuntimeStore } from "~/server/infrastructure/workflow/redis/redis-workflow-runtime-store";
@@ -932,6 +934,63 @@ describe("WorkflowExecutionService", () => {
       currentNodeKey: "agent0_clarify_scope",
       clarificationRequest: {
         question: "Need more detail",
+      },
+    });
+  });
+
+  it("preserves clarification payload for real langgraph-based company research pauses", async () => {
+    const graph = new CompanyResearchContractLangGraph({
+      clarifyScope: vi.fn(async () => ({
+        needClarification: true,
+        question: "Need company focus",
+        verification: "Clarify the target business line",
+        missingScopeFields: ["keyQuestion"],
+        suggestedInputPatch: {
+          keyQuestion: "Which business line has the strongest moat?",
+        },
+      })),
+    } as never);
+    const { repository, run } = createRepositoryHarness({
+      graph,
+      status: WorkflowRunStatus.PENDING,
+      query: "Example Corp",
+      nodeRuns: graph.getNodeOrder().map((nodeKey) => ({
+        nodeKey,
+        status: WorkflowNodeRunStatus.PENDING,
+      })),
+    });
+    run.input = {
+      companyName: "Example Corp",
+    };
+    const runtimeStoreHarness = createRuntimeStoreHarness(null);
+    const service = new WorkflowExecutionService({
+      repository,
+      runtimeStore: runtimeStoreHarness.runtimeStore,
+      graphs: [graph],
+    });
+
+    const picked = await service.executeNextPendingRun("worker_1");
+
+    expect(picked).toBe(true);
+    expect(run.status).toBe(WorkflowRunStatus.PAUSED);
+    expect(run.template.code).toBe(COMPANY_RESEARCH_TEMPLATE_CODE);
+    expect(repository.markRunPaused).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reason: "clarification_required",
+        currentNodeKey: "agent0_clarify_scope",
+        eventPayload: expect.objectContaining({
+          clarificationRequired: true,
+          question: "Need company focus",
+          verification: "Clarify the target business line",
+          missingScopeFields: ["keyQuestion"],
+        }),
+      }),
+    );
+    expect(runtimeStoreHarness.getCheckpoint()).toMatchObject({
+      currentNodeKey: "agent0_clarify_scope",
+      clarificationRequest: {
+        question: "Need company focus",
+        verification: "Clarify the target business line",
       },
     });
   });

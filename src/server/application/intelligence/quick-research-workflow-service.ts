@@ -688,6 +688,7 @@ export class QuickResearchWorkflowService {
         confidenceAnalysis,
       }),
       brief: params.state.researchBrief ?? buildFallbackBrief(params.state),
+      clarificationRequest: params.state.clarificationRequest,
       researchPlan: params.state.researchUnits,
       researchUnitRuns: params.state.researchUnitRuns,
       researchNotes: params.state.researchNotes,

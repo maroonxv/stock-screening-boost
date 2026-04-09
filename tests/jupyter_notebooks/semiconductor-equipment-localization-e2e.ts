@@ -60,7 +60,7 @@ const { QuickResearchWorkflowService } = await import(
   "~/server/application/intelligence/quick-research-workflow-service"
 );
 const { WORKFLOW_ERROR_CODES } = await import("~/server/domain/workflow/errors");
-const { QUICK_RESEARCH_TEMPLATE_CODE, QUICK_RESEARCH_V3_NODE_KEYS } =
+const { QUICK_RESEARCH_TEMPLATE_CODE, QUICK_RESEARCH_NODE_KEYS } =
   await import("~/server/domain/workflow/types");
 const { DeepSeekClient } = await import(
   "~/server/infrastructure/intelligence/deepseek-client"
@@ -71,7 +71,7 @@ const { PythonConfidenceAnalysisClient } = await import(
 const { PythonIntelligenceDataClient } = await import(
   "~/server/infrastructure/intelligence/python-intelligence-data-client"
 );
-const { QuickResearchContractLangGraph } = await import(
+const { QuickResearchLangGraph } = await import(
   "~/server/infrastructure/workflow/langgraph/quick-research-graph"
 );
 
@@ -181,7 +181,7 @@ function createRepositoryHarness(graph: { templateVersion: number }) {
     code: QUICK_RESEARCH_TEMPLATE_CODE,
     version: graph.templateVersion,
     graphConfig: {
-      nodes: [...QUICK_RESEARCH_V3_NODE_KEYS],
+      nodes: [...QUICK_RESEARCH_NODE_KEYS],
       researchDefaults: {
         allowClarification: false,
       },
@@ -572,7 +572,7 @@ async function main() {
     client: deepSeekClient,
     intelligenceService,
   });
-  const graph = new QuickResearchContractLangGraph(workflowService);
+const graph = new QuickResearchLangGraph(workflowService);
   const repositoryHarness = createRepositoryHarness(graph);
   const runtimeStoreHarness = createRuntimeStoreHarness();
 

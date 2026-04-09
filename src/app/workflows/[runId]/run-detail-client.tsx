@@ -17,6 +17,7 @@ import { getTemplateLabel } from "~/app/workflows/research-view-models";
 import {
   COMPANY_RESEARCH_TEMPLATE_CODE,
   type CompanyResearchResultDto,
+  type QuickResearchResultDto,
   SCREENING_INSIGHT_PIPELINE_TEMPLATE_CODE,
 } from "~/server/domain/workflow/types";
 import { api } from "~/trpc/react";
@@ -101,6 +102,19 @@ function isCompanyResearchResult(
     Array.isArray(candidate.findings) &&
     Array.isArray(candidate.evidence)
   );
+}
+
+function getClarificationPayloadFromResult(
+  value: unknown,
+): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate = (value as QuickResearchResultDto).clarificationRequest;
+  return isRecord(candidate) && candidate.needClarification === true
+    ? candidate
+    : null;
 }
 
 function getBackLink(templateCode?: string) {
@@ -377,12 +391,26 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
         .find((event: RunEventItem) => event.eventType === "RUN_PAUSED"),
     [run?.events],
   );
-  const clarificationPayload =
+  const pausedClarificationPayload =
     latestPauseEvent &&
     isRecord(latestPauseEvent.payload) &&
     latestPauseEvent.payload.reason === "clarification_required"
       ? latestPauseEvent.payload
       : null;
+  const resultClarificationPayload = useMemo(
+    () => getClarificationPayloadFromResult(run?.result),
+    [run?.result],
+  );
+  const clarificationPayload =
+    pausedClarificationPayload ?? resultClarificationPayload;
+  const clarificationIsPaused = pausedClarificationPayload !== null;
+  const clarificationTitle = clarificationIsPaused ? "待补充信息" : "范围提醒";
+  const clarificationDescription = clarificationIsPaused
+    ? "本次研究在范围澄清阶段暂停，补充缺失信息后可直接重新发起同类任务。"
+    : "本次研究已继续完成，但输入范围仍偏宽；补充关键信息后重新发起可以获得更聚焦的结果。";
+  const clarificationCtaLabel = clarificationIsPaused
+    ? "进入补充表单"
+    : "补充后重新发起";
   const continuationHref = buildContinuationHref({
     templateCode: run?.template.code,
     input: run?.input,
@@ -544,7 +572,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
             </div>
           </Panel>
 
-          {clarificationPayload ? (
+          {clarificationPayload && clarificationIsPaused ? (
             <Panel
               title="待补充信息"
               description="本次研究在范围澄清阶段暂停，补充缺失信息后可直接重新发起同类任务。"
@@ -591,6 +619,56 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                       className="app-button app-button-primary mt-4 inline-flex"
                     >
                       进入补充表单
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </Panel>
+          ) : null}
+          {clarificationPayload && !clarificationIsPaused ? (
+            <Panel
+              title={clarificationTitle}
+              description={clarificationDescription}
+            >
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
+                <div className="rounded-[12px] border border-[rgba(191,154,96,0.34)] bg-[rgba(77,58,27,0.22)] p-4">
+                  <p className="text-sm leading-7 text-[var(--app-text)]">
+                    {typeof clarificationPayload.question === "string"
+                      ? clarificationPayload.question
+                      : "当前研究已完成，但建议补充范围后重新发起，以获得更聚焦的结论。"}
+                  </p>
+                  {typeof clarificationPayload.verification === "string" &&
+                  clarificationPayload.verification.length > 0 ? (
+                    <p className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
+                      建议范围: {clarificationPayload.verification}
+                    </p>
+                  ) : null}
+                  {Array.isArray(clarificationPayload.missingScopeFields) &&
+                  clarificationPayload.missingScopeFields.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {clarificationPayload.missingScopeFields.map((field) => (
+                        <StatusPill
+                          key={String(field)}
+                          label={String(field)}
+                          tone="warning"
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="rounded-[12px] border border-[var(--app-border)] bg-[rgba(13,18,25,0.72)] p-4 text-sm text-[var(--app-text-muted)]">
+                  <p className="text-xs uppercase tracking-[0.16em] text-[var(--app-text-soft)]">
+                    下一步
+                  </p>
+                  <p className="mt-3 leading-6">
+                    补充范围后重新发起，系统会保留原始输入，并自动预填建议字段。
+                  </p>
+                  {continuationHref ? (
+                    <Link
+                      href={continuationHref}
+                      className="app-button app-button-primary mt-4 inline-flex"
+                    >
+                      {clarificationCtaLabel}
                     </Link>
                   ) : null}
                 </div>

@@ -1,13 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { WorkflowPauseError } from "~/server/domain/workflow/errors";
 import type { QuickResearchGraphState } from "~/server/domain/workflow/types";
-import {
-  QuickResearchContractLangGraph,
-  QuickResearchLangGraph,
-  QuickResearchODRLangGraph,
-} from "~/server/infrastructure/workflow/langgraph/quick-research-graph";
+import { QuickResearchLangGraph } from "~/server/infrastructure/workflow/langgraph/quick-research-graph";
 
-function createLegacyServiceStub() {
+function createQuickResearchServiceStub() {
   return {
     generateIndustryOverview: vi.fn(async () => ({
       overview: "overview",
@@ -64,11 +59,6 @@ function createLegacyServiceStub() {
       confidenceAnalysis: params.confidenceAnalysis,
       generatedAt: new Date().toISOString(),
     })),
-  };
-}
-
-function createODRServiceStub() {
-  return {
     buildTaskContract: vi.fn(async () => ({
       requiredSources: ["news", "financial"],
       requiredSections: [
@@ -87,17 +77,20 @@ function createODRServiceStub() {
       missingScopeFields: [] as string[],
       suggestedInputPatch: {} as Record<string, unknown>,
     })),
-    buildBrief: vi.fn(async () => ({
-      query: "AI infra",
-      researchGoal: "goal",
-      focusConcepts: ["AI infra"],
-      keyQuestions: ["Q1"],
-      mustAnswerQuestions: ["Q1"],
-      forbiddenEvidenceTypes: [],
-      preferredSources: ["official disclosure"],
-      freshnessWindowDays: 180,
-      scopeAssumptions: [],
-    })),
+    buildBrief: vi.fn(
+      async (_input, _runtimeConfig, clarificationSummary?: string) => ({
+        query: "AI infra",
+        researchGoal: "goal",
+        focusConcepts: ["AI infra"],
+        keyQuestions: ["Q1"],
+        mustAnswerQuestions: ["Q1"],
+        forbiddenEvidenceTypes: [],
+        preferredSources: ["official disclosure"],
+        freshnessWindowDays: 180,
+        scopeAssumptions: [],
+        clarificationSummary,
+      }),
+    ),
     planUnits: vi.fn(async () => [
       {
         id: "theme_overview",
@@ -179,7 +172,7 @@ function createODRServiceStub() {
       openQuestions: [],
       noteIds: [],
     })),
-    finalizeReport: vi.fn(async () => ({
+    finalizeReport: vi.fn(async (params) => ({
       overview: "overview",
       heatScore: 72,
       heatConclusion: "heat",
@@ -188,7 +181,7 @@ function createODRServiceStub() {
       topPicks: [],
       competitionSummary: "competition",
       generatedAt: new Date().toISOString(),
-      brief: {
+      brief: params.state.researchBrief ?? {
         query: "AI infra",
         researchGoal: "goal",
         focusConcepts: ["AI infra"],
@@ -229,83 +222,19 @@ function createODRServiceStub() {
       contractScore: 88,
       qualityFlags: [] as string[],
       missingRequirements: [] as string[],
+      clarificationRequest: params.state.clarificationRequest,
     })),
   };
 }
 
 describe("quick-research-graph", () => {
-  it("keeps legacy quick research graph on template v1", async () => {
+  it("runs quick research on template v3 only", async () => {
     const graph = new QuickResearchLangGraph(
-      createLegacyServiceStub() as never,
+      createQuickResearchServiceStub() as never,
     );
     const finalState = (await graph.execute({
       initialState: graph.buildInitialState({
         runId: "run-1",
-        userId: "user-1",
-        query: "AI infra",
-        input: { query: "AI infra" },
-        progressPercent: 0,
-      }),
-    })) as QuickResearchGraphState;
-
-    expect(graph.templateVersion).toBe(1);
-    expect(finalState.finalReport?.heatScore).toBe(72);
-  });
-
-  it("runs the ODR quick graph on template v2", async () => {
-    const graph = new QuickResearchODRLangGraph(
-      createODRServiceStub() as never,
-    );
-    const finalState = (await graph.execute({
-      initialState: graph.buildInitialState({
-        runId: "run-2",
-        userId: "user-1",
-        query: "AI infra",
-        input: { query: "AI infra" },
-        progressPercent: 0,
-        templateGraphConfig: {
-          nodes: graph.getNodeOrder(),
-        },
-      }),
-    })) as QuickResearchGraphState;
-
-    expect(graph.templateVersion).toBe(2);
-    expect(finalState.researchBrief?.researchGoal).toBe("goal");
-    expect(finalState.compressedFindings?.summary).toBe("compressed");
-    expect(finalState.finalReport?.brief?.researchGoal).toBe("goal");
-  });
-
-  it("pauses the ODR quick graph when clarification is required", async () => {
-    const service = createODRServiceStub();
-    service.clarifyScope = vi.fn(async () => ({
-      needClarification: true,
-      question: "Need more detail",
-      verification: "",
-      missingScopeFields: ["query"],
-      suggestedInputPatch: {},
-    }));
-    const graph = new QuickResearchODRLangGraph(service as never);
-
-    await expect(
-      graph.execute({
-        initialState: graph.buildInitialState({
-          runId: "run-3",
-          userId: "user-1",
-          query: "AI",
-          input: { query: "AI" },
-          progressPercent: 0,
-        }),
-      }),
-    ).rejects.toBeInstanceOf(WorkflowPauseError);
-  });
-
-  it("runs the contract quick graph on template v3", async () => {
-    const graph = new QuickResearchContractLangGraph(
-      createODRServiceStub() as never,
-    );
-    const finalState = (await graph.execute({
-      initialState: graph.buildInitialState({
-        runId: "run-4",
         userId: "user-1",
         query: "AI infra",
         input: { query: "AI infra" },
@@ -322,13 +251,96 @@ describe("quick-research-graph", () => {
     expect(finalState.reflection?.status).toBe("pass");
   });
 
+  it("keeps running when clarification is required and carries the warning forward", async () => {
+    const service = createQuickResearchServiceStub();
+    service.clarifyScope = vi.fn(async () => ({
+      needClarification: true,
+      question: "Need more detail",
+      verification: "Focus on AI infra",
+      missingScopeFields: ["query"],
+      suggestedInputPatch: {
+        researchPreferences: {
+          researchGoal: "Narrow the scope",
+        },
+      },
+    }));
+    const graph = new QuickResearchLangGraph(service as never);
+    const finalState = (await graph.execute({
+      initialState: graph.buildInitialState({
+        runId: "run-2",
+        userId: "user-1",
+        query: "AI",
+        input: { query: "AI" },
+        progressPercent: 0,
+        templateGraphConfig: {
+          nodes: graph.getNodeOrder(),
+        },
+      }),
+    })) as QuickResearchGraphState;
+
+    expect(finalState.clarificationRequest).toEqual(
+      expect.objectContaining({
+        needClarification: true,
+        question: "Need more detail",
+        verification: "Focus on AI infra",
+      }),
+    );
+    expect(finalState.researchBrief?.clarificationSummary).toBe(
+      "Focus on AI infra",
+    );
+    expect(finalState.finalReport?.brief?.clarificationSummary).toBe(
+      "Focus on AI infra",
+    );
+    expect(finalState.finalReport?.clarificationRequest).toEqual(
+      expect.objectContaining({
+        needClarification: true,
+        question: "Need more detail",
+      }),
+    );
+  });
+
+  it("emits clarification payload for the clarify node", () => {
+    const graph = new QuickResearchLangGraph(
+      createQuickResearchServiceStub() as never,
+    );
+
+    expect(
+      graph.getNodeEventPayload("agent0_clarify_scope", {
+        runId: "run-3",
+        userId: "user-1",
+        query: "AI",
+        progressPercent: 0,
+        currentNodeKey: "agent0_clarify_scope",
+        errors: [],
+        clarificationRequest: {
+          needClarification: true,
+          question: "Need more detail",
+          verification: "Focus on AI infra",
+          missingScopeFields: ["query"],
+          suggestedInputPatch: {
+            researchPreferences: {
+              researchGoal: "Narrow the scope",
+            },
+          },
+        },
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        clarificationRequired: true,
+        question: "Need more detail",
+        verification: "Focus on AI infra",
+        missingScopeFields: ["query"],
+      }),
+    );
+  });
+
   it("keeps structured nodes on chat by default even when researchGoal exists", async () => {
-    const service = createODRServiceStub();
-    const graph = new QuickResearchContractLangGraph(service as never);
+    const service = createQuickResearchServiceStub();
+    const graph = new QuickResearchLangGraph(service as never);
 
     await graph.execute({
       initialState: graph.buildInitialState({
-        runId: "run-5",
+        runId: "run-4",
         userId: "user-1",
         query: "AI infra",
         input: {
@@ -369,12 +381,12 @@ describe("quick-research-graph", () => {
   });
 
   it("uses reasoner for structured nodes on the first pass when deep is explicit", async () => {
-    const service = createODRServiceStub();
-    const graph = new QuickResearchContractLangGraph(service as never);
+    const service = createQuickResearchServiceStub();
+    const graph = new QuickResearchLangGraph(service as never);
 
     const finalState = (await graph.execute({
       initialState: graph.buildInitialState({
-        runId: "run-6",
+        runId: "run-5",
         userId: "user-1",
         query: "AI infra",
         input: {
@@ -413,7 +425,7 @@ describe("quick-research-graph", () => {
   });
 
   it("auto-escalates to reasoner once when gap follow-up remains", async () => {
-    const service = createODRServiceStub();
+    const service = createQuickResearchServiceStub();
     service.runGapAnalysis = vi
       .fn()
       .mockResolvedValueOnce({
@@ -444,11 +456,11 @@ describe("quick-research-graph", () => {
         replanRecords: [],
         snapshot: {},
       });
-    const graph = new QuickResearchContractLangGraph(service as never);
+    const graph = new QuickResearchLangGraph(service as never);
 
     const finalState = (await graph.execute({
       initialState: graph.buildInitialState({
-        runId: "run-7",
+        runId: "run-6",
         userId: "user-1",
         query: "AI infra",
         input: { query: "AI infra" },
@@ -493,7 +505,7 @@ describe("quick-research-graph", () => {
   });
 
   it("auto-escalates to reasoner once when reflection fails but not on warn", async () => {
-    const service = createODRServiceStub();
+    const service = createQuickResearchServiceStub();
     service.runGapAnalysis = vi
       .fn()
       .mockResolvedValueOnce({
@@ -576,11 +588,11 @@ describe("quick-research-graph", () => {
         qualityFlags: [],
         missingRequirements: [],
       });
-    const graph = new QuickResearchContractLangGraph(service as never);
+    const graph = new QuickResearchLangGraph(service as never);
 
     const finalState = (await graph.execute({
       initialState: graph.buildInitialState({
-        runId: "run-8",
+        runId: "run-7",
         userId: "user-1",
         query: "AI infra",
         input: { query: "AI infra" },
@@ -608,8 +620,8 @@ describe("quick-research-graph", () => {
   });
 
   it("does not auto-escalate when reflection only warns", async () => {
-    const service = createODRServiceStub();
-    service.finalizeReport = vi.fn(async () => ({
+    const service = createQuickResearchServiceStub();
+    service.finalizeReport = vi.fn(async (params) => ({
       overview: "overview",
       heatScore: 72,
       heatConclusion: "heat",
@@ -644,6 +656,7 @@ describe("quick-research-graph", () => {
         followupUnits: [],
         iteration: 0,
       },
+      clarificationRequest: params.state.clarificationRequest,
       reflection: {
         status: "warn",
         summary: "warn",
@@ -660,11 +673,11 @@ describe("quick-research-graph", () => {
       qualityFlags: ["missing_required_sections"],
       missingRequirements: ["missing_section:top_picks"],
     }));
-    const graph = new QuickResearchContractLangGraph(service as never);
+    const graph = new QuickResearchLangGraph(service as never);
 
     const finalState = (await graph.execute({
       initialState: graph.buildInitialState({
-        runId: "run-9",
+        runId: "run-8",
         userId: "user-1",
         query: "AI infra",
         input: { query: "AI infra" },

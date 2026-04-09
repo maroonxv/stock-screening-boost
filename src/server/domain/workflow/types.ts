@@ -57,24 +57,6 @@ export const SCREENING_TO_TIMING_TEMPLATE_CODE = "screening_to_timing_v1";
 export const TIMING_REVIEW_LOOP_TEMPLATE_CODE = "timing_review_loop_v1";
 
 export const QUICK_RESEARCH_NODE_KEYS = [
-  "agent1_industry_overview",
-  "agent2_market_heat",
-  "agent3_candidate_screening",
-  "agent4_credibility_batch",
-  "agent5_competition_summary",
-] as const;
-
-export const QUICK_RESEARCH_V2_NODE_KEYS = [
-  "agent0_clarify_scope",
-  "agent1_write_research_brief",
-  "agent2_plan_research_units",
-  "agent3_execute_research_units",
-  "agent4_gap_analysis",
-  "agent5_compress_findings",
-  "agent6_finalize_report",
-] as const;
-
-export const QUICK_RESEARCH_V3_NODE_KEYS = [
   "agent0_clarify_scope",
   "agent1_extract_research_spec",
   "agent2_trend_analysis",
@@ -196,10 +178,6 @@ export type CompanyResearchNodeKey =
   | (typeof COMPANY_RESEARCH_NODE_KEYS)[number]
   | (typeof COMPANY_RESEARCH_V3_NODE_KEYS)[number]
   | (typeof COMPANY_RESEARCH_V4_NODE_KEYS)[number];
-export type QuickResearchV2NodeKey =
-  (typeof QUICK_RESEARCH_V2_NODE_KEYS)[number];
-export type QuickResearchV3NodeKey =
-  (typeof QUICK_RESEARCH_V3_NODE_KEYS)[number];
 export type ScreeningInsightPipelineNodeKey =
   (typeof SCREENING_INSIGHT_PIPELINE_NODE_KEYS)[number];
 export type TimingSignalPipelineNodeKey =
@@ -214,8 +192,6 @@ export type TimingReviewLoopNodeKey =
   (typeof TIMING_REVIEW_LOOP_NODE_KEYS)[number];
 export type WorkflowNodeKey =
   | QuickResearchNodeKey
-  | QuickResearchV2NodeKey
-  | QuickResearchV3NodeKey
   | CompanyResearchNodeKey
   | ScreeningInsightPipelineNodeKey
   | TimingSignalPipelineNodeKey
@@ -352,6 +328,7 @@ export type QuickResearchResultDto = {
   competitionSummary: string;
   confidenceAnalysis?: ConfidenceAnalysis;
   brief?: ResearchBriefV2;
+  clarificationRequest?: ResearchClarificationRequest;
   researchPlan?: ResearchUnitPlan[];
   researchUnitRuns?: ResearchUnitRun[];
   researchNotes?: ResearchNote[];
@@ -376,10 +353,7 @@ export type WorkflowStreamEvent = {
 };
 
 export type QuickResearchGraphState = WorkflowGraphState & {
-  currentNodeKey?:
-    | QuickResearchNodeKey
-    | QuickResearchV2NodeKey
-    | QuickResearchV3NodeKey;
+  currentNodeKey?: QuickResearchNodeKey;
   researchInput?: QuickResearchInput;
   intent?: string;
   industryOverview?: string;

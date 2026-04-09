@@ -67,6 +67,52 @@ describe("research-view-models", () => {
     expect(digest.metrics.length).toBeGreaterThanOrEqual(0);
   });
 
+  it("downgrades quick research digest to warning when clarification is still needed", () => {
+    const digest = buildResearchDigest({
+      templateCode: QUICK_RESEARCH_TEMPLATE_CODE,
+      query: "AI infra",
+      status: "SUCCEEDED",
+      result: {
+        overview: "Broad overview",
+        heatScore: 80,
+        heatConclusion: "Conclusion",
+        candidates: [],
+        credibility: [],
+        topPicks: [],
+        competitionSummary: "Competition",
+        brief: {
+          query: "AI infra",
+          researchGoal: "goal",
+          focusConcepts: ["AI infra"],
+          keyQuestions: ["Q1"],
+          mustAnswerQuestions: ["Q1"],
+          forbiddenEvidenceTypes: [],
+          preferredSources: [],
+          freshnessWindowDays: 180,
+          scopeAssumptions: [],
+          clarificationSummary: "Focus on AI infra",
+        },
+        clarificationRequest: {
+          needClarification: true,
+          question: "Need more detail",
+          verification: "Focus on AI infra",
+          missingScopeFields: ["query"],
+          suggestedInputPatch: {
+            researchPreferences: {
+              researchGoal: "Narrow the scope",
+            },
+          },
+        },
+        generatedAt: "2026-03-12T00:00:00.000Z",
+      },
+    });
+
+    expect(digest.verdictTone).toBe("warning");
+    expect(digest.summary).toContain("Focus on AI infra");
+    expect(digest.nextActions).toContain("补充范围后重新发起");
+    expect(digest.gaps).toContain("query");
+  });
+
   it("builds quick research mode pills for standard, deep, and escalated runs", () => {
     expect(
       getQuickResearchModePills({

@@ -44,11 +44,7 @@ import {
   LegacyCompanyResearchLangGraph,
   ODRCompanyResearchLangGraph,
 } from "~/server/infrastructure/workflow/langgraph/company-research-graph";
-import {
-  QuickResearchContractLangGraph,
-  QuickResearchLangGraph,
-  QuickResearchODRLangGraph,
-} from "~/server/infrastructure/workflow/langgraph/quick-research-graph";
+import { QuickResearchLangGraph } from "~/server/infrastructure/workflow/langgraph/quick-research-graph";
 import { TimingSignalPipelineLangGraph } from "~/server/infrastructure/workflow/langgraph/timing-signal-graph";
 import { TimingReviewLoopLangGraph } from "~/server/infrastructure/workflow/langgraph/timing-review-loop-graph";
 import { WatchlistTimingPipelineLangGraph } from "~/server/infrastructure/workflow/langgraph/watchlist-timing-graph";
@@ -133,15 +129,7 @@ const executionService = new WorkflowExecutionService({
   repository: workflowRepository,
   runtimeStore: new RedisWorkflowRuntimeStore(),
   graphs: [
-    new QuickResearchLangGraph(
-      new IntelligenceAgentService({
-        deepSeekClient,
-        dataClient: pythonDataClient,
-        confidenceAnalysisService,
-      }),
-    ),
-    new QuickResearchODRLangGraph(quickResearchWorkflowService),
-    new QuickResearchContractLangGraph(quickResearchWorkflowService),
+    new QuickResearchLangGraph(quickResearchWorkflowService),
     new CompanyResearchLangGraph(companyResearchService),
     new LegacyCompanyResearchLangGraph(companyResearchService),
     new ODRCompanyResearchLangGraph(companyResearchWorkflowService),

@@ -279,7 +279,11 @@ export abstract class BaseWorkflowLangGraph<
       }
     } catch (error) {
       if (error instanceof WorkflowPauseError) {
-        throw new WorkflowPauseError(error.message, error.reason, state);
+        throw new WorkflowPauseError(
+          error.message,
+          error.reason,
+          error.state ?? state,
+        );
       }
 
       throw error;

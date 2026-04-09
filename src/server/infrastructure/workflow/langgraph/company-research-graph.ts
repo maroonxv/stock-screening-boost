@@ -1385,6 +1385,19 @@ export class CompanyResearchContractLangGraph extends CompanyResearchLangGraphBa
   getNodeEventPayload(nodeKey: WorkflowNodeKey, state: WorkflowGraphState) {
     const companyState = state as CompanyResearchGraphState;
 
+    if (nodeKey === "agent0_clarify_scope") {
+      return {
+        clarificationRequired:
+          companyState.clarificationRequest?.needClarification ?? false,
+        missingScopeFields:
+          companyState.clarificationRequest?.missingScopeFields ?? [],
+        question: companyState.clarificationRequest?.question,
+        verification: companyState.clarificationRequest?.verification,
+        suggestedInputPatch:
+          companyState.clarificationRequest?.suggestedInputPatch ?? {},
+      };
+    }
+
     if (nodeKey === "agent1_write_research_brief") {
       return {
         analysisDepth: companyState.taskContract?.analysisDepth ?? "standard",

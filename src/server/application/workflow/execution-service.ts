@@ -19,8 +19,8 @@ import type {
   WorkflowGraphState,
   WorkflowNodeKey,
 } from "~/server/domain/workflow/types";
-import { DeepSeekClient } from "~/server/infrastructure/intelligence/deepseek-client";
 import { PythonCapabilityGatewayClient } from "~/server/infrastructure/capabilities/python-capability-gateway-client";
+import { DeepSeekClient } from "~/server/infrastructure/intelligence/deepseek-client";
 import { PrismaResearchReminderRepository } from "~/server/infrastructure/intelligence/prisma-research-reminder-repository";
 import { PrismaScreeningInsightRepository } from "~/server/infrastructure/intelligence/prisma-screening-insight-repository";
 import { PythonConfidenceAnalysisClient } from "~/server/infrastructure/intelligence/python-confidence-analysis-client";
@@ -33,11 +33,7 @@ import {
   ODRCompanyResearchLangGraph,
 } from "~/server/infrastructure/workflow/langgraph/company-research-graph";
 import { WorkflowGraphRegistry } from "~/server/infrastructure/workflow/langgraph/graph-registry";
-import {
-  QuickResearchContractLangGraph,
-  QuickResearchLangGraph,
-  QuickResearchODRLangGraph,
-} from "~/server/infrastructure/workflow/langgraph/quick-research-graph";
+import { QuickResearchLangGraph } from "~/server/infrastructure/workflow/langgraph/quick-research-graph";
 import { ScreeningInsightPipelineLangGraph } from "~/server/infrastructure/workflow/langgraph/screening-insight-pipeline-graph";
 import type { WorkflowGraphRunner } from "~/server/infrastructure/workflow/langgraph/workflow-graph";
 import type { PrismaWorkflowRunRepository } from "~/server/infrastructure/workflow/prisma/workflow-run-repository";
@@ -142,9 +138,7 @@ export function createWorkflowExecutionService(
     repository,
     runtimeStore: options?.runtimeStore ?? new RedisWorkflowRuntimeStore(),
     graphs: options?.graphs ?? [
-      new QuickResearchLangGraph(intelligenceService),
-      new QuickResearchODRLangGraph(quickResearchWorkflowService),
-      new QuickResearchContractLangGraph(quickResearchWorkflowService),
+      new QuickResearchLangGraph(quickResearchWorkflowService),
       new LegacyCompanyResearchLangGraph(companyResearchService),
       new CompanyResearchLangGraph(companyResearchService),
       new ODRCompanyResearchLangGraph(companyResearchWorkflowService),
@@ -618,5 +612,3 @@ export class WorkflowExecutionService {
     });
   }
 }
-
-

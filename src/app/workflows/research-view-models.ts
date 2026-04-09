@@ -695,6 +695,27 @@ function buildTimingWorkflowDigest(params: {
   return null;
 }
 
+function buildQuickResearchClarificationDigest(
+  result: QuickResearchResultDto,
+): ResearchDigest {
+  const base = buildQuickResearchDigest(result);
+  const clarificationSummary = result.brief?.clarificationSummary?.trim();
+
+  return {
+    ...base,
+    verdictLabel: "范围较宽",
+    verdictTone: "warning",
+    summary: clarificationSummary
+      ? `${base.summary} 当前按较宽范围继续执行：${clarificationSummary}`
+      : base.summary,
+    gaps: uniqueList(
+      result.clarificationRequest?.missingScopeFields?.map(String) ?? [],
+      4,
+    ),
+    nextActions: uniqueList(["补充范围后重新发起", ...base.nextActions], 4),
+  };
+}
+
 export function buildResearchDigest(params: {
   templateCode?: string;
   query?: string;
@@ -705,6 +726,9 @@ export function buildResearchDigest(params: {
 }): ResearchDigest {
   if (params.templateCode === QUICK_RESEARCH_TEMPLATE_CODE) {
     if (isQuickResearchResult(params.result)) {
+      if (params.result.clarificationRequest?.needClarification) {
+        return buildQuickResearchClarificationDigest(params.result);
+      }
       return buildQuickResearchDigest(params.result);
     }
   }

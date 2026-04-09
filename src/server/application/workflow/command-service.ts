@@ -426,6 +426,17 @@ export class WorkflowCommandService {
   }
 
   private async startWorkflow(command: StartWorkflowCommand) {
+    if (
+      command.templateCode === QUICK_RESEARCH_TEMPLATE_CODE &&
+      command.templateVersion !== undefined &&
+      command.templateVersion !== 3
+    ) {
+      throw new WorkflowDomainError(
+        WORKFLOW_ERROR_CODES.WORKFLOW_TEMPLATE_NOT_FOUND,
+        `quick research 仅支持模板版本 3: ${command.templateVersion}`,
+      );
+    }
+
     if (command.idempotencyKey) {
       const existing = await this.repository.findPendingOrRunningByIdempotency(
         command.userId,

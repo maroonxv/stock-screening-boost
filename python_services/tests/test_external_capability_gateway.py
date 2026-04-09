@@ -175,7 +175,7 @@ def test_screening_query_capability_reports_actual_provider_for_invalid_payload(
             return {}
 
     monkeypatch.setattr(
-        "app.gateway.external_capability_gateway.get_screening_provider",
+        "app.gateway.external_capability_gateway.get_strict_screening_provider",
         lambda: BrokenProvider(),
     )
 
@@ -207,3 +207,61 @@ def test_screening_query_capability_reports_actual_provider_for_invalid_payload(
         exc_info.value.message
         == "Screening provider akshare returned invalid latest metrics payload: expected dict, got NoneType"
     )
+
+
+def test_screening_query_capability_uses_strict_screening_provider(monkeypatch):
+    from app.gateway.external_capability_gateway import external_capability_gateway
+
+    class StrictProvider:
+        provider_name = "tushare"
+
+        def resolve_stock_metadata(self, stock_codes: list[str]) -> dict[str, dict[str, str]]:
+            return {
+                stock_code: {"stockName": stock_code, "market": "SH"}
+                for stock_code in stock_codes
+            }
+
+        def query_latest_metrics(
+            self,
+            stock_codes: list[str],
+            indicator_ids: list[str],
+        ) -> dict[str, dict[str, float | None]]:
+            return {stock_code: {} for stock_code in stock_codes}
+
+        def query_series_metrics(
+            self,
+            stock_codes: list[str],
+            indicator_ids: list[str],
+            periods: list[str],
+        ) -> dict[str, dict[str, dict[str, float | None]]]:
+            return {stock_code: {} for stock_code in stock_codes}
+
+    monkeypatch.setenv("SCREENING_PRIMARY_PROVIDER", "ifind")
+    monkeypatch.setattr(
+        "app.gateway.external_capability_gateway.get_screening_provider",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("capability gateway should use strict screening provider")
+        ),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "app.gateway.external_capability_gateway.get_strict_screening_provider",
+        lambda: StrictProvider(),
+    )
+
+    result = external_capability_gateway.query_screening_dataset(
+        "req_strict_provider",
+        {
+            "stockCodes": ["600519"],
+            "indicators": [],
+            "formulas": [],
+            "timeConfig": {
+                "periodType": "ANNUAL",
+                "rangeMode": "PRESET",
+                "presetKey": "1Y",
+            },
+        },
+    )
+
+    assert result.provider == "tushare"
+    assert result.data["provider"] == "tushare"

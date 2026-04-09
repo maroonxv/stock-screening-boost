@@ -33,6 +33,15 @@ def _now_timestamp() -> float:
     return pd.Timestamp.utcnow().timestamp()
 
 
+def _build_tushare_provider() -> ScreeningDataProvider:
+    enable_fallback = _env_bool("SCREENING_ENABLE_AKSHARE_FALLBACK", False)
+    fallback_provider = AkShareScreeningProvider() if enable_fallback else None
+    return FallbackScreeningProvider(
+        primary=TushareScreeningProvider(),
+        fallback=fallback_provider,
+    )
+
+
 class FallbackScreeningProvider(ScreeningDataProvider):
     """Primary provider with optional AkShare fallback and field enrichment."""
 
@@ -305,18 +314,17 @@ class FallbackScreeningProvider(ScreeningDataProvider):
 @lru_cache(maxsize=1)
 def get_screening_provider() -> ScreeningDataProvider:
     primary_provider_name = os.getenv("SCREENING_PRIMARY_PROVIDER", "tushare").strip().lower()
-    enable_fallback = _env_bool("SCREENING_ENABLE_AKSHARE_FALLBACK", False)
-
-    akshare_provider = AkShareScreeningProvider()
     if primary_provider_name == "akshare":
-        return akshare_provider
+        return AkShareScreeningProvider()
     if primary_provider_name == "tushare":
-        fallback_provider = akshare_provider if enable_fallback else None
-        return FallbackScreeningProvider(
-            primary=TushareScreeningProvider(),
-            fallback=fallback_provider,
-        )
+        return _build_tushare_provider()
 
+    enable_fallback = _env_bool("SCREENING_ENABLE_AKSHARE_FALLBACK", False)
     primary_provider = IFindScreeningProvider()
-    fallback_provider = akshare_provider if enable_fallback else None
+    fallback_provider = AkShareScreeningProvider() if enable_fallback else None
     return FallbackScreeningProvider(primary=primary_provider, fallback=fallback_provider)
+
+
+@lru_cache(maxsize=1)
+def get_strict_screening_provider() -> ScreeningDataProvider:
+    return _build_tushare_provider()

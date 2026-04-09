@@ -9,7 +9,7 @@ import json
 import os
 from typing import Any, Generic, TypeVar
 
-from app.providers.screening.factory import get_screening_provider
+from app.providers.screening.factory import get_strict_screening_provider
 from app.services.firecrawl_capability_client import FirecrawlCapabilityClient
 from app.services.screening_ifind_gateway import resolve_periods
 from app.services.screening_query_service import ScreeningQueryService
@@ -70,15 +70,16 @@ class ExternalCapabilityGateway:
         request_id: str,
         payload: dict[str, Any],
     ) -> CapabilityResult[dict[str, Any]]:
-        provider_name = os.getenv("SCREENING_PRIMARY_PROVIDER", "tushare")
+        provider_name = "tushare"
         diagnostics = {
             "provider": provider_name,
+            "configuredPrimaryProvider": os.getenv("SCREENING_PRIMARY_PROVIDER", "").strip().lower(),
             "hasToken": bool(os.getenv("TUSHARE_TOKEN", "").strip()),
             "sdkAvailable": find_spec("tushare") is not None,
             "requestFingerprint": _fingerprint(payload),
         }
         try:
-            provider = get_screening_provider()
+            provider = get_strict_screening_provider()
             provider_name = provider.provider_name
             diagnostics["provider"] = provider_name
             service = ScreeningQueryService(provider=provider)

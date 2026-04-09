@@ -25,8 +25,8 @@ describe("WorkspaceShell", () => {
               summary: "限定证据和时效",
             },
           ],
-          children: React.createElement("div", null, "body"),
-        },
+        } as React.ComponentProps<typeof WorkspaceShell>,
+        React.createElement("div", null, "body"),
       ),
     );
 
@@ -37,5 +37,27 @@ describe("WorkspaceShell", () => {
     expect(markup).toContain('href="/timing"');
     expect(markup).toContain("研究问题");
     expect(markup).not.toContain("<aside");
+  });
+  it("renders a compact website navbar without the legacy brand masthead", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        WorkspaceShell,
+        {
+          section: "screening",
+          title: "灏忔壒閲忕瓫閫夊伐浣滃彴",
+          description: "body copy",
+        } as React.ComponentProps<typeof WorkspaceShell>,
+        React.createElement("div", null, "body"),
+      ),
+    );
+
+    expect(markup).toContain('aria-label="Primary navigation"');
+    expect(markup).toContain('href="/screening/history"');
+    expect(markup).toContain('href="/workflows/history"');
+    expect(markup).toContain('href="/timing/history"');
+    expect(markup).not.toContain("Stock Screening Boost");
+    expect(markup).not.toContain("鎶曡祫鍐崇瓥宸ヤ綔娴?");
+    expect(markup).not.toContain('aria-label="Primary workflow"');
+    expect(markup).not.toContain("data-stage-active=");
   });
 });

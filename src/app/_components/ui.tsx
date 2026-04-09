@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { Children, isValidElement, type ReactNode } from "react";
+import React, { type ReactNode } from "react";
 
 import {
   primaryWorkflowStages,
@@ -151,13 +151,70 @@ export function WorkspaceShell(props: {
   } = props;
   const activeItem = navItems.find((item) => item.key === section);
   const activeStageId = section === "home" ? null : section;
+  const primaryNavigation = (
+    <nav
+      className="flex flex-wrap items-center gap-x-6 gap-y-2"
+      aria-label="Primary navigation"
+    >
+      {primaryWorkflowStages.map((stage) => {
+        const active = activeStageId === stage.id;
 
-  return (
-    <main className="app-shell" data-workflow-shell="mistral">
-      <div className="border-b border-[var(--app-border-soft)] bg-[var(--app-surface)]">
-        <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <Link href="/" className="flex items-center gap-4">
+        return (
+          <Link
+            key={stage.id}
+            href={stage.href}
+            className={cn(
+              "border-b-2 border-transparent pb-1 text-[15px] font-medium transition-colors",
+              active
+                ? "border-[var(--app-brand)] text-[var(--app-text-strong)]"
+                : "text-[var(--app-text-muted)] hover:text-[var(--app-text-strong)]",
+            )}
+          >
+            {stage.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+  const historyNavigation = (
+    <nav
+      className="flex flex-wrap items-center gap-2"
+      aria-label="History navigation"
+    >
+      <Link
+        href="/screening/history"
+        className="border border-[var(--app-border-soft)] px-3 py-2 text-[13px] text-[var(--app-text-muted)] transition-colors hover:border-[var(--app-border-strong)] hover:text-[var(--app-text-strong)]"
+      >
+        {"\u7b5b\u9009\u6863\u6848"}
+      </Link>
+      <Link
+        href="/workflows/history"
+        className="border border-[var(--app-border-soft)] px-3 py-2 text-[13px] text-[var(--app-text-muted)] transition-colors hover:border-[var(--app-border-strong)] hover:text-[var(--app-text-strong)]"
+      >
+        {"\u7814\u7a76\u6863\u6848"}
+      </Link>
+      <Link
+        href="/timing/history"
+        className="border border-[var(--app-border-soft)] px-3 py-2 text-[13px] text-[var(--app-text-muted)] transition-colors hover:border-[var(--app-border-strong)] hover:text-[var(--app-text-strong)]"
+      >
+        {"\u7ec4\u5408\u590d\u76d8"}
+      </Link>
+    </nav>
+  );
+
+  if ((section as string) !== "__legacy_sidebar__") {
+    return (
+      <main className="app-shell" data-workflow-shell="mistral">
+        <header className="sticky top-0 z-20 border-b border-[var(--app-border-soft)] bg-[rgba(251,247,240,0.94)] backdrop-blur-sm">
+          <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              {primaryNavigation}
+              {historyNavigation}
+            </div>
+            {/*
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            {false ? (
+              <Link href="/" className="flex items-center gap-4">
               <AppMark />
               <div>
                 <div className="text-[11px] uppercase tracking-[0.2em] text-[var(--app-text-subtle)]">
@@ -167,8 +224,12 @@ export function WorkspaceShell(props: {
                   投资决策工作流
                 </div>
               </div>
-            </Link>
-            <div className="flex flex-wrap gap-2">
+              </Link>
+            ) : (
+              primaryNavigation
+            )}
+            {false ? (
+              <div className="flex flex-wrap gap-2">
               <Link href="/screening/history" className="app-button">
                 筛选档案
               </Link>
@@ -178,10 +239,14 @@ export function WorkspaceShell(props: {
               <Link href="/timing/history" className="app-button">
                 组合复盘
               </Link>
-            </div>
+              </div>
+            ) : (
+              historyNavigation
+            )}
           </div>
 
-          <nav
+          {false ? (
+            <nav
             className="grid gap-3 lg:grid-cols-4"
             aria-label="Primary workflow"
           >
@@ -215,147 +280,46 @@ export function WorkspaceShell(props: {
                 </Link>
               );
             })}
-          </nav>
-        </div>
-      </div>
-
-      <section className="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
-        <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-8">
-          <PageHeader
-            eyebrow={eyebrow}
-            title={title}
-            description={description}
-            actions={actions}
-          />
-
-          {workflowTabs && workflowTabs.length > 0 ? (
-            <section className="grid gap-3 lg:grid-cols-4 xl:grid-cols-[repeat(auto-fit,minmax(0,1fr))]">
-              {workflowTabs.map((tab, tabIndex) => (
-                <article
-                  key={tab.id}
-                  className="border border-[var(--app-border-soft)] bg-[var(--app-surface)] px-4 py-4"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--app-text-subtle)]">
-                      Step {tabIndex + 1}
-                    </div>
-                    <div className="app-workflow-index">
-                      {String(tabIndex + 1).padStart(2, "0")}
-                    </div>
-                  </div>
-                  <div className="mt-3 text-xl leading-none text-[var(--app-text-strong)]">
-                    {tab.label}
-                  </div>
-                  <div className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
-                    {tab.summary}
-                  </div>
-                </article>
-              ))}
-            </section>
-          ) : null}
-
-          {summary ? (
-            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              {summary}
-            </section>
-          ) : null}
-
-          <div className="grid gap-6">{children}</div>
-        </div>
-      </section>
-    </main>
-  );
-
-  return (
-    <main className="app-shell">
-      <div className="mx-auto min-h-screen w-full max-w-[1520px] lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-        <aside className="border-b border-[var(--app-border-soft)] bg-[var(--app-bg-inset)] lg:min-h-screen lg:border-r lg:border-b-0">
-          <div className="flex h-full flex-col gap-6 px-4 py-5 sm:px-6 lg:px-5">
-            <Link href="/" className="flex items-center gap-3">
-              <AppMark />
-              <div>
-                <div className="text-sm font-medium text-[var(--app-text-strong)]">
-                  股票筛选增强
-                </div>
-                <div className="text-xs text-[var(--app-text-subtle)]">
-                  投资决策工作台
-                </div>
-              </div>
-            </Link>
-
-            <nav className="grid gap-1">
-              {navItems.map((item) => {
-                const active = item.key === section;
-
-                return (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    className={cn(
-                      "rounded-[10px] border px-3 py-3 transition-colors",
-                      active
-                        ? "border-[var(--app-border-strong)] bg-[var(--app-bg-floating)] text-[var(--app-text-strong)]"
-                        : "border-transparent text-[var(--app-text-muted)] hover:border-[var(--app-border-soft)] hover:bg-[var(--app-bg-raised)] hover:text-[var(--app-text-strong)]",
-                    )}
-                  >
-                    <div className="text-sm font-medium">{item.label}</div>
-                    <div className="mt-1 text-xs leading-5 text-[var(--app-text-subtle)]">
-                      {item.detail}
-                    </div>
-                  </Link>
-                );
-              })}
             </nav>
-
-            <div className="mt-auto grid gap-3">
-              <div className="rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-bg-raised)] p-4">
-                <div className="text-xs text-[var(--app-text-subtle)]">
-                  当前模块
-                </div>
-                <div className="mt-2 text-sm font-medium text-[var(--app-text-strong)]">
-                  {activeItem?.label ?? "研究工作台"}
-                </div>
-                <div className="mt-1 text-xs leading-5 text-[var(--app-text-muted)]">
-                  {activeItem?.detail ?? "统一查看研究、筛选与组合状态。"}
-                </div>
-              </div>
-
-              <div className="rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-bg-raised)] p-4">
-                <div className="text-xs text-[var(--app-text-subtle)]">
-                  快捷入口
-                </div>
-                <div className="mt-3 grid gap-2 text-sm">
-                  <Link
-                    href="/screening/history"
-                    className="text-[var(--app-text-muted)] hover:text-[var(--app-text-strong)]"
-                  >
-                    查看筛选历史
-                  </Link>
-                  <Link
-                    href="/workflows/history"
-                    className="text-[var(--app-text-muted)] hover:text-[var(--app-text-strong)]"
-                  >
-                    查看研究历史
-                  </Link>
-                  <Link
-                    href="/timing/history"
-                    className="text-[var(--app-text-muted)] hover:text-[var(--app-text-strong)]"
-                  >
-                    查看组合复盘
-                  </Link>
-                </div>
-              </div>
-            </div>
+          ) : null}
+          */}
           </div>
-        </aside>
+        </header>
 
-        <section className="min-w-0 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
-          <div className="mx-auto flex min-h-screen w-full max-w-[1260px] flex-col gap-6">
+        <section className="min-w-0 px-4 py-6 sm:px-6 lg:px-8 lg:py-10">
+          <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-8">
             <PageHeader
+              eyebrow={eyebrow}
               title={title}
               description={description}
               actions={actions}
             />
+
+            {workflowTabs && workflowTabs.length > 0 ? (
+              <section className="grid gap-3 lg:grid-cols-4 xl:grid-cols-[repeat(auto-fit,minmax(0,1fr))]">
+                {workflowTabs.map((tab, tabIndex) => (
+                  <article
+                    key={tab.id}
+                    className="border border-[var(--app-border-soft)] bg-[var(--app-surface)] px-4 py-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--app-text-subtle)]">
+                        Step {tabIndex + 1}
+                      </div>
+                      <div className="app-workflow-index">
+                        {String(tabIndex + 1).padStart(2, "0")}
+                      </div>
+                    </div>
+                    <div className="mt-3 text-xl leading-none text-[var(--app-text-strong)]">
+                      {tab.label}
+                    </div>
+                    <div className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
+                      {tab.summary}
+                    </div>
+                  </article>
+                ))}
+              </section>
+            ) : null}
 
             {summary ? (
               <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -366,9 +330,115 @@ export function WorkspaceShell(props: {
             <div className="grid gap-6">{children}</div>
           </div>
         </section>
-      </div>
-    </main>
-  );
+      </main>
+    );
+  }
+
+  if ((section as string) === "__legacy_sidebar__") {
+    return (
+      <main className="app-shell">
+        <div className="mx-auto min-h-screen w-full max-w-[1520px] lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
+          <aside className="border-b border-[var(--app-border-soft)] bg-[var(--app-bg-inset)] lg:min-h-screen lg:border-r lg:border-b-0">
+            <div className="flex h-full flex-col gap-6 px-4 py-5 sm:px-6 lg:px-5">
+              <Link href="/" className="flex items-center gap-3">
+                <AppMark />
+                <div>
+                  <div className="text-sm font-medium text-[var(--app-text-strong)]">
+                    股票筛选增强
+                  </div>
+                  <div className="text-xs text-[var(--app-text-subtle)]">
+                    投资决策工作台
+                  </div>
+                </div>
+              </Link>
+
+              <nav className="grid gap-1">
+                {navItems.map((item) => {
+                  const active = item.key === section;
+
+                  return (
+                    <Link
+                      key={item.key}
+                      href={item.href}
+                      className={cn(
+                        "rounded-[10px] border px-3 py-3 transition-colors",
+                        active
+                          ? "border-[var(--app-border-strong)] bg-[var(--app-bg-floating)] text-[var(--app-text-strong)]"
+                          : "border-transparent text-[var(--app-text-muted)] hover:border-[var(--app-border-soft)] hover:bg-[var(--app-bg-raised)] hover:text-[var(--app-text-strong)]",
+                      )}
+                    >
+                      <div className="text-sm font-medium">{item.label}</div>
+                      <div className="mt-1 text-xs leading-5 text-[var(--app-text-subtle)]">
+                        {item.detail}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="mt-auto grid gap-3">
+                <div className="rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-bg-raised)] p-4">
+                  <div className="text-xs text-[var(--app-text-subtle)]">
+                    当前模块
+                  </div>
+                  <div className="mt-2 text-sm font-medium text-[var(--app-text-strong)]">
+                    {activeItem?.label ?? "研究工作台"}
+                  </div>
+                  <div className="mt-1 text-xs leading-5 text-[var(--app-text-muted)]">
+                    {activeItem?.detail ?? "统一查看研究、筛选与组合状态。"}
+                  </div>
+                </div>
+
+                <div className="rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-bg-raised)] p-4">
+                  <div className="text-xs text-[var(--app-text-subtle)]">
+                    快捷入口
+                  </div>
+                  <div className="mt-3 grid gap-2 text-sm">
+                    <Link
+                      href="/screening/history"
+                      className="text-[var(--app-text-muted)] hover:text-[var(--app-text-strong)]"
+                    >
+                      查看筛选历史
+                    </Link>
+                    <Link
+                      href="/workflows/history"
+                      className="text-[var(--app-text-muted)] hover:text-[var(--app-text-strong)]"
+                    >
+                      查看研究历史
+                    </Link>
+                    <Link
+                      href="/timing/history"
+                      className="text-[var(--app-text-muted)] hover:text-[var(--app-text-strong)]"
+                    >
+                      查看组合复盘
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <section className="min-w-0 px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
+            <div className="mx-auto flex min-h-screen w-full max-w-[1260px] flex-col gap-6">
+              <PageHeader
+                title={title}
+                description={description}
+                actions={actions}
+              />
+
+              {summary ? (
+                <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  {summary}
+                </section>
+              ) : null}
+
+              <div className="grid gap-6">{children}</div>
+            </div>
+          </section>
+        </div>
+      </main>
+    );
+  }
 }
 
 export function SectionCard(props: {
@@ -669,7 +739,7 @@ export function KeyPointList(props: {
     tone = "neutral",
     className,
   } = props;
-  const renderedItems = Children.toArray(items);
+  const renderedItems = React.Children.toArray(items);
 
   return (
     <SectionCard density="compact" surface="inset" className={className}>
@@ -691,7 +761,7 @@ export function KeyPointList(props: {
               key={
                 typeof item === "string" || typeof item === "number"
                   ? `${title}-${String(item)}`
-                  : isValidElement(item) && item.key !== null
+                  : React.isValidElement(item) && item.key !== null
                     ? String(item.key)
                     : `${title}-${index}`
               }

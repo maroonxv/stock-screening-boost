@@ -1,6 +1,7 @@
 import { intelligenceRouter } from "~/server/api/routers/intelligence";
 import { postRouter } from "~/server/api/routers/post";
 import { screeningRouter } from "~/server/api/routers/screening";
+import { spaceRouter } from "~/server/api/routers/space";
 import { timingRouter } from "~/server/api/routers/timing";
 import { watchlistRouter } from "~/server/api/routers/watchlist";
 import { workflowRouter } from "~/server/api/routers/workflow";
@@ -15,6 +16,7 @@ export const appRouter = createTRPCRouter({
   intelligence: intelligenceRouter,
   post: postRouter,
   screening: screeningRouter,
+  space: spaceRouter,
   timing: timingRouter,
   watchlist: watchlistRouter,
   workflow: workflowRouter,

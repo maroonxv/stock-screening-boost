@@ -76,6 +76,7 @@ model User {
     timingFeedbackObservations        TimingFeedbackObservation[]
     timingPresetAdjustmentSuggestions TimingPresetAdjustmentSuggestion[]
     workflowRuns                      WorkflowRun[]
+    researchSpaces                    ResearchSpace[]
 }
 
 model VerificationToken {
@@ -139,9 +140,71 @@ model WatchList {
     user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     timingAnalysisCards   TimingAnalysisCard[]
     timingRecommendations TimingRecommendation[]
+    spaceLinks            ResearchSpaceWatchListLink[]
 
     @@index([userId])
     @@index([name])
+}
+
+model ResearchSpace {
+    id             String                       @id @default(cuid())
+    userId         String
+    name           String
+    description    String?
+    briefJson      Json
+    createdAt      DateTime                     @default(now())
+    updatedAt      DateTime                     @updatedAt
+
+    user           User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    runLinks       ResearchSpaceRunLink[]
+    watchListLinks ResearchSpaceWatchListLink[]
+    stockLinks     ResearchSpaceStockLink[]
+
+    @@index([userId, updatedAt])
+    @@index([userId, name])
+}
+
+model ResearchSpaceRunLink {
+    id        String        @id @default(cuid())
+    spaceId    String
+    runId      String
+    note       String?
+    createdAt  DateTime     @default(now())
+
+    space      ResearchSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+    run        WorkflowRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+    @@unique([spaceId, runId])
+    @@index([spaceId, createdAt])
+    @@index([runId])
+}
+
+model ResearchSpaceWatchListLink {
+    id          String         @id @default(cuid())
+    spaceId      String
+    watchListId  String
+    createdAt    DateTime      @default(now())
+
+    space        ResearchSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+    watchList    WatchList     @relation(fields: [watchListId], references: [id], onDelete: Cascade)
+
+    @@unique([spaceId, watchListId])
+    @@index([spaceId, createdAt])
+    @@index([watchListId])
+}
+
+model ResearchSpaceStockLink {
+    id         String         @id @default(cuid())
+    spaceId    String
+    stockCode  String
+    stockName  String
+    createdAt  DateTime       @default(now())
+
+    space      ResearchSpace  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+    @@unique([spaceId, stockCode])
+    @@index([spaceId, createdAt])
+    @@index([stockCode])
 }
 
 enum ResearchReminderType {
@@ -499,6 +562,7 @@ model WorkflowRun {
     timingSignalSnapshots   TimingSignalSnapshot[]
     timingAnalysisCards     TimingAnalysisCard[]
     timingRecommendations   TimingRecommendation[]
+    spaceLinks              ResearchSpaceRunLink[]
 
     @@index([templateId])
     @@index([userId, createdAt])
@@ -544,4 +608,3 @@ model WorkflowEvent {
     @@unique([runId, sequence])
     @@index([runId, occurredAt])
 }
-

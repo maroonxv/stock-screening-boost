@@ -221,7 +221,7 @@ function SidebarHistoryList(props: {
   const recentItems = items.slice(0, HISTORY_ITEM_LIMIT);
 
   return (
-    <section className="mt-auto border-t border-[var(--app-border-soft)] pt-5">
+    <section className="mt-auto min-w-0 overflow-hidden border-t border-[var(--app-border-soft)] pt-5">
       <div className="flex items-center justify-between gap-3 px-3 pb-2">
         <div className="text-[11px] font-medium tracking-[0.08em] text-[var(--app-text-subtle)]">
           {heading}
@@ -238,7 +238,7 @@ function SidebarHistoryList(props: {
       {historyLoading ? <SidebarHistorySkeleton /> : null}
 
       {!historyLoading && recentItems.length > 0 ? (
-        <div className="grid gap-1">
+        <div className="grid min-w-0 gap-1">
           {recentItems.map((item) => {
             const active = item.id === activeHistoryId;
 
@@ -250,13 +250,13 @@ function SidebarHistoryList(props: {
                 aria-current={active ? "page" : undefined}
                 title={item.title}
                 className={cn(
-                  "block rounded-[10px] px-3 py-2 text-sm transition-colors",
+                  "block w-full min-w-0 overflow-hidden rounded-[10px] px-3 py-2 text-sm transition-colors",
                   active
                     ? "bg-[var(--app-panel-strong)] text-[var(--app-text-strong)]"
                     : "text-[var(--app-text-muted)] hover:bg-[var(--app-bg-raised)] hover:text-[var(--app-text-strong)]",
                 )}
               >
-                <span className="block truncate">{item.title}</span>
+                <span className="block w-full truncate">{item.title}</span>
               </Link>
             );
           })}

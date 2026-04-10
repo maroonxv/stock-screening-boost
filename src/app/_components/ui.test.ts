@@ -49,6 +49,9 @@ describe("WorkspaceShell", () => {
     expect(markup).toContain('href="/workflows/history"');
     expect(markup).toContain("Recent workflow run");
     expect(markup).toContain('href="/workflows/run-1"');
+    expect(markup).toContain("grid min-w-0 gap-1");
+    expect(markup).toContain("block w-full min-w-0 overflow-hidden");
+    expect(markup).toContain("block w-full truncate");
     expect(markup.match(/data-sidebar-icon=/g)?.length).toBe(5);
     expect(markup).not.toContain('data-sidebar-icon="history"');
     expect(markup).toContain("Question");

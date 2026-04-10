@@ -35,6 +35,7 @@ const historyHrefBySection: Record<WorkspaceSection, string | undefined> = {
   workflows: "/workflows/history",
   timing: "/timing/history",
   companyResearch: "/company-research/history",
+  spaces: undefined,
 };
 
 const statusLabelMap: Record<string, string> = {
@@ -368,6 +369,12 @@ export function WorkflowHistoryClient(props: {
                     className="app-button app-button-primary"
                   >
                     查看详情
+                  </Link>
+                  <Link
+                    href={`/spaces?addRunId=${runDetailQuery.data.id}`}
+                    className="app-button"
+                  >
+                    加入 Space
                   </Link>
                   {isLiveRun(runDetailQuery.data.status) ? (
                     <button

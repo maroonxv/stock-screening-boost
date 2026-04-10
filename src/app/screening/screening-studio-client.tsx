@@ -81,9 +81,24 @@ function toSelectedStocks(detail: WorkspaceDetail): SelectedStock[] {
   }));
 }
 
+function parseDelimitedCsv(value: string | null) {
+  return value
+    ? value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+}
+
 export function ScreeningStudioClient() {
   const searchParams = useSearchParams();
   const workspaceIdFromUrl = searchParams.get("workspaceId");
+  const seedStockCodesFromUrl = parseDelimitedCsv(
+    searchParams.get("seedStockCodes"),
+  );
+  const watchListIdFromUrl = searchParams.get("watchListId");
+  const draftNameFromUrl = searchParams.get("draftName");
+  const draftDescriptionFromUrl = searchParams.get("draftDescription");
   const utils = api.useUtils();
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
@@ -149,6 +164,16 @@ export function ScreeningStudioClient() {
     },
     {
       enabled: deferredStockKeyword.length > 0,
+      refetchOnWindowFocus: false,
+    },
+  );
+  const watchListSeedQuery = api.watchlist.getDetail.useQuery(
+    { id: watchListIdFromUrl ?? "" },
+    {
+      enabled:
+        draftMode &&
+        Boolean(watchListIdFromUrl) &&
+        seedStockCodesFromUrl.length === 0,
       refetchOnWindowFocus: false,
     },
   );
@@ -334,6 +359,58 @@ export function ScreeningStudioClient() {
       setSelectedWorkspaceId(workspaceIdFromUrl);
     }
   }, [workspaceIdFromUrl]);
+
+  useEffect(() => {
+    if (!draftMode) {
+      return;
+    }
+
+    if (draftNameFromUrl && !workspaceName) {
+      setWorkspaceName(draftNameFromUrl);
+    }
+
+    if (draftDescriptionFromUrl && !workspaceDescription) {
+      setWorkspaceDescription(draftDescriptionFromUrl);
+    }
+  }, [
+    draftDescriptionFromUrl,
+    draftMode,
+    draftNameFromUrl,
+    workspaceDescription,
+    workspaceName,
+  ]);
+
+  useEffect(() => {
+    if (
+      !draftMode ||
+      seedStockCodesFromUrl.length === 0 ||
+      selectedStocks.length > 0
+    ) {
+      return;
+    }
+
+    setSelectedStocks(
+      seedStockCodesFromUrl.map((stockCode) => ({
+        stockCode,
+        stockName: stockCode,
+        market: "",
+      })),
+    );
+  }, [draftMode, seedStockCodesFromUrl, selectedStocks.length]);
+
+  useEffect(() => {
+    if (!draftMode || selectedStocks.length > 0 || !watchListSeedQuery.data) {
+      return;
+    }
+
+    setSelectedStocks(
+      watchListSeedQuery.data.stocks.map((item) => ({
+        stockCode: String(item.stockCode ?? ""),
+        stockName: String(item.stockName ?? item.stockCode ?? ""),
+        market: "",
+      })),
+    );
+  }, [draftMode, selectedStocks.length, watchListSeedQuery.data]);
 
   useEffect(() => {
     if (workspaceOptions.length === 0 || selectedWorkspaceId || draftMode) {

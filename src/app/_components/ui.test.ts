@@ -46,13 +46,15 @@ describe("WorkspaceShell", () => {
     expect(markup).toContain('href="/workflows"');
     expect(markup).toContain('href="/company-research"');
     expect(markup).toContain('href="/timing"');
+    expect(markup).toContain('href="/spaces"');
+    expect(markup).toContain('href="/watchlists"');
     expect(markup).toContain('href="/workflows/history"');
     expect(markup).toContain("Recent workflow run");
     expect(markup).toContain('href="/workflows/run-1"');
     expect(markup).toContain("grid min-w-0 gap-1");
     expect(markup).toContain("block w-full min-w-0 overflow-hidden");
     expect(markup).toContain("block w-full truncate");
-    expect(markup.match(/data-sidebar-icon=/g)?.length).toBe(5);
+    expect(markup.match(/data-sidebar-icon=/g)?.length).toBe(6);
     expect(markup).not.toContain('data-sidebar-icon="history"');
     expect(markup).toContain("Question");
     expect(markup).toContain('aria-label="Open navigation menu"');
@@ -74,7 +76,7 @@ describe("WorkspaceShell", () => {
     );
 
     expect(homeMarkup).not.toContain("/history");
-    expect(homeMarkup.match(/data-sidebar-icon=/g)?.length).toBe(5);
+    expect(homeMarkup.match(/data-sidebar-icon=/g)?.length).toBe(6);
 
     const historyMarkup = renderToStaticMarkup(
       React.createElement(

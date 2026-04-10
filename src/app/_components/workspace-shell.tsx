@@ -15,6 +15,7 @@ import {
   CompanyResearchIcon,
   MenuIcon,
   OverviewIcon,
+  ResearchSpacesIcon,
   ScreeningIcon,
   SidebarToggleIcon,
   TimingIcon,
@@ -36,7 +37,8 @@ export type WorkspaceSection =
   | "screening"
   | "workflows"
   | "timing"
-  | "companyResearch";
+  | "companyResearch"
+  | "spaces";
 
 export type WorkspaceSectionView = "default" | "history";
 
@@ -84,6 +86,12 @@ const sidebarNavItems: Array<{
     href: "/timing",
     label: "择时组合",
     icon: TimingIcon,
+  },
+  {
+    key: "spaces",
+    href: "/spaces",
+    label: "Research Spaces",
+    icon: ResearchSpacesIcon,
   },
 ];
 
@@ -410,6 +418,7 @@ export function WorkspaceShell(props: {
   title: string;
   description?: string;
   actions?: ReactNode;
+  showWatchlistsAction?: boolean;
   summary?: ReactNode;
   workflowTabs?: WorkflowStageTab[];
   historyItems?: WorkspaceHistoryItem[];
@@ -428,6 +437,7 @@ export function WorkspaceShell(props: {
     title,
     description,
     actions,
+    showWatchlistsAction = true,
     summary,
     workflowTabs = [],
     historyItems = [],
@@ -471,6 +481,16 @@ export function WorkspaceShell(props: {
       desktopCollapsed ? "true" : "false",
     );
   }, [desktopCollapsed, desktopStateReady]);
+  const headerActions = (
+    <>
+      {actions}
+      {showWatchlistsAction ? (
+        <Link href="/watchlists" className="app-button">
+          自选股列表
+        </Link>
+      ) : null}
+    </>
+  );
 
   return (
     <main
@@ -565,7 +585,7 @@ export function WorkspaceShell(props: {
             eyebrow={eyebrow}
             title={title}
             description={description}
-            actions={actions}
+            actions={headerActions}
           />
 
           {workflowTabs.length > 0 ? (

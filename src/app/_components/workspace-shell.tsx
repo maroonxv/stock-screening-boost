@@ -9,6 +9,7 @@ import {
   HistoryIcon,
   MenuIcon,
   OverviewIcon,
+  ResearchSpacesIcon,
   ScreeningIcon,
   TimingIcon,
   WorkflowsIcon,
@@ -24,7 +25,8 @@ type WorkspaceSection =
   | "screening"
   | "workflows"
   | "timing"
-  | "companyResearch";
+  | "companyResearch"
+  | "spaces";
 
 type WorkspaceSectionView = "default" | "history";
 
@@ -75,6 +77,12 @@ const sidebarNavItems: Array<{
     icon: TimingIcon,
     historyHref: "/timing/history",
     historyLabel: "择时组合历史",
+  },
+  {
+    key: "spaces",
+    href: "/spaces",
+    label: "Research Spaces",
+    icon: ResearchSpacesIcon,
   },
 ];
 
@@ -242,6 +250,7 @@ export function WorkspaceShell(props: {
   title: string;
   description?: string;
   actions?: ReactNode;
+  showWatchlistsAction?: boolean;
   summary?: ReactNode;
   workflowTabs?: WorkflowStageTab[];
   children: ReactNode;
@@ -253,11 +262,22 @@ export function WorkspaceShell(props: {
     title,
     description,
     actions,
+    showWatchlistsAction = true,
     summary,
     workflowTabs = [],
     children,
   } = props;
   const [mobileOpen, setMobileOpen] = useState(false);
+  const headerActions = (
+    <>
+      {actions}
+      {showWatchlistsAction ? (
+        <Link href="/watchlists" className="app-button">
+          鑷€夎偂鍒楄〃
+        </Link>
+      ) : null}
+    </>
+  );
 
   return (
     <main
@@ -327,7 +347,7 @@ export function WorkspaceShell(props: {
             eyebrow={eyebrow}
             title={title}
             description={description}
-            actions={actions}
+            actions={headerActions}
           />
 
           {workflowTabs.length > 0 ? (

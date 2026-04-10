@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
 import { useEffect, useState } from "react";
 import {
@@ -164,6 +164,7 @@ const defaultPresetConfigJson = JSON.stringify(
 
 export function TimingClient() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const utils = api.useUtils();
 
   const [stockCode, setStockCode] = useState("");
@@ -272,6 +273,21 @@ export function TimingClient() {
       await utils.timing.listTimingPresets.invalidate();
     },
   });
+
+  useEffect(() => {
+    const stockCodeFromUrl = searchParams.get("stockCode");
+    const watchListIdFromUrl = searchParams.get("watchListId");
+
+    if (stockCodeFromUrl) {
+      setStockCode(stockCodeFromUrl.replace(/\D/g, "").slice(0, 6));
+      setActiveTabId("signals");
+    }
+
+    if (watchListIdFromUrl) {
+      setWatchListId(watchListIdFromUrl);
+      setActiveTabId("signals");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!watchListId && watchListsQuery.data?.[0]?.id) {

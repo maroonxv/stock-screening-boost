@@ -37,8 +37,10 @@ describe("WorkspaceShell", () => {
     expect(markup).toContain('href="/workflows"');
     expect(markup).toContain('href="/company-research"');
     expect(markup).toContain('href="/timing"');
+    expect(markup).toContain('href="/spaces"');
+    expect(markup).toContain('href="/watchlists"');
     expect(markup).toContain('href="/workflows/history"');
-    expect(markup.match(/data-sidebar-icon=/g)?.length).toBe(6);
+    expect(markup.match(/data-sidebar-icon=/g)?.length).toBe(7);
     expect(markup).not.toContain('href="/screening/history"');
     expect(markup).not.toContain('href="/timing/history"');
     expect(markup).toContain("Question");
@@ -61,7 +63,7 @@ describe("WorkspaceShell", () => {
     );
 
     expect(homeMarkup).not.toContain("/history");
-    expect(homeMarkup.match(/data-sidebar-icon=/g)?.length).toBe(5);
+    expect(homeMarkup.match(/data-sidebar-icon=/g)?.length).toBe(6);
 
     const historyMarkup = renderToStaticMarkup(
       React.createElement(

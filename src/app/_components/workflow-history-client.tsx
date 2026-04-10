@@ -352,6 +352,12 @@ export function WorkflowHistoryClient(props: {
                   >
                     查看详情
                   </Link>
+                  <Link
+                    href={`/spaces?addRunId=${runDetailQuery.data.id}`}
+                    className="app-button"
+                  >
+                    加入 Space
+                  </Link>
                   {isLiveRun(runDetailQuery.data.status) ? (
                     <button
                       type="button"

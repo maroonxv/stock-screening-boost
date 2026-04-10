@@ -212,6 +212,9 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
           <Link href={`/workflows/${runId}/debug`} className="app-button">
             调试视图
           </Link>
+          <Link href={`/spaces?addRunId=${runId}`} className="app-button">
+            加入 Space
+          </Link>
           {canApprove ? (
             <button
               type="button"

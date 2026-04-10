@@ -77,6 +77,16 @@ export function TimingIcon(props: IconProps) {
   );
 }
 
+export function ResearchSpacesIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 7.5 12 4l8 3.5-8 3.5z" />
+      <path d="M4 12.5 12 16l8-3.5" />
+      <path d="M4 17.5 12 21l8-3.5" />
+    </BaseIcon>
+  );
+}
+
 export function HistoryIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

@@ -18,4 +18,13 @@ describe("run-to-space entry points", () => {
     expect(investorDetailSource).toContain("/spaces?addRunId=");
     expect(workflowHistorySource).toContain("/spaces?addRunId=");
   });
+
+  it("surfaces timing report entry points on the investor run detail page", () => {
+    const investorDetailSource = readSource(
+      "src/app/workflows/[runId]/run-investor-client.tsx",
+    );
+
+    expect(investorDetailSource).toContain("/timing/reports/");
+    expect(investorDetailSource).toContain("查看单股报告");
+  });
 });

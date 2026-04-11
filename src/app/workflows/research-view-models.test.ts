@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildResearchDigest,
   extractConfidenceAnalysis,
+  extractTimingReportCardIds,
   getQuickResearchModePills,
 } from "~/app/workflows/research-view-models";
 import {
@@ -232,5 +233,18 @@ describe("research-view-models", () => {
     expect(digest.metrics.some((item) => item.label === "引用数量")).toBe(true);
     expect(digest.metrics.some((item) => item.label === "一手信源")).toBe(true);
     expect(digest.metrics.some((item) => item.label === "合同得分")).toBe(true);
+  });
+  it("extracts timing report card ids from timing workflow results", () => {
+    expect(
+      extractTimingReportCardIds({
+        cardIds: ["card_1", "card_2"],
+      }),
+    ).toEqual(["card_1", "card_2"]);
+
+    expect(
+      extractTimingReportCardIds({
+        recommendationIds: ["rec_1"],
+      }),
+    ).toEqual([]);
   });
 });

@@ -768,3 +768,14 @@ export function extractConfidenceAnalysis(
 
   return null;
 }
+
+export function extractTimingReportCardIds(result: unknown): string[] {
+  if (!isRecord(result) || !Array.isArray(result.cardIds)) {
+    return [];
+  }
+
+  return result.cardIds.filter(
+    (item): item is string =>
+      typeof item === "string" && item.trim().length > 0,
+  );
+}

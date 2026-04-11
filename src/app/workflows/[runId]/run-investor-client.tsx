@@ -20,6 +20,7 @@ import { ResearchOpsPanels } from "~/app/workflows/research-ops-panels";
 import {
   buildResearchDigest,
   extractConfidenceAnalysis,
+  extractTimingReportCardIds,
   getQuickResearchModePills,
   isCompanyResearchResult,
 } from "~/app/workflows/research-view-models";
@@ -210,6 +211,7 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
     run?.template.code === QUICK_RESEARCH_TEMPLATE_CODE
       ? getQuickResearchModePills(run?.result, run?.input)
       : [];
+  const timingReportCardIds = extractTimingReportCardIds(run?.result);
   const nextSectionItems =
     digest.gaps.length > 0 ? digest.gaps : digest.nextActions;
 
@@ -231,6 +233,14 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
           <Link href={`/workflows/${runId}/debug`} className="app-button">
             调试视图
           </Link>
+          {timingReportCardIds[0] ? (
+            <Link
+              href={`/timing/reports/${timingReportCardIds[0]}`}
+              className="app-button app-button-primary"
+            >
+              查看单股报告
+            </Link>
+          ) : null}
           <Link href={`/spaces?addRunId=${runId}`} className="app-button">
             加入 Space
           </Link>
@@ -319,6 +329,27 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
               </>
             }
           />
+
+          {timingReportCardIds.length > 0 ? (
+            <Panel
+              title="择时报告入口"
+              description="这次 workflow 已经产出择时卡片。若要查看完整的价格结构图、证据引擎和复盘时间线，请进入对应报告页。"
+            >
+              <div className="flex flex-wrap gap-2">
+                {timingReportCardIds.map((cardId, index) => (
+                  <Link
+                    key={cardId}
+                    href={`/timing/reports/${cardId}`}
+                    className="app-button"
+                  >
+                    {timingReportCardIds.length === 1
+                      ? "查看单股报告"
+                      : `查看报告 ${index + 1}`}
+                  </Link>
+                ))}
+              </div>
+            </Panel>
+          ) : null}
 
           {canApprove ? (
             <ActionBanner

@@ -29,6 +29,8 @@ from app.gateway.common import build_meta, execute_cached, gateway_cache
 from app.policies.cache_policy import get_cache_policy
 from app.policies.retry_policy import RetryPolicy
 from app.providers.akshare.client import AkShareProviderClient
+from app.providers.timing.base import TimingSignalDataProvider
+from app.providers.timing.tushare_provider import TushareTimingProvider
 from app.services.timing_indicators import timing_indicators_service
 
 SIGNAL_BENCHMARK_CODES = ["510300", "510500", "159915"]
@@ -41,8 +43,13 @@ MARKET_PROXY_CODES = [
 
 
 class TimingGateway:
-    def __init__(self, provider_client: AkShareProviderClient | None = None) -> None:
-        self._provider_client = provider_client or AkShareProviderClient()
+    def __init__(
+        self,
+        signal_data_provider: TimingSignalDataProvider | None = None,
+        market_context_provider: AkShareProviderClient | None = None,
+    ) -> None:
+        self._signal_data_provider = signal_data_provider or TushareTimingProvider()
+        self._market_context_provider = market_context_provider or AkShareProviderClient()
         self._retry_policy = RetryPolicy()
         self._cache = gateway_cache
 
@@ -60,7 +67,7 @@ class TimingGateway:
         started_at = time.perf_counter()
         result = execute_cached(
             dataset="timing_bars",
-            provider=self._provider_client.provider_name,
+            provider=self._signal_data_provider.provider_name,
             params={
                 "stockCode": stock_code,
                 "start": start,
@@ -140,6 +147,11 @@ class TimingGateway:
         cache_hits: list[bool] = []
         stale_hits: list[bool] = []
         as_of_values: list[str] = []
+        stock_snapshots = self._signal_data_provider.get_stock_snapshots(stock_codes)
+        benchmark_histories = self._load_signal_benchmark_histories(
+            as_of_date=as_of_date,
+            lookback_days=lookback_days,
+        )
 
         for stock_code in stock_codes:
             try:
@@ -148,6 +160,8 @@ class TimingGateway:
                     as_of_date=as_of_date,
                     lookback_days=lookback_days,
                     force_refresh=force_refresh,
+                    stock=stock_snapshots.get(stock_code),
+                    benchmark_histories=benchmark_histories,
                 )
                 items.append(result.data)
                 cache_hits.append(result.cache_hit)
@@ -174,7 +188,7 @@ class TimingGateway:
         return TimingSignalBatchResponse(
             meta=build_meta(
                 request_id=request_id,
-                provider=self._provider_client.provider_name,
+                provider=self._signal_data_provider.provider_name,
                 started_at=started_at,
                 cache_hit=bool(items) and all(cache_hits),
                 is_stale=any(stale_hits),
@@ -196,7 +210,7 @@ class TimingGateway:
         started_at = time.perf_counter()
         result = execute_cached(
             dataset="timing_market_context",
-            provider=self._provider_client.provider_name,
+            provider=self._market_context_provider.provider_name,
             params={"asOfDate": as_of_date},
             fetcher=lambda: self._build_market_context(as_of_date=as_of_date),
             cache_policy=get_cache_policy("timing_signal"),
@@ -227,8 +241,8 @@ class TimingGateway:
         timeframe: str,
         adjust: str,
     ) -> TimingBarsData:
-        stock = self._provider_client.get_stock_snapshot(stock_code)
-        history = self._provider_client.get_stock_bars(
+        stock = self._signal_data_provider.get_stock_snapshot(stock_code)
+        history = self._signal_data_provider.get_stock_bars(
             stock_code=stock_code,
             start_date=self._resolve_start_date(start=start, end=end, lookback_days=360),
             end_date=end,
@@ -267,6 +281,8 @@ class TimingGateway:
         as_of_date: str | None,
         lookback_days: int | None,
         force_refresh: bool,
+        stock: dict[str, str] | None = None,
+        benchmark_histories: dict[str, pd.DataFrame] | None = None,
     ):
         effective_lookback = max(
             lookback_days or timing_indicators_service.minimum_lookback_days,
@@ -275,7 +291,7 @@ class TimingGateway:
 
         return execute_cached(
             dataset="timing_signal",
-            provider=self._provider_client.provider_name,
+            provider=self._signal_data_provider.provider_name,
             params={
                 "stockCode": stock_code,
                 "asOfDate": as_of_date,
@@ -285,6 +301,8 @@ class TimingGateway:
                 stock_code=stock_code,
                 as_of_date=as_of_date,
                 lookback_days=effective_lookback,
+                stock=stock,
+                benchmark_histories=benchmark_histories,
             ),
             cache_policy=get_cache_policy("timing_signal"),
             retry_policy=self._retry_policy,
@@ -298,9 +316,11 @@ class TimingGateway:
         stock_code: str,
         as_of_date: str | None,
         lookback_days: int,
+        stock: dict[str, str] | None = None,
+        benchmark_histories: dict[str, pd.DataFrame] | None = None,
     ) -> TimingSignalData:
-        stock = self._provider_client.get_stock_snapshot(stock_code)
-        history = self._provider_client.get_stock_bars(
+        stock_snapshot = stock or self._signal_data_provider.get_stock_snapshot(stock_code)
+        history = self._signal_data_provider.get_stock_bars(
             stock_code=stock_code,
             start_date=self._resolve_start_date(
                 start=None,
@@ -311,24 +331,24 @@ class TimingGateway:
             adjust="qfq",
         )
 
-        benchmark_histories: dict[str, pd.DataFrame] = {}
-        for benchmark_code in SIGNAL_BENCHMARK_CODES:
-            benchmark_histories[benchmark_code] = self._provider_client.get_stock_bars(
-                stock_code=benchmark_code,
-                start_date=self._resolve_start_date(
-                    start=None,
-                    end=as_of_date,
-                    lookback_days=lookback_days * 2,
-                ),
-                end_date=as_of_date,
-                adjust="qfq",
+        effective_benchmark_histories = (
+            benchmark_histories
+            if benchmark_histories is not None
+            else self._load_signal_benchmark_histories(
+                as_of_date=as_of_date,
+                lookback_days=lookback_days,
             )
+        )
 
         return timing_indicators_service.build_signal(
             stock_code=stock_code,
-            stock_name=str(stock.get("name") or stock.get("stockName") or stock_code),
+            stock_name=str(
+                stock_snapshot.get("name")
+                or stock_snapshot.get("stockName")
+                or stock_code
+            ),
             history=history,
-            benchmark_histories=benchmark_histories,
+            benchmark_histories=effective_benchmark_histories,
             as_of_date=as_of_date,
         )
 
@@ -337,7 +357,7 @@ class TimingGateway:
         *,
         as_of_date: str | None,
     ) -> MarketContextSnapshotData:
-        universe = self._provider_client.get_stock_universe()
+        universe = self._market_context_provider.get_stock_universe()
 
         change_values = [
             float(item.get("changePercent") or 0)
@@ -355,8 +375,8 @@ class TimingGateway:
         resolved_as_of = as_of_date
 
         for code, fallback_name in MARKET_PROXY_CODES:
-            stock = self._provider_client.get_stock_snapshot(code)
-            history = self._provider_client.get_stock_bars(
+            stock = self._market_context_provider.get_stock_snapshot(code)
+            history = self._market_context_provider.get_stock_bars(
                 stock_code=code,
                 start_date=self._resolve_start_date(
                     start=None,
@@ -635,6 +655,32 @@ class TimingGateway:
             deduped.append(warning)
 
         return deduped
+
+    def _load_signal_benchmark_histories(
+        self,
+        *,
+        as_of_date: str | None,
+        lookback_days: int | None,
+    ) -> dict[str, pd.DataFrame]:
+        benchmark_histories: dict[str, pd.DataFrame] = {}
+        effective_lookback = max(
+            lookback_days or timing_indicators_service.minimum_lookback_days,
+            timing_indicators_service.minimum_lookback_days,
+        )
+        start_date = self._resolve_start_date(
+            start=None,
+            end=as_of_date,
+            lookback_days=effective_lookback * 2,
+        )
+        for benchmark_code in SIGNAL_BENCHMARK_CODES:
+            benchmark_histories[benchmark_code] = (
+                self._signal_data_provider.get_benchmark_bars(
+                    benchmark_code=benchmark_code,
+                    start_date=start_date,
+                    end_date=as_of_date,
+                )
+            )
+        return benchmark_histories
 
 
 timing_gateway = TimingGateway()

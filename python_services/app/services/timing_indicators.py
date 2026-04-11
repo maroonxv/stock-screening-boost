@@ -52,7 +52,7 @@ class TimingIndicatorsService:
                 code="insufficient_history",
                 message=f"{stock_code} 可用历史数据不足，无法计算择时上下文",
                 status_code=422,
-                provider="akshare",
+                provider="timing",
             )
 
         enriched = self.calculate_indicators(effective)
@@ -113,7 +113,7 @@ class TimingIndicatorsService:
                 code="bars_not_found",
                 message="未获取到可用日线数据",
                 status_code=404,
-                provider="akshare",
+                provider="timing",
             )
 
         renamed = history.rename(
@@ -139,7 +139,7 @@ class TimingIndicatorsService:
                 code="bars_schema_invalid",
                 message=f"日线数据缺少必要字段: {', '.join(missing)}",
                 status_code=502,
-                provider="akshare",
+                provider="timing",
             )
 
         frame = renamed.copy()
@@ -169,7 +169,7 @@ class TimingIndicatorsService:
                 code="bars_not_found",
                 message="未获取到可用日线数据",
                 status_code=404,
-                provider="akshare",
+                provider="timing",
             )
 
         return frame
@@ -198,7 +198,7 @@ class TimingIndicatorsService:
                 code="bars_not_found",
                 message=f"{as_of_date} 之前没有可用行情数据",
                 status_code=404,
-                provider="akshare",
+                provider="timing",
             )
 
         return filtered

@@ -7,12 +7,13 @@ from unittest.mock import patch
 import pandas as pd
 from fastapi.testclient import TestClient
 
+from app.gateway.common import GatewayError
 from app.main import app
 
 client = TestClient(app)
 
 
-def _sample_history() -> pd.DataFrame:
+def _sample_history(stock_code: str = "600519") -> pd.DataFrame:
     dates = pd.date_range("2025-01-02", periods=280, freq="B")
     records: list[dict[str, object]] = []
 
@@ -21,7 +22,7 @@ def _sample_history() -> pd.DataFrame:
         records.append(
             {
                 "日期": value.strftime("%Y-%m-%d"),
-                "股票代码": "600519",
+                "股票代码": stock_code,
                 "开盘": base_close - 0.05,
                 "收盘": base_close,
                 "最高": base_close + 0.12,
@@ -38,11 +39,11 @@ def _sample_history() -> pd.DataFrame:
 def test_get_timing_bars_success() -> None:
     with (
         patch(
-            "app.providers.akshare.client.AkShareProviderClient.get_stock_snapshot",
-            return_value={"code": "600519", "name": "贵州茅台"},
+            "app.providers.timing.tushare_provider.TushareTimingProvider.get_stock_snapshot",
+            return_value={"code": "600519", "name": "Moutai"},
         ),
         patch(
-            "app.providers.akshare.client.AkShareProviderClient.get_stock_bars",
+            "app.providers.timing.tushare_provider.TushareTimingProvider.get_stock_bars",
             return_value=_sample_history(),
         ),
     ):
@@ -50,8 +51,9 @@ def test_get_timing_bars_success() -> None:
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["meta"]["provider"] == "tushare"
     assert payload["data"]["stockCode"] == "600519"
-    assert payload["data"]["stockName"] == "贵州茅台"
+    assert payload["data"]["stockName"] == "Moutai"
     assert payload["data"]["timeframe"] == "DAILY"
     assert len(payload["data"]["bars"]) == 280
 
@@ -59,18 +61,24 @@ def test_get_timing_bars_success() -> None:
 def test_get_timing_signal_success() -> None:
     with (
         patch(
-            "app.providers.akshare.client.AkShareProviderClient.get_stock_snapshot",
-            return_value={"code": "600519", "name": "贵州茅台"},
+            "app.providers.timing.tushare_provider.TushareTimingProvider.get_stock_snapshot",
+            return_value={"code": "600519", "name": "Moutai"},
         ),
         patch(
-            "app.providers.akshare.client.AkShareProviderClient.get_stock_bars",
+            "app.providers.timing.tushare_provider.TushareTimingProvider.get_stock_bars",
             return_value=_sample_history(),
+        ),
+        patch(
+            "app.providers.timing.tushare_provider.TushareTimingProvider.get_benchmark_bars",
+            return_value=_sample_history("000300"),
+            create=True,
         ),
     ):
         response = client.get("/api/v1/timing/stocks/600519/signals")
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["meta"]["provider"] == "tushare"
     assert payload["data"]["stockCode"] == "600519"
     assert payload["data"]["barsCount"] == 280
     assert payload["data"]["indicators"]["ema20"] > 0
@@ -83,19 +91,39 @@ def test_get_timing_signal_success() -> None:
 
 
 def test_get_timing_signal_batch_reports_partial_errors() -> None:
-    def mock_snapshot(stock_code: str):
+    def mock_stock_bars(
+        stock_code: str,
+        start_date: str | None,
+        end_date: str | None,
+        adjust: str,
+    ):
+        del start_date, end_date, adjust
         if stock_code == "000001":
-            raise Exception("upstream unavailable")
-        return {"code": "600519", "name": "贵州茅台"}
+            raise GatewayError(
+                code="bars_unavailable",
+                message="upstream unavailable",
+                status_code=503,
+                provider="tushare",
+            )
+        return _sample_history(stock_code)
 
     with (
         patch(
-            "app.providers.akshare.client.AkShareProviderClient.get_stock_snapshot",
-            side_effect=mock_snapshot,
+            "app.providers.timing.tushare_provider.TushareTimingProvider.get_stock_snapshots",
+            return_value={
+                "600519": {"code": "600519", "name": "Moutai"},
+                "000001": {"code": "000001", "name": "PingAn"},
+            },
+            create=True,
         ),
         patch(
-            "app.providers.akshare.client.AkShareProviderClient.get_stock_bars",
-            return_value=_sample_history(),
+            "app.providers.timing.tushare_provider.TushareTimingProvider.get_stock_bars",
+            side_effect=mock_stock_bars,
+        ),
+        patch(
+            "app.providers.timing.tushare_provider.TushareTimingProvider.get_benchmark_bars",
+            return_value=_sample_history("000300"),
+            create=True,
         ),
     ):
         response = client.post(
@@ -105,6 +133,7 @@ def test_get_timing_signal_batch_reports_partial_errors() -> None:
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["meta"]["provider"] == "tushare"
     assert len(payload["data"]["items"]) == 1
     assert payload["data"]["items"][0]["stockCode"] == "600519"
     assert len(payload["data"]["errors"]) == 1
@@ -132,19 +161,19 @@ def test_get_market_context_success() -> None:
             return_value=[
                 {
                     "code": "600519",
-                    "name": "贵州茅台",
+                    "name": "Moutai",
                     "changePercent": 2.5,
                     "turnoverRate": 1.1,
                 },
                 {
                     "code": "000001",
-                    "name": "平安银行",
+                    "name": "PingAn",
                     "changePercent": -1.6,
                     "turnoverRate": 0.8,
                 },
                 {
                     "code": "300750",
-                    "name": "宁德时代",
+                    "name": "CATL",
                     "changePercent": 5.8,
                     "turnoverRate": 2.4,
                 },
@@ -163,6 +192,7 @@ def test_get_market_context_success() -> None:
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["meta"]["provider"] == "akshare"
     assert payload["data"]["latestBreadth"]["totalCount"] == 3
     assert len(payload["data"]["indexes"]) == 4
     assert payload["data"]["features"]["benchmarkStrength"] >= 0

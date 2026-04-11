@@ -77,6 +77,19 @@ export function TimingIcon(props: IconProps) {
   );
 }
 
+export function WatchlistsIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M9 6h10" />
+      <path d="M9 12h10" />
+      <path d="M9 18h10" />
+      <circle cx="5.5" cy="6" r="1.25" />
+      <circle cx="5.5" cy="12" r="1.25" />
+      <path d="M4.5 17.25h2v2h-2z" />
+    </BaseIcon>
+  );
+}
+
 export function ResearchSpacesIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>

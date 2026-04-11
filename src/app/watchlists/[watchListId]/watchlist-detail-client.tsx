@@ -129,7 +129,7 @@ export function WatchlistDetailClient({
 
   return (
     <WorkspaceShell
-      section="spaces"
+      section="watchlists"
       eyebrow="Watchlist Detail"
       title={detailQuery.data?.name ?? "自选股列表"}
       description={

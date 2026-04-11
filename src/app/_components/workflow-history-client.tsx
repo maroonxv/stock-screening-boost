@@ -34,6 +34,7 @@ const historyHrefBySection: Record<WorkspaceSection, string | undefined> = {
   screening: "/screening/history",
   workflows: "/workflows/history",
   timing: "/timing/history",
+  watchlists: undefined,
   companyResearch: "/company-research/history",
   spaces: undefined,
 };

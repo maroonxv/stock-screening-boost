@@ -19,6 +19,7 @@ import {
   ScreeningIcon,
   SidebarToggleIcon,
   TimingIcon,
+  WatchlistsIcon,
   WorkflowsIcon,
 } from "~/app/_components/sidebar-icons";
 import type { WorkflowStageTab } from "~/app/_components/workflow-stage-config";
@@ -37,6 +38,7 @@ export type WorkspaceSection =
   | "screening"
   | "workflows"
   | "timing"
+  | "watchlists"
   | "companyResearch"
   | "spaces";
 
@@ -86,6 +88,12 @@ const sidebarNavItems: Array<{
     href: "/timing",
     label: "择时组合",
     icon: TimingIcon,
+  },
+  {
+    key: "watchlists",
+    href: "/watchlists",
+    label: "自选股",
+    icon: WatchlistsIcon,
   },
   {
     key: "spaces",
@@ -162,8 +170,17 @@ function SidebarLink(props: {
       >
         <Icon className="h-[18px] w-[18px]" />
       </span>
+      <span
+        aria-hidden={collapsed}
+        data-collapsed={collapsed ? "true" : "false"}
+        className={cn(
+          "app-sidebar-label-panel",
+          collapsed ? "pointer-events-none max-w-0 flex-none" : "",
+        )}
+      >
+        <span className="block w-full truncate">{label}</span>
+      </span>
       {collapsed ? <span className="sr-only">{label}</span> : null}
-      {!collapsed ? <span className="truncate">{label}</span> : null}
     </Link>
   );
 }
@@ -229,7 +246,7 @@ function SidebarHistoryList(props: {
   const recentItems = items.slice(0, HISTORY_ITEM_LIMIT);
 
   return (
-    <section className="mt-auto min-w-0 overflow-hidden border-t border-[var(--app-border-soft)] pt-5">
+    <section className="app-sidebar-history mt-auto min-w-0 overflow-hidden border-t border-[var(--app-border-soft)] pt-5">
       <div className="flex items-center justify-between gap-3 px-3 pb-2">
         <div className="text-[11px] font-medium tracking-[0.08em] text-[var(--app-text-subtle)]">
           {heading}
@@ -330,14 +347,28 @@ function SidebarRail(props: {
             collapsed ? "justify-center" : "justify-between gap-3",
           )}
         >
-          {!collapsed ? <SidebarBrand onNavigate={onNavigate} /> : null}
+          <div
+            aria-hidden={collapsed}
+            data-collapsed={collapsed ? "true" : "false"}
+            className={cn(
+              "app-sidebar-brand-panel",
+              collapsed ? "pointer-events-none max-w-0 flex-none" : "",
+            )}
+          >
+            <SidebarBrand onNavigate={onNavigate} />
+          </div>
           <button
             type="button"
             aria-label="Toggle sidebar"
             className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-bg-inset)] text-[var(--app-text-strong)] transition-colors hover:bg-[var(--app-bg-raised)]"
             onClick={onToggleSidebar}
           >
-            <SidebarToggleIcon className="h-[18px] w-[18px]" />
+            <span
+              className="app-sidebar-toggle-icon"
+              data-collapsed={collapsed ? "true" : "false"}
+            >
+              <SidebarToggleIcon className="h-[18px] w-[18px]" />
+            </span>
           </button>
         </div>
       ) : null}
@@ -495,7 +526,7 @@ export function WorkspaceShell(props: {
   return (
     <main
       className={cn(
-        "app-shell min-h-screen bg-[var(--app-bg)] lg:grid",
+        "app-shell app-sidebar-shell min-h-screen bg-[var(--app-bg)] lg:grid",
         desktopCollapsed
           ? "lg:grid-cols-[88px_minmax(0,1fr)]"
           : "lg:grid-cols-[258px_minmax(0,1fr)]",

@@ -35,7 +35,7 @@ export function WatchlistsClient() {
 
   return (
     <WorkspaceShell
-      section="spaces"
+      section="watchlists"
       eyebrow="Watchlists"
       title="自选股列表"
       description="第一版聚焦轻管理和强发起：管理多个列表、选股、多选后触发筛选/研究/择时。"

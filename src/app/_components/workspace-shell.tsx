@@ -360,7 +360,7 @@ function SidebarRail(props: {
           <button
             type="button"
             aria-label="Toggle sidebar"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-bg-inset)] text-[var(--app-text-strong)] transition-colors hover:bg-[var(--app-bg-raised)]"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-sidebar-bg)] text-[var(--app-text-strong)] transition-colors hover:bg-[var(--app-panel-strong)]"
             onClick={onToggleSidebar}
           >
             <span
@@ -568,7 +568,7 @@ export function WorkspaceShell(props: {
             <button
               type="button"
               aria-label="Open navigation menu"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-bg-inset)] text-[var(--app-text-strong)] transition-colors hover:bg-[var(--app-bg-raised)]"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-sidebar-bg)] text-[var(--app-text-strong)] transition-colors hover:bg-[var(--app-panel-strong)]"
               onClick={() => setMobileOpen(true)}
             >
               <MenuIcon className="h-[18px] w-[18px]" />
@@ -591,7 +591,7 @@ export function WorkspaceShell(props: {
                 <button
                   type="button"
                   aria-label="Close navigation menu"
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-bg-inset)] text-[var(--app-text-strong)] transition-colors hover:bg-[var(--app-bg-raised)]"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-[10px] border border-[var(--app-border-soft)] bg-[var(--app-sidebar-bg)] text-[var(--app-text-strong)] transition-colors hover:bg-[var(--app-panel-strong)]"
                   onClick={() => setMobileOpen(false)}
                 >
                   <CloseIcon className="h-[18px] w-[18px]" />

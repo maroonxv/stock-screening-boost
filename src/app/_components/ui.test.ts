@@ -157,6 +157,24 @@ describe("WorkspaceShell", () => {
     expect(markup).not.toContain('href="/timing/history"');
   });
 
+  it("uses the dedicated sidebar shell tone across the sidebar chrome", () => {
+    const markup = renderToStaticMarkup(
+      React.createElement(
+        WorkspaceShell,
+        {
+          section: "home",
+          title: "Overview",
+          description: "body copy",
+        } as React.ComponentProps<typeof WorkspaceShell>,
+        React.createElement("div", null, "body"),
+      ),
+    );
+
+    expect(markup.match(/bg-\[var\(--app-sidebar-bg\)\]/g)?.length ?? 0).toBe(
+      3,
+    );
+  });
+
   it("does not render the old compact website navbar shell or verbose sidebar detail rows", () => {
     const markup = renderToStaticMarkup(
       React.createElement(

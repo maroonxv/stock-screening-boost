@@ -19,17 +19,56 @@ _SERIES_CACHE_TTL_SECONDS = 3_600
 _LATEST_FIELD_SPECS: dict[str, str] = {
     "pe_ttm": "pe_ttm",
     "pb": "pb",
+    "ps_ttm": "ps_ttm",
+    "dv_ttm": "dv_ttm",
     "market_cap": "total_mv",
     "float_market_cap": "circ_mv",
     "total_shares": "total_share",
     "float_a_shares": "float_share",
+    "free_share": "free_share",
 }
 
 _SERIES_FIELD_SPECS: dict[str, tuple[str, str]] = {
     "roe_report": ("fina_indicator", "roe"),
     "eps_report": ("fina_indicator", "eps"),
+    "grossprofit_margin": ("fina_indicator", "grossprofit_margin"),
+    "netprofit_margin": ("fina_indicator", "netprofit_margin"),
+    "roa": ("fina_indicator", "roa"),
+    "roic": ("fina_indicator", "roic"),
+    "bps": ("fina_indicator", "bps"),
+    "q_sales_yoy": ("fina_indicator", "q_sales_yoy"),
+    "q_netprofit_yoy": ("fina_indicator", "q_netprofit_yoy"),
+    "dt_netprofit_yoy": ("fina_indicator", "dt_netprofit_yoy"),
+    "current_ratio": ("fina_indicator", "current_ratio"),
+    "quick_ratio": ("fina_indicator", "quick_ratio"),
+    "cash_ratio": ("fina_indicator", "cash_ratio"),
+    "ocfps": ("fina_indicator", "ocfps"),
+    "cfps": ("fina_indicator", "cfps"),
+    "assets_turn": ("fina_indicator", "assets_turn"),
+    "ar_turn": ("fina_indicator", "ar_turn"),
+    "inv_turn": ("fina_indicator", "inv_turn"),
     "revenue": ("income", "total_revenue"),
     "net_profit_parent": ("income", "n_income_attr_p"),
+    "n_cashflow_act": ("cashflow", "n_cashflow_act"),
+    "free_cashflow": ("cashflow", "free_cashflow"),
+}
+
+_RATIO_SERIES_IDS = {
+    "roe_report",
+    "grossprofit_margin",
+    "netprofit_margin",
+    "roa",
+    "roic",
+    "q_sales_yoy",
+    "q_netprofit_yoy",
+    "dt_netprofit_yoy",
+}
+
+_AMOUNT_SERIES_IDS = {
+    "revenue",
+    "net_profit_parent",
+    "n_cashflow_act",
+    "free_cashflow",
 }
 
 _LEGACY_HISTORY_MAP = {
@@ -265,7 +304,7 @@ class TushareScreeningProvider(ScreeningDataProvider):
         for trade_date in self._today_trade_dates():
             frame = client.daily_basic(
                 trade_date=trade_date,
-                fields="ts_code,pe_ttm,pb,total_mv,circ_mv,total_share,float_share",
+                fields="ts_code,pe_ttm,pb,ps_ttm,dv_ttm,total_mv,circ_mv,total_share,float_share,free_share",
             )
             if frame is None or frame.empty:
                 continue
@@ -278,10 +317,13 @@ class TushareScreeningProvider(ScreeningDataProvider):
                         for field_name in (
                             "pe_ttm",
                             "pb",
+                            "ps_ttm",
+                            "dv_ttm",
                             "total_mv",
                             "circ_mv",
                             "total_share",
                             "float_share",
+                            "free_share",
                         )
                     }
             if snapshot_map:
@@ -356,9 +398,9 @@ class TushareScreeningProvider(ScreeningDataProvider):
         if matched.empty:
             return None
         raw_value = matched.iloc[0].get(field_name)
-        if indicator_id in {"roe_report"}:
+        if indicator_id in _RATIO_SERIES_IDS:
             return self._normalize_ratio(raw_value)
-        if indicator_id in {"revenue", "net_profit_parent"}:
+        if indicator_id in _AMOUNT_SERIES_IDS:
             return self._normalize_amount(raw_value)
         return self._safe_float(raw_value)
 
@@ -404,9 +446,11 @@ class TushareScreeningProvider(ScreeningDataProvider):
         numeric_value = self._safe_float(value)
         if numeric_value is None:
             return None
+        if indicator_id in {"dv_ttm"}:
+            return self._normalize_ratio(numeric_value)
         if indicator_id in {"market_cap", "float_market_cap"}:
             return numeric_value / 10_000
-        if indicator_id in {"total_shares", "float_a_shares"}:
+        if indicator_id in {"total_shares", "float_a_shares", "free_share"}:
             return numeric_value * 10_000
         return numeric_value
 

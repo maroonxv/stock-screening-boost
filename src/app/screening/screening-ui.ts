@@ -21,6 +21,33 @@ export type CatalogNotice = {
   description: string;
 };
 
+function compareBySortOrder(
+  left: { sortOrder?: number; name: string },
+  right: { sortOrder?: number; name: string },
+) {
+  const sortDifference = (left.sortOrder ?? 0) - (right.sortOrder ?? 0);
+  if (sortDifference !== 0) {
+    return sortDifference;
+  }
+
+  return left.name.localeCompare(right.name, "zh-CN");
+}
+
+function normalizeCatalogQuery(query: string) {
+  return query.trim().toLocaleLowerCase("zh-CN");
+}
+
+function matchesCatalogQuery(item: IndicatorCatalogItem, query: string) {
+  if (!query) {
+    return true;
+  }
+
+  const haystacks = [item.name, item.id, ...(item.keywords ?? [])];
+  return haystacks.some((value) =>
+    value.toLocaleLowerCase("zh-CN").includes(query),
+  );
+}
+
 export function formatDateTime(value?: string | null) {
   if (!value) {
     return "未获取";
@@ -47,12 +74,24 @@ export function groupCatalogItems(params: {
     itemMap.set(item.categoryId, group);
   }
 
-  return params.categories.map((category) => ({
-    ...category,
-    items: (itemMap.get(category.id) ?? []).sort((left, right) =>
-      left.name.localeCompare(right.name, "zh-CN"),
-    ),
-  }));
+  return [...params.categories]
+    .sort(compareBySortOrder)
+    .map((category) => ({
+      ...category,
+      items: [...(itemMap.get(category.id) ?? [])].sort(compareBySortOrder),
+    }))
+    .filter((category) => category.items.length > 0);
+}
+
+export function buildFormulaMetricOptions(params: {
+  items: IndicatorCatalogItem[];
+  query: string;
+}) {
+  const query = normalizeCatalogQuery(params.query);
+
+  return [...params.items]
+    .filter((item) => matchesCatalogQuery(item, query))
+    .sort(compareBySortOrder);
 }
 
 export function buildCatalogNotice(params: {

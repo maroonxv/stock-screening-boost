@@ -311,3 +311,29 @@ def test_indicator_catalog_uses_tushare_business_ids():
         "net_profit_parent",
         "asset_liability_ratio",
     }.issubset(item_ids)
+
+
+def test_indicator_catalog_exposes_sorting_keywords_and_source_metadata():
+    from app.services.screening_catalog import load_indicator_catalog
+
+    load_indicator_catalog.cache_clear()
+    catalog = load_indicator_catalog()
+
+    category_ids = [category["id"] for category in catalog["categories"]]
+    assert category_ids == [
+        "valuation_capital",
+        "profit_quality",
+        "growth_quality",
+        "solvency",
+        "cashflow_quality",
+        "operating_efficiency",
+    ]
+    assert all("sortOrder" in category for category in catalog["categories"])
+
+    items_by_id = {item["id"]: item for item in catalog["items"]}
+    assert items_by_id["ps_ttm"]["sourceDataset"] == "daily_basic"
+    assert "市销率" in items_by_id["ps_ttm"]["keywords"]
+    assert items_by_id["grossprofit_margin"]["sourceDataset"] == "fina_indicator"
+    assert items_by_id["n_cashflow_act"]["sourceDataset"] == "cashflow"
+    assert items_by_id["free_cashflow"]["sourceDataset"] == "cashflow"
+    assert all("sortOrder" in item for item in catalog["items"])

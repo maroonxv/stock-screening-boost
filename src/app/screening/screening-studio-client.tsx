@@ -16,6 +16,7 @@ import { screeningStageTabs } from "~/app/screening/screening-stage-tabs";
 import {
   annualPresetOptions,
   buildCatalogNotice,
+  buildFormulaMetricOptions,
   buildMetricNameMap,
   buildResultColumns,
   buildVisibleResultRows,
@@ -129,10 +130,14 @@ export function ScreeningStudioClient() {
   const [lastFetchedAt, setLastFetchedAt] = useState<string | undefined>();
   const [stockSearchKeyword, setStockSearchKeyword] = useState("");
   const deferredStockKeyword = useDeferredValue(stockSearchKeyword.trim());
+  const [catalogSearchQuery, setCatalogSearchQuery] = useState("");
   const [editingFormulaId, setEditingFormulaId] = useState<string | null>(null);
   const [formulaName, setFormulaName] = useState("");
   const [formulaDescription, setFormulaDescription] = useState("");
   const [formulaExpression, setFormulaExpression] = useState("");
+  const [formulaInsertQuery, setFormulaInsertQuery] = useState("");
+  const [formulaTargetIndicatorQuery, setFormulaTargetIndicatorQuery] =
+    useState("");
   const [formulaTargetIndicators, setFormulaTargetIndicators] = useState<
     string[]
   >([]);
@@ -180,14 +185,39 @@ export function ScreeningStudioClient() {
       refetchOnWindowFocus: false,
     },
   );
+  const catalogItems = catalogQuery.data?.items ?? [];
+  const filteredCatalogItems = useMemo(
+    () =>
+      buildFormulaMetricOptions({
+        items: catalogItems,
+        query: catalogSearchQuery,
+      }),
+    [catalogItems, catalogSearchQuery],
+  );
+  const formulaInsertOptions = useMemo(
+    () =>
+      buildFormulaMetricOptions({
+        items: catalogItems,
+        query: formulaInsertQuery,
+      }),
+    [catalogItems, formulaInsertQuery],
+  );
+  const formulaTargetIndicatorOptions = useMemo(
+    () =>
+      buildFormulaMetricOptions({
+        items: catalogItems,
+        query: formulaTargetIndicatorQuery,
+      }),
+    [catalogItems, formulaTargetIndicatorQuery],
+  );
 
   const groupedCatalog = useMemo(
     () =>
       groupCatalogItems({
         categories: catalogQuery.data?.categories ?? [],
-        items: catalogQuery.data?.items ?? [],
+        items: filteredCatalogItems,
       }),
-    [catalogQuery.data],
+    [catalogQuery.data?.categories, filteredCatalogItems],
   );
   const catalogNotice = useMemo(
     () =>
@@ -213,11 +243,11 @@ export function ScreeningStudioClient() {
   const metricNameMap = useMemo(
     () =>
       buildMetricNameMap({
-        catalogItems: catalogQuery.data?.items ?? [],
+        catalogItems,
         formulas,
         result: resultSnapshot,
       }),
-    [catalogQuery.data, formulas, resultSnapshot],
+    [catalogItems, formulas, resultSnapshot],
   );
   const resultColumns = useMemo(
     () => buildResultColumns(resultSnapshot),
@@ -842,6 +872,12 @@ export function ScreeningStudioClient() {
               description={catalogNotice.description}
             />
           ) : null}
+          <input
+            value={catalogSearchQuery}
+            onChange={(event) => setCatalogSearchQuery(event.target.value)}
+            placeholder="搜索官方指标（名称 / ID / 关键词）"
+            className="app-input mb-3"
+          />
           <div className="max-h-[420px] overflow-auto rounded-[12px] border border-[var(--app-border-soft)]">
             <div className="border-b border-[var(--app-border-soft)] px-4 py-3 text-xs text-[var(--app-text-subtle)]">
               官方指标
@@ -962,8 +998,14 @@ export function ScreeningStudioClient() {
               <div className="text-xs text-[var(--app-text-subtle)]">
                 点击插入指标名
               </div>
+              <input
+                value={formulaInsertQuery}
+                onChange={(event) => setFormulaInsertQuery(event.target.value)}
+                placeholder="搜索可插入指标"
+                className="app-input mt-2"
+              />
               <div className="mt-2 flex max-h-[120px] flex-wrap gap-2 overflow-auto">
-                {(catalogQuery.data?.items ?? []).slice(0, 30).map((item) => (
+                {formulaInsertOptions.map((item) => (
                   <button
                     key={item.id}
                     type="button"
@@ -979,8 +1021,16 @@ export function ScreeningStudioClient() {
               <div className="text-xs text-[var(--app-text-subtle)]">
                 目标指标（最多 5 个）
               </div>
+              <input
+                value={formulaTargetIndicatorQuery}
+                onChange={(event) =>
+                  setFormulaTargetIndicatorQuery(event.target.value)
+                }
+                placeholder="搜索目标指标"
+                className="app-input mt-2"
+              />
               <div className="mt-2 grid max-h-[140px] gap-2 overflow-auto">
-                {(catalogQuery.data?.items ?? []).map((item) => (
+                {formulaTargetIndicatorOptions.map((item) => (
                   <label
                     key={item.id}
                     className="flex items-center gap-2 text-sm text-[var(--app-text)]"

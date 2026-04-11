@@ -31,6 +31,15 @@ export const indicatorRetrievalModeSchema = z.enum([
   "formula",
 ]);
 
+export const indicatorSourceDatasetSchema = z.enum([
+  "daily_basic",
+  "fina_indicator",
+  "income",
+  "cashflow",
+  "balancesheet",
+  "derived",
+]);
+
 export const indicatorCatalogItemSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
@@ -39,6 +48,9 @@ export const indicatorCatalogItemSchema = z.object({
   periodScope: indicatorPeriodScopeSchema,
   retrievalMode: indicatorRetrievalModeSchema,
   description: z.string().optional(),
+  sortOrder: z.number().int().nonnegative().default(0),
+  keywords: z.array(z.string().min(1)).default([]),
+  sourceDataset: indicatorSourceDatasetSchema.default("derived"),
 });
 
 export const indicatorCategorySchema = z.object({
@@ -46,6 +58,7 @@ export const indicatorCategorySchema = z.object({
   name: z.string().min(1),
   description: z.string().optional(),
   indicatorCount: z.number().int().nonnegative().default(0),
+  sortOrder: z.number().int().nonnegative().default(0),
 });
 
 export const customFormulaSpecSchema = z.object({

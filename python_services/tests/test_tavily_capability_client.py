@@ -48,6 +48,12 @@ def test_search_maps_tavily_results(monkeypatch: pytest.MonkeyPatch) -> None:
                         "url": "https://example.com/report",
                         "content": "Short description",
                         "raw_content": "# Headline\nDetailed source body",
+                    },
+                    {
+                        "title": "Tavily result without raw content",
+                        "url": "https://example.com/summary",
+                        "content": "Only summary",
+                        "raw_content": None,
                     }
                 ]
             }
@@ -69,6 +75,11 @@ def test_search_maps_tavily_results(monkeypatch: pytest.MonkeyPatch) -> None:
             "url": "https://example.com/report",
             "description": "Short description",
             "markdown": "# Headline\nDetailed source body",
+        },
+        {
+            "title": "Tavily result without raw content",
+            "url": "https://example.com/summary",
+            "description": "Only summary",
         }
     ]
     assert requests == [
@@ -77,7 +88,9 @@ def test_search_maps_tavily_results(monkeypatch: pytest.MonkeyPatch) -> None:
             {
                 "query": "AI infra",
                 "max_results": 3,
-                "include_raw_content": True,
+                "search_depth": "basic",
+                "topic": "general",
+                "include_raw_content": "markdown",
             },
             {
                 "Authorization": "Bearer test-key",

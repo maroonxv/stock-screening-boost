@@ -45,7 +45,9 @@ class TavilyCapabilityClient:
             {
                 "query": query,
                 "max_results": limit,
-                "include_raw_content": True,
+                "search_depth": "basic",
+                "topic": "general",
+                "include_raw_content": "markdown",
             },
         )
         results = response.get("results")
@@ -53,12 +55,14 @@ class TavilyCapabilityClient:
             return []
 
         return [
-            {
-                "title": self._coerce_title(item),
-                "url": item.get("url") or "",
-                "description": item.get("content") or None,
-                "markdown": item.get("raw_content") or None,
-            }
+            self._compact(
+                {
+                    "title": self._coerce_title(item),
+                    "url": item.get("url") or "",
+                    "description": item.get("content") or None,
+                    "markdown": item.get("raw_content") or None,
+                }
+            )
             for item in results
             if isinstance(item, dict) and item.get("url")
         ]
@@ -87,12 +91,14 @@ class TavilyCapabilityClient:
         title = self._extract_title(markdown) or self._hostname_or_url(resolved_url)
         description = self._extract_description(markdown)
 
-        return {
-            "title": title,
-            "url": resolved_url,
-            "markdown": markdown or None,
-            "description": description or None,
-        }
+        return self._compact(
+            {
+                "title": title,
+                "url": resolved_url,
+                "markdown": markdown or None,
+                "description": description or None,
+            }
+        )
 
     def _request(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
         headers = {
@@ -147,3 +153,8 @@ class TavilyCapabilityClient:
 
     def _coerce_string(self, value: Any) -> str:
         return value.strip() if isinstance(value, str) else ""
+
+    def _compact(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return {
+            key: value for key, value in payload.items() if value is not None
+        }

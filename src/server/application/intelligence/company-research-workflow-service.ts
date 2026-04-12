@@ -237,6 +237,24 @@ function buildCollectorQueries(params: {
   ]);
 }
 
+function resolveCollectorKeyForCapability(
+  capability: ResearchUnitCapability,
+): CompanyResearchCollectorKey {
+  if (capability === "industry_search") {
+    return "industry_sources";
+  }
+
+  if (capability === "news_search") {
+    return "news_sources";
+  }
+
+  if (capability === "financial_pack") {
+    return "financial_sources";
+  }
+
+  return "official_sources";
+}
+
 function mapWebDocumentToEvidence(params: {
   collectorKey: CompanyResearchCollectorKey;
   sourceType: CompanyResearchSourceType;
@@ -495,12 +513,9 @@ export class CompanyResearchWorkflowService {
         };
       }
 
-      const collectorKey: CompanyResearchCollectorKey =
-        params.unit.capability === "industry_search"
-          ? "industry_sources"
-          : params.unit.capability === "news_search"
-            ? "news_sources"
-            : "official_sources";
+      const collectorKey = resolveCollectorKeyForCapability(
+        params.unit.capability,
+      );
       const sourceType: CompanyResearchSourceType =
         collectorKey === "industry_sources"
           ? "industry"
@@ -623,7 +638,7 @@ export class CompanyResearchWorkflowService {
       };
     } catch (error) {
       return {
-        collectorKey: "news_sources",
+        collectorKey: resolveCollectorKeyForCapability(params.unit.capability),
         evidence: [],
         notes: [error instanceof Error ? error.message : "unknown error"],
         queries: [],
@@ -1011,7 +1026,7 @@ export class CompanyResearchWorkflowService {
       references: params.state.references ?? [],
       collectionSummary: params.state.collectionSummary,
       crawler: params.state.crawlerSummary ?? {
-        provider: "firecrawl",
+        provider: "tavily",
         configured: false,
         queries: [],
         notes: [],

@@ -218,7 +218,7 @@ describe("research-view-models", () => {
           notes: [],
         },
         crawler: {
-          provider: "firecrawl",
+          provider: "tavily",
           configured: true,
           queries: [],
           notes: [],

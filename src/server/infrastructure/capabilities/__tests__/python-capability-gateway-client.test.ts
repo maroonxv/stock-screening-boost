@@ -100,15 +100,15 @@ describe("PythonCapabilityGatewayClient", () => {
           JSON.stringify({
             error: {
               traceId: "req-web-1",
-              provider: "firecrawl",
+              provider: "tavily",
               capability: "web",
               operation: "search",
-              code: "firecrawl_unavailable",
-              message: "Firecrawl upstream failed",
+              code: "tavily_search_failed",
+              message: "Tavily upstream failed",
               retryable: true,
               failurePhase: "request",
               diagnostics: {
-                endpoint: "https://api.firecrawl.dev/v2/search",
+                endpoint: "https://api.tavily.com/search",
               },
             },
           }),

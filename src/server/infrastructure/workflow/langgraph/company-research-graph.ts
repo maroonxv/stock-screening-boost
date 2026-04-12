@@ -404,7 +404,7 @@ export class LegacyCompanyResearchLangGraph extends CompanyResearchLangGraphBase
             findings,
             evidence: state.evidence ?? [],
             crawler: state.crawlerSummary ?? {
-              provider: "firecrawl",
+              provider: "tavily",
               configured: false,
               queries: [],
               notes: ["No crawler notes available."],
@@ -627,7 +627,7 @@ export class CompanyResearchLangGraph extends CompanyResearchLangGraphBase<V2Nod
               | CompanyResearchCollectionSummary
               | undefined,
             crawler: state.crawlerSummary ?? {
-              provider: "firecrawl",
+              provider: "tavily",
               configured: false,
               queries: [],
               notes: ["No crawler notes available."],

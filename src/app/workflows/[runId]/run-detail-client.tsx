@@ -1019,8 +1019,8 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
                         <StatusPill
                           label={
                             companyResult.crawler.configured
-                              ? "Firecrawl 已启用"
-                              : "Firecrawl 未配置"
+                              ? "Tavily 已启用"
+                              : "Tavily 未配置"
                           }
                           tone={
                             companyResult.crawler.configured

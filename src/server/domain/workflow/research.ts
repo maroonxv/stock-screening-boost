@@ -255,8 +255,8 @@ export const DEFAULT_RESEARCH_RUNTIME_CONFIG: ResearchRuntimeConfig = {
     report: "deepseek-chat",
   },
   toolProviders: {
-    webSearch: "firecrawl",
-    pageFetch: "firecrawl",
+    webSearch: "tavily",
+    pageFetch: "tavily",
     financialPack: "python",
     themeNews: "python",
     candidateScreening: "python",

@@ -265,3 +265,148 @@ def test_screening_query_capability_uses_strict_screening_provider(monkeypatch):
 
     assert result.provider == "tushare"
     assert result.data["provider"] == "tushare"
+
+
+def test_search_web_prefers_tavily_when_configured():
+    from app.gateway.external_capability_gateway import ExternalCapabilityGateway
+
+    class TavilyClient:
+        def is_configured(self) -> bool:
+            return True
+
+        def diagnostics(self) -> dict[str, object]:
+            return {
+                "endpoint": "https://api.tavily.com",
+                "configured": True,
+                "timeoutSeconds": 8,
+            }
+
+        def search(self, *, query: str, limit: int) -> list[dict[str, object]]:
+            return [
+                {
+                    "title": f"Tavily {query}",
+                    "url": "https://example.com/tavily",
+                    "description": "summary",
+                    "markdown": "body",
+                }
+            ]
+
+    class FirecrawlClient:
+        def is_configured(self) -> bool:
+            return True
+
+        def diagnostics(self) -> dict[str, object]:
+            return {
+                "endpoint": "https://api.firecrawl.dev",
+                "configured": True,
+                "timeoutSeconds": 15,
+            }
+
+        def search(self, *, query: str, limit: int) -> list[dict[str, object]]:
+            raise AssertionError("firecrawl should not be used when tavily is configured")
+
+    gateway = ExternalCapabilityGateway(
+        tavily_client=TavilyClient(),
+        firecrawl_client=FirecrawlClient(),
+    )
+
+    result = gateway.search_web(
+        "req_tavily",
+        {
+            "queries": ["AI infra"],
+            "limit": 2,
+        },
+    )
+
+    assert result.provider == "tavily"
+    assert result.data[0]["title"] == "Tavily AI infra"
+    assert result.diagnostics["endpoint"] == "https://api.tavily.com"
+
+
+def test_search_web_falls_back_to_firecrawl_when_tavily_not_configured():
+    from app.gateway.external_capability_gateway import ExternalCapabilityGateway
+
+    class TavilyClient:
+        def is_configured(self) -> bool:
+            return False
+
+        def diagnostics(self) -> dict[str, object]:
+            return {
+                "endpoint": "https://api.tavily.com",
+                "configured": False,
+                "timeoutSeconds": 8,
+            }
+
+    class FirecrawlClient:
+        def is_configured(self) -> bool:
+            return True
+
+        def diagnostics(self) -> dict[str, object]:
+            return {
+                "endpoint": "https://api.firecrawl.dev",
+                "configured": True,
+                "timeoutSeconds": 15,
+            }
+
+        def search(self, *, query: str, limit: int) -> list[dict[str, object]]:
+            return [
+                {
+                    "title": f"Firecrawl {query}",
+                    "url": "https://example.com/firecrawl",
+                    "description": "summary",
+                    "markdown": "body",
+                }
+            ]
+
+    gateway = ExternalCapabilityGateway(
+        tavily_client=TavilyClient(),
+        firecrawl_client=FirecrawlClient(),
+    )
+
+    result = gateway.search_web(
+        "req_firecrawl_fallback",
+        {
+            "queries": ["AI infra"],
+            "limit": 2,
+        },
+    )
+
+    assert result.provider == "firecrawl"
+    assert result.data[0]["title"] == "Firecrawl AI infra"
+    assert result.diagnostics["endpoint"] == "https://api.firecrawl.dev"
+
+
+def test_search_web_maps_tavily_errors_to_tavily_provider():
+    from app.gateway.external_capability_gateway import (
+        CapabilityError,
+        ExternalCapabilityGateway,
+    )
+
+    class TavilyClient:
+        def is_configured(self) -> bool:
+            return True
+
+        def diagnostics(self) -> dict[str, object]:
+            return {
+                "endpoint": "https://api.tavily.com",
+                "configured": True,
+                "timeoutSeconds": 8,
+            }
+
+        def search(self, *, query: str, limit: int) -> list[dict[str, object]]:
+            raise RuntimeError("429 from tavily")
+
+    gateway = ExternalCapabilityGateway(tavily_client=TavilyClient())
+
+    with pytest.raises(CapabilityError) as exc_info:
+        gateway.search_web(
+            "req_tavily_error",
+            {
+                "queries": ["AI infra"],
+                "limit": 2,
+            },
+        )
+
+    assert exc_info.value.provider == "tavily"
+    assert exc_info.value.code == "tavily_search_failed"
+    assert exc_info.value.diagnostics["endpoint"] == "https://api.tavily.com"

@@ -512,7 +512,7 @@ export type CompanyResearchResultDto = {
   verdict: CompanyResearchVerdict;
   collectionSummary: CompanyResearchCollectionSummary;
   crawler: {
-    provider: "firecrawl";
+    provider: "tavily" | "firecrawl";
     configured: boolean;
     queries: string[];
     notes: string[];

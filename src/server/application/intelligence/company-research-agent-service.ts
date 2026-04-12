@@ -848,7 +848,7 @@ function buildCrawlerSummary(params: {
   ];
 
   return {
-    provider: "firecrawl" as const,
+    provider: "tavily" as const,
     configured: params.firecrawlConfigured,
     queries: uniqueStrings(
       queryCollectors.flatMap(

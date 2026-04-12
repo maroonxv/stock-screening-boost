@@ -3,8 +3,24 @@ import { ResearchToolRegistry } from "~/server/application/intelligence/research
 
 const runtimeConfig = {
   toolProviders: {
+    webSearch: "tavily",
+    pageFetch: "tavily",
+    financialPack: "python",
+    themeNews: "python",
+    candidateScreening: "python",
+    credibilityLookup: "python",
+  },
+  models: {
+    compression: "deepseek-chat",
+  },
+  maxContentCharsPerSource: 1200,
+  maxEvidencePerUnit: 5,
+} as never;
+
+const legacyRuntimeConfig = {
+  toolProviders: {
     webSearch: "firecrawl",
-    pageFetch: "firecrawl",
+    pageFetch: "tavily",
     financialPack: "python",
     themeNews: "python",
     candidateScreening: "python",
@@ -97,5 +113,42 @@ describe("ResearchToolRegistry", () => {
 
     expect(scrapeUrl).toHaveBeenCalledWith("https://example.com/page");
     expect(result?.title).toBe("Fetched Page");
+  });
+
+  it("keeps the legacy firecrawl provider config working through the capability gateway", async () => {
+    const search = vi.fn(async () => [
+      {
+        title: "Result A",
+        url: "https://example.com/path",
+        description: "desc A",
+        markdown: "markdown A",
+      },
+    ]);
+
+    const registry = new ResearchToolRegistry({
+      deepSeekClient: {
+        complete: vi.fn(async (_messages, fallback) => fallback),
+      } as never,
+      pythonCapabilityGatewayClient: {
+        isConfigured: vi.fn(() => true),
+        search,
+        scrapeUrl: vi.fn(),
+      } as never,
+      pythonIntelligenceDataClient: {
+        getCompanyResearchPack: vi.fn(),
+        getThemeNews: vi.fn(),
+        getCandidates: vi.fn(),
+        getEvidenceBatch: vi.fn(),
+      } as never,
+    });
+
+    const results = await registry.searchWeb({
+      queries: ["compute"],
+      runtimeConfig: legacyRuntimeConfig,
+      limit: 4,
+    });
+
+    expect(results).toHaveLength(1);
+    expect(search).toHaveBeenCalledTimes(1);
   });
 });

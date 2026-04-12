@@ -66,6 +66,9 @@ export const env = createEnv({
       .int()
       .positive()
       .default(DEFAULT_DEEPSEEK_TIMEOUT_MS),
+    TAVILY_API_KEY: z.string().optional(),
+    TAVILY_BASE_URL: z.string().url().default("https://api.tavily.com"),
+    TAVILY_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
     FIRECRAWL_API_KEY: z.string().optional(),
     FIRECRAWL_BASE_URL: z.string().url().default("https://api.firecrawl.dev"),
     FIRECRAWL_TIMEOUT_MS: z.coerce.number().int().positive().default(15_000),
@@ -135,6 +138,13 @@ export const env = createEnv({
     DEEPSEEK_TIMEOUT_MS: readPositiveNumberEnv(
       process.env.DEEPSEEK_TIMEOUT_MS,
       DEFAULT_DEEPSEEK_TIMEOUT_MS,
+    ),
+    TAVILY_API_KEY: process.env.TAVILY_API_KEY,
+    TAVILY_BASE_URL:
+      process.env.TAVILY_BASE_URL ?? "https://api.tavily.com",
+    TAVILY_TIMEOUT_MS: readPositiveNumberEnv(
+      process.env.TAVILY_TIMEOUT_MS,
+      15_000,
     ),
     FIRECRAWL_API_KEY: process.env.FIRECRAWL_API_KEY,
     FIRECRAWL_BASE_URL:

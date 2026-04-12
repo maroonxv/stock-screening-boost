@@ -13,6 +13,7 @@ from app.providers.screening.factory import get_strict_screening_provider
 from app.services.firecrawl_capability_client import FirecrawlCapabilityClient
 from app.services.screening_ifind_gateway import resolve_periods
 from app.services.screening_query_service import ScreeningQueryService
+from app.services.tavily_capability_client import TavilyCapabilityClient
 from app.services.zhipu_search_client import ZhipuSearchClient
 
 _T = TypeVar("_T")
@@ -59,9 +60,11 @@ class ExternalCapabilityGateway:
     def __init__(
         self,
         *,
+        tavily_client: TavilyCapabilityClient | None = None,
         firecrawl_client: FirecrawlCapabilityClient | None = None,
         zhipu_client: ZhipuSearchClient | None = None,
     ) -> None:
+        self._tavily_client = tavily_client or TavilyCapabilityClient()
         self._firecrawl_client = firecrawl_client or FirecrawlCapabilityClient()
         self._zhipu_client = zhipu_client or ZhipuSearchClient()
 
@@ -114,8 +117,9 @@ class ExternalCapabilityGateway:
         request_id: str,
         payload: dict[str, Any],
     ) -> CapabilityResult[list[dict[str, Any]]]:
+        provider_name, client = self._resolve_web_client()
         diagnostics = {
-            **self._firecrawl_client.diagnostics(),
+            **client.diagnostics(),
             "requestFingerprint": _fingerprint(payload),
         }
         try:
@@ -123,9 +127,9 @@ class ExternalCapabilityGateway:
             limit = int(payload.get("limit", 5))
             results: list[dict[str, Any]] = []
             for query in queries:
-                results.extend(self._firecrawl_client.search(query=query, limit=limit))
+                results.extend(client.search(query=query, limit=limit))
             return CapabilityResult(
-                provider="firecrawl",
+                provider=provider_name,
                 capability="web",
                 operation="search",
                 data=results,
@@ -134,10 +138,10 @@ class ExternalCapabilityGateway:
             )
         except Exception as exc:  # noqa: BLE001
             raise CapabilityError(
-                provider="firecrawl",
+                provider=provider_name,
                 capability="web",
                 operation="search",
-                code="firecrawl_search_failed",
+                code=f"{provider_name}_search_failed",
                 message=str(exc),
                 failure_phase="request",
                 diagnostics=diagnostics,
@@ -150,14 +154,15 @@ class ExternalCapabilityGateway:
         request_id: str,
         payload: dict[str, Any],
     ) -> CapabilityResult[dict[str, Any] | None]:
+        provider_name, client = self._resolve_web_client()
         diagnostics = {
-            **self._firecrawl_client.diagnostics(),
+            **client.diagnostics(),
             "requestFingerprint": _fingerprint(payload),
         }
         try:
-            document = self._firecrawl_client.fetch(url=str(payload.get("url", "")).strip())
+            document = client.fetch(url=str(payload.get("url", "")).strip())
             return CapabilityResult(
-                provider="firecrawl",
+                provider=provider_name,
                 capability="web",
                 operation="fetch",
                 data=document,
@@ -166,10 +171,10 @@ class ExternalCapabilityGateway:
             )
         except Exception as exc:  # noqa: BLE001
             raise CapabilityError(
-                provider="firecrawl",
+                provider=provider_name,
                 capability="web",
                 operation="fetch",
-                code="firecrawl_fetch_failed",
+                code=f"{provider_name}_fetch_failed",
                 message=str(exc),
                 failure_phase="request",
                 diagnostics=diagnostics,
@@ -214,6 +219,13 @@ class ExternalCapabilityGateway:
                 retryable=True,
                 status_code=503,
             ) from exc
+
+    def _resolve_web_client(self) -> tuple[str, Any]:
+        if self._tavily_client.is_configured():
+            return ("tavily", self._tavily_client)
+        if self._firecrawl_client.is_configured():
+            return ("firecrawl", self._firecrawl_client)
+        return ("tavily", self._tavily_client)
 
 
 external_capability_gateway = ExternalCapabilityGateway()

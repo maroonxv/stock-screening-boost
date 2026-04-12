@@ -4,15 +4,15 @@ import type {
   ThemeNewsItem,
 } from "~/server/domain/intelligence/types";
 import type { ResearchRuntimeConfig } from "~/server/domain/workflow/research";
-import type { PythonCapabilityGatewayClient } from "~/server/infrastructure/capabilities/python-capability-gateway-client";
+import type {
+  CapabilityWebDocument,
+  CapabilityWebSearchResult,
+  PythonCapabilityGatewayClient,
+} from "~/server/infrastructure/capabilities/python-capability-gateway-client";
 import type {
   DeepSeekClient,
   DeepSeekRequestOptions,
 } from "~/server/infrastructure/intelligence/deepseek-client";
-import type {
-  FirecrawlScrapeDocument,
-  FirecrawlSearchResult,
-} from "~/server/infrastructure/intelligence/firecrawl-client";
 import type {
   IntelligenceCandidateItem,
   PythonIntelligenceDataClient,
@@ -58,14 +58,18 @@ function summarizeInlineContent(content: string, maxLength: number) {
   return `${normalized.slice(0, maxLength)}...`;
 }
 
+function isSupportedWebProvider(provider: string) {
+  return provider === "tavily" || provider === "firecrawl";
+}
+
 export class ResearchToolRegistry {
   private readonly deepSeekClient: DeepSeekClient;
-  private readonly firecrawlClient: PythonCapabilityGatewayClient;
+  private readonly capabilityGatewayClient: PythonCapabilityGatewayClient;
   private readonly pythonIntelligenceDataClient: PythonIntelligenceDataClient;
 
   constructor(dependencies: ResearchToolRegistryDependencies) {
     this.deepSeekClient = dependencies.deepSeekClient;
-    this.firecrawlClient = dependencies.pythonCapabilityGatewayClient;
+    this.capabilityGatewayClient = dependencies.pythonCapabilityGatewayClient;
     this.pythonIntelligenceDataClient =
       dependencies.pythonIntelligenceDataClient;
   }
@@ -120,22 +124,22 @@ export class ResearchToolRegistry {
     limit?: number;
   }): Promise<ResearchWebDocument[]> {
     if (
-      params.runtimeConfig.toolProviders.webSearch !== "firecrawl" ||
-      !this.firecrawlClient.isConfigured()
+      !isSupportedWebProvider(params.runtimeConfig.toolProviders.webSearch) ||
+      !this.capabilityGatewayClient.isConfigured()
     ) {
       return [];
     }
 
     const results = await Promise.all(
       params.queries.map((query) =>
-        this.firecrawlClient.search({
+        this.capabilityGatewayClient.search({
           query,
           limit: params.limit ?? 5,
         }),
       ),
     );
 
-    const deduped = new Map<string, FirecrawlSearchResult>();
+    const deduped = new Map<string, CapabilityWebSearchResult>();
     for (const batch of results) {
       for (const item of batch) {
         const canonicalUrl = canonicalizeUrl(item.url) ?? item.url;
@@ -175,13 +179,13 @@ export class ResearchToolRegistry {
     runtimeConfig: ResearchRuntimeConfig;
   }): Promise<ResearchWebDocument | null> {
     if (
-      params.runtimeConfig.toolProviders.pageFetch !== "firecrawl" ||
-      !this.firecrawlClient.isConfigured()
+      !isSupportedWebProvider(params.runtimeConfig.toolProviders.pageFetch) ||
+      !this.capabilityGatewayClient.isConfigured()
     ) {
       return null;
     }
 
-    const document = await this.firecrawlClient.scrapeUrl(params.url);
+    const document = await this.capabilityGatewayClient.scrapeUrl(params.url);
     if (!document) {
       return null;
     }
@@ -190,7 +194,7 @@ export class ResearchToolRegistry {
   }
 
   private async mapScrapeDocument(
-    document: FirecrawlScrapeDocument,
+    document: CapabilityWebDocument,
     runtimeConfig: ResearchRuntimeConfig,
   ) {
     const rawContent = document.markdown ?? document.description ?? "";

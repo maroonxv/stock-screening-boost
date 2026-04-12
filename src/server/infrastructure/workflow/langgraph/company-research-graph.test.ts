@@ -208,7 +208,7 @@ function createGraphServiceStub() {
       references: [reference],
       collectionSummary,
       crawler: {
-        provider: "firecrawl" as const,
+        provider: "tavily" as const,
         configured: true,
         queries: ["official", "news", "industry"],
         notes: [],
@@ -261,7 +261,7 @@ function createGraphServiceStub() {
     collectEvidence: vi.fn(async () => ({
       evidence: [],
       crawler: {
-        provider: "firecrawl" as const,
+        provider: "tavily" as const,
         configured: false,
         queries: [],
         notes: [],
@@ -488,7 +488,7 @@ describe("company-research-graph", () => {
           notes: [],
         },
         crawler: {
-          provider: "firecrawl" as const,
+          provider: "tavily" as const,
           configured: false,
           queries: [],
           notes: [],
@@ -552,7 +552,7 @@ describe("company-research-graph", () => {
           notes: [],
         },
         crawler: {
-          provider: "firecrawl" as const,
+          provider: "tavily" as const,
           configured: false,
           queries: [],
           notes: [],

@@ -166,7 +166,7 @@ function createWorkflowServiceStub() {
         notes: [],
       },
       crawler: {
-        provider: "firecrawl" as const,
+        provider: "tavily" as const,
         configured: false,
         queries: [],
         notes: [],
@@ -231,7 +231,7 @@ function createWorkflowServiceStub() {
         notes: [],
       },
       crawler: {
-        provider: "firecrawl" as const,
+        provider: "tavily" as const,
         configured: false,
         queries: [],
         notes: [],

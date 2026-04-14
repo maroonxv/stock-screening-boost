@@ -16,6 +16,11 @@ import {
   buildScreeningWorkspaceHistoryItems,
   buildWorkflowRunHistoryItems,
 } from "~/app/_components/workspace-history";
+import {
+  buildCompanyResearchDetailModel,
+  CompanyResearchDetailContent,
+  CompanyResearchPausedFallbackPanel,
+} from "~/app/workflows/company-research-detail";
 import { ResearchOpsPanels } from "~/app/workflows/research-ops-panels";
 import {
   buildResearchDigest,
@@ -207,6 +212,19 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
   const companyResult = isCompanyResearchResult(run?.result)
     ? run.result
     : null;
+  const companyDetailModel =
+    run?.template.code === COMPANY_RESEARCH_TEMPLATE_CODE
+      ? buildCompanyResearchDetailModel({
+          status: run.status,
+          result: run.result,
+          input: run.input,
+          currentNodeKey: run.currentNodeKey,
+        })
+      : null;
+  const showCompanyDetailExperience =
+    run?.template.code === COMPANY_RESEARCH_TEMPLATE_CODE &&
+    (run.status === "SUCCEEDED" || run.status === "PAUSED") &&
+    companyDetailModel !== null;
   const quickResearchModePills =
     run?.template.code === QUICK_RESEARCH_TEMPLATE_CODE
       ? getQuickResearchModePills(run?.result, run?.input)
@@ -382,260 +400,278 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
             </div>
           ) : null}
 
-          <Panel
-            title="可信度分析"
-            description="在不改写原始结论的前提下，补充支持、证据不足与冲突信号。"
-          >
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
-                <div className="text-xs text-[var(--app-text-soft)]">
-                  可信度得分
-                </div>
-                <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-                  {confidenceAnalysis?.finalScore ?? "未分析"}
-                </div>
-              </div>
-              <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
-                <div className="text-xs text-[var(--app-text-soft)]">等级</div>
-                <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-                  {formatConfidenceLevel(confidenceAnalysis?.level)}
-                </div>
-              </div>
-              <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
-                <div className="text-xs text-[var(--app-text-soft)]">
-                  支持/不足/冲突
-                </div>
-                <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-                  {confidenceAnalysis
-                    ? `${confidenceAnalysis.supportedCount}/${confidenceAnalysis.insufficientCount}/${confidenceAnalysis.contradictedCount}`
-                    : "0/0/0"}
-                </div>
-              </div>
-              <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
-                <div className="text-xs text-[var(--app-text-soft)]">
-                  证据覆盖率
-                </div>
-                <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-                  {confidenceAnalysis
-                    ? `${confidenceAnalysis.evidenceCoverageScore}%`
-                    : "未分析"}
-                </div>
-              </div>
-            </div>
-
-            {confidenceAnalysis?.notes.length ? (
-              <div className="mt-4 grid gap-2">
-                {confidenceAnalysis.notes.map((note) => (
-                  <div
-                    key={note}
-                    className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-3 py-2 text-sm leading-6 text-[var(--app-text-muted)]"
-                  >
-                    {note}
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            {confidenceAnalysis?.claims.length ? (
-              <div className="mt-4 grid gap-3">
-                {confidenceAnalysis.claims.map((claim) => (
-                  <details
-                    key={claim.claimId}
-                    className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3"
-                  >
-                    <summary className="cursor-pointer text-sm text-[var(--app-text)]">
-                      {claim.claimText}
-                    </summary>
-                    <div className="mt-3 space-y-2 text-sm text-[var(--app-text-muted)]">
-                      <p>标签：{claim.label}</p>
-                      <p>{claim.explanation}</p>
-                      {claim.matchedReferenceIds.length > 0 ? (
-                        <p>命中引用： {claim.matchedReferenceIds.join(", ")}</p>
-                      ) : null}
-                    </div>
-                  </details>
-                ))}
-              </div>
-            ) : null}
-          </Panel>
-
-          <Panel
-            title="关键指标"
-            description="这些指标可以帮助判断这次运行是否值得继续深入阅读。"
-          >
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {digest.metrics.length === 0 ? (
-                <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3 text-sm text-[var(--app-text-muted)]">
-                  暂无结构化指标。
-                </div>
-              ) : (
-                digest.metrics.map((metric) => (
-                  <div
-                    key={`${metric.label}-${metric.value}`}
-                    className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3"
-                  >
+          {showCompanyDetailExperience ? (
+            companyDetailModel.kind === "detail" ? (
+              <CompanyResearchDetailContent model={companyDetailModel} />
+            ) : (
+              <CompanyResearchPausedFallbackPanel model={companyDetailModel} />
+            )
+          ) : (
+            <>
+              <Panel
+                title="可信度分析"
+                description="在不改写原始结论的前提下，补充支持、证据不足与冲突信号。"
+              >
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
                     <div className="text-xs text-[var(--app-text-soft)]">
-                      {metric.label}
+                      可信度得分
                     </div>
                     <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-                      {metric.value}
+                      {confidenceAnalysis?.finalScore ?? "未分析"}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-          </Panel>
-
-          <div className="grid gap-4 xl:grid-cols-2">
-            <KeyPointList
-              title="看多逻辑"
-              items={digest.bullPoints}
-              emptyText="暂未提取出看多逻辑。"
-              tone="success"
-            />
-            <KeyPointList
-              title="风险点"
-              items={digest.bearPoints}
-              emptyText="暂未提取出明确风险。"
-              tone="warning"
-            />
-            <KeyPointList
-              title="证据摘要"
-              items={digest.evidence}
-              emptyText="暂无结构化证据摘要。"
-              tone="info"
-            />
-            <KeyPointList
-              title={digest.gaps.length > 0 ? "待补缺口" : "下一步动作"}
-              items={nextSectionItems}
-              emptyText="暂无后续动作。"
-              tone="neutral"
-            />
-          </div>
-
-          <ResearchOpsPanels result={run.result} />
-
-          {companyResult ? (
-            <Panel
-              title="引用覆盖情况"
-              description="展示一手信源覆盖、采集器输出，以及最终公司结论使用到的结构化引用。"
-            >
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
-                  <div className="text-xs text-[var(--app-text-soft)]">
-                    原始证据
+                  <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
+                    <div className="text-xs text-[var(--app-text-soft)]">
+                      等级
+                    </div>
+                    <div className="app-data mt-2 text-lg text-[var(--app-text)]">
+                      {formatConfidenceLevel(confidenceAnalysis?.level)}
+                    </div>
                   </div>
-                  <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-                    {companyResult.collectionSummary?.totalRawCount ??
-                      companyResult.evidence.length}
+                  <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
+                    <div className="text-xs text-[var(--app-text-soft)]">
+                      支持/不足/冲突
+                    </div>
+                    <div className="app-data mt-2 text-lg text-[var(--app-text)]">
+                      {confidenceAnalysis
+                        ? `${confidenceAnalysis.supportedCount}/${confidenceAnalysis.insufficientCount}/${confidenceAnalysis.contradictedCount}`
+                        : "0/0/0"}
+                    </div>
+                  </div>
+                  <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
+                    <div className="text-xs text-[var(--app-text-soft)]">
+                      证据覆盖率
+                    </div>
+                    <div className="app-data mt-2 text-lg text-[var(--app-text)]">
+                      {confidenceAnalysis
+                        ? `${confidenceAnalysis.evidenceCoverageScore}%`
+                        : "未分析"}
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
-                  <div className="text-xs text-[var(--app-text-soft)]">
-                    入选证据
-                  </div>
-                  <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-                    {companyResult.collectionSummary?.totalCuratedCount ??
-                      companyResult.evidence.length}
-                  </div>
-                </div>
-                <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
-                  <div className="text-xs text-[var(--app-text-soft)]">
-                    引用
-                  </div>
-                  <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-                    {companyResult.collectionSummary?.totalReferenceCount ??
-                      companyResult.evidence.length}
-                  </div>
-                </div>
-                <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
-                  <div className="text-xs text-[var(--app-text-soft)]">
-                    一手信源
-                  </div>
-                  <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-                    {companyResult.collectionSummary?.totalFirstPartyCount ??
-                      companyResult.evidence.filter((item) => item.isFirstParty)
-                        .length}
-                  </div>
-                </div>
-              </div>
 
-              <div className="mt-4 grid gap-3 xl:grid-cols-2">
-                <div className="grid gap-3">
-                  {(companyResult.collectionSummary?.collectors ?? []).map(
-                    (collector) => (
+                {confidenceAnalysis?.notes.length ? (
+                  <div className="mt-4 grid gap-2">
+                    {confidenceAnalysis.notes.map((note) => (
                       <div
-                        key={collector.collectorKey}
-                        className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3 text-sm text-[var(--app-text-muted)]"
+                        key={note}
+                        className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-3 py-2 text-sm leading-6 text-[var(--app-text-muted)]"
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[var(--app-text)]">
-                            {collector.label}
-                          </span>
-                          <StatusPill
-                            label={collector.configured ? "已启用" : "已跳过"}
-                            tone={collector.configured ? "info" : "warning"}
-                          />
-                        </div>
-                        <p className="mt-2">
-                          原始 {collector.rawCount} / 入选{" "}
-                          {collector.curatedCount} / 一手{" "}
-                          {collector.firstPartyCount}
-                        </p>
-                      </div>
-                    ),
-                  )}
-                </div>
-
-                <div className="grid gap-3">
-                  {(companyResult.references ?? [])
-                    .slice(0, 8)
-                    .map((reference) => (
-                      <div
-                        key={reference.id}
-                        className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <StatusPill
-                            label={reference.sourceType}
-                            tone="neutral"
-                          />
-                          <StatusPill
-                            label={reference.isFirstParty ? "一手" : "外部"}
-                            tone={
-                              reference.isFirstParty ? "success" : "neutral"
-                            }
-                          />
-                          {reference.url ? (
-                            <a
-                              href={reference.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-sm text-[var(--app-accent-strong)] hover:underline"
-                            >
-                              {reference.title}
-                            </a>
-                          ) : (
-                            <span className="text-sm text-[var(--app-text)]">
-                              {reference.title}
-                            </span>
-                          )}
-                        </div>
-                        <p className="mt-2 text-xs text-[var(--app-text-soft)]">
-                          {reference.sourceName}
-                          {reference.publishedAt
-                            ? ` · ${reference.publishedAt}`
-                            : ""}
-                        </p>
-                        <p className="mt-2 text-sm leading-6 text-[var(--app-text-muted)]">
-                          {reference.extractedFact}
-                        </p>
+                        {note}
                       </div>
                     ))}
+                  </div>
+                ) : null}
+
+                {confidenceAnalysis?.claims.length ? (
+                  <div className="mt-4 grid gap-3">
+                    {confidenceAnalysis.claims.map((claim) => (
+                      <details
+                        key={claim.claimId}
+                        className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3"
+                      >
+                        <summary className="cursor-pointer text-sm text-[var(--app-text)]">
+                          {claim.claimText}
+                        </summary>
+                        <div className="mt-3 space-y-2 text-sm text-[var(--app-text-muted)]">
+                          <p>标签：{claim.label}</p>
+                          <p>{claim.explanation}</p>
+                          {claim.matchedReferenceIds.length > 0 ? (
+                            <p>
+                              命中引用： {claim.matchedReferenceIds.join(", ")}
+                            </p>
+                          ) : null}
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                ) : null}
+              </Panel>
+
+              <Panel
+                title="关键指标"
+                description="这些指标可以帮助判断这次运行是否值得继续深入阅读。"
+              >
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  {digest.metrics.length === 0 ? (
+                    <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3 text-sm text-[var(--app-text-muted)]">
+                      暂无结构化指标。
+                    </div>
+                  ) : (
+                    digest.metrics.map((metric) => (
+                      <div
+                        key={`${metric.label}-${metric.value}`}
+                        className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3"
+                      >
+                        <div className="text-xs text-[var(--app-text-soft)]">
+                          {metric.label}
+                        </div>
+                        <div className="app-data mt-2 text-lg text-[var(--app-text)]">
+                          {metric.value}
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
+              </Panel>
+
+              <div className="grid gap-4 xl:grid-cols-2">
+                <KeyPointList
+                  title="看多逻辑"
+                  items={digest.bullPoints}
+                  emptyText="暂未提取出看多逻辑。"
+                  tone="success"
+                />
+                <KeyPointList
+                  title="风险点"
+                  items={digest.bearPoints}
+                  emptyText="暂未提取出明确风险。"
+                  tone="warning"
+                />
+                <KeyPointList
+                  title="证据摘要"
+                  items={digest.evidence}
+                  emptyText="暂无结构化证据摘要。"
+                  tone="info"
+                />
+                <KeyPointList
+                  title={digest.gaps.length > 0 ? "待补缺口" : "下一步动作"}
+                  items={nextSectionItems}
+                  emptyText="暂无后续动作。"
+                  tone="neutral"
+                />
               </div>
-            </Panel>
-          ) : null}
+
+              <ResearchOpsPanels result={run.result} />
+
+              {companyResult ? (
+                <Panel
+                  title="引用覆盖情况"
+                  description="展示一手信源覆盖、采集器输出，以及最终公司结论使用到的结构化引用。"
+                >
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
+                      <div className="text-xs text-[var(--app-text-soft)]">
+                        原始证据
+                      </div>
+                      <div className="app-data mt-2 text-lg text-[var(--app-text)]">
+                        {companyResult.collectionSummary?.totalRawCount ??
+                          companyResult.evidence.length}
+                      </div>
+                    </div>
+                    <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
+                      <div className="text-xs text-[var(--app-text-soft)]">
+                        入选证据
+                      </div>
+                      <div className="app-data mt-2 text-lg text-[var(--app-text)]">
+                        {companyResult.collectionSummary?.totalCuratedCount ??
+                          companyResult.evidence.length}
+                      </div>
+                    </div>
+                    <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
+                      <div className="text-xs text-[var(--app-text-soft)]">
+                        引用
+                      </div>
+                      <div className="app-data mt-2 text-lg text-[var(--app-text)]">
+                        {companyResult.collectionSummary?.totalReferenceCount ??
+                          companyResult.evidence.length}
+                      </div>
+                    </div>
+                    <div className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3">
+                      <div className="text-xs text-[var(--app-text-soft)]">
+                        一手信源
+                      </div>
+                      <div className="app-data mt-2 text-lg text-[var(--app-text)]">
+                        {companyResult.collectionSummary
+                          ?.totalFirstPartyCount ??
+                          companyResult.evidence.filter(
+                            (item) => item.isFirstParty,
+                          ).length}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                    <div className="grid gap-3">
+                      {(companyResult.collectionSummary?.collectors ?? []).map(
+                        (collector) => (
+                          <div
+                            key={collector.collectorKey}
+                            className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3 text-sm text-[var(--app-text-muted)]"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="text-[var(--app-text)]">
+                                {collector.label}
+                              </span>
+                              <StatusPill
+                                label={
+                                  collector.configured ? "已启用" : "已跳过"
+                                }
+                                tone={collector.configured ? "info" : "warning"}
+                              />
+                            </div>
+                            <p className="mt-2">
+                              原始 {collector.rawCount} / 入选{" "}
+                              {collector.curatedCount} / 一手{" "}
+                              {collector.firstPartyCount}
+                            </p>
+                          </div>
+                        ),
+                      )}
+                    </div>
+
+                    <div className="grid gap-3">
+                      {(companyResult.references ?? [])
+                        .slice(0, 8)
+                        .map((reference) => (
+                          <div
+                            key={reference.id}
+                            className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <StatusPill
+                                label={reference.sourceType}
+                                tone="neutral"
+                              />
+                              <StatusPill
+                                label={reference.isFirstParty ? "一手" : "外部"}
+                                tone={
+                                  reference.isFirstParty ? "success" : "neutral"
+                                }
+                              />
+                              {reference.url ? (
+                                <a
+                                  href={reference.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-sm text-[var(--app-accent-strong)] hover:underline"
+                                >
+                                  {reference.title}
+                                </a>
+                              ) : (
+                                <span className="text-sm text-[var(--app-text)]">
+                                  {reference.title}
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-2 text-xs text-[var(--app-text-soft)]">
+                              {reference.sourceName}
+                              {reference.publishedAt
+                                ? ` · ${reference.publishedAt}`
+                                : ""}
+                            </p>
+                            <p className="mt-2 text-sm leading-6 text-[var(--app-text-muted)]">
+                              {reference.extractedFact}
+                            </p>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </Panel>
+              ) : null}
+            </>
+          )}
         </>
       )}
     </WorkspaceShell>

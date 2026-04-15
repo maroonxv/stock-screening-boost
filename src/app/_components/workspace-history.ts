@@ -23,3 +23,17 @@ export function buildWorkflowRunHistoryItems(
     }),
   }));
 }
+
+export function buildTimingReportHistoryItems(
+  cards: Array<{
+    id: string;
+    stockCode: string;
+    stockName?: string | null;
+  }>,
+): WorkspaceHistoryItem[] {
+  return cards.map((card) => ({
+    id: card.id,
+    title: `择时信号卡 - ${card.stockCode}`,
+    href: `/timing/reports/${card.id}`,
+  }));
+}

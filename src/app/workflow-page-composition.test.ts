@@ -88,7 +88,8 @@ describe("workflow page composition", () => {
     expect(companyResearchSource).not.toContain(
       'href="/company-research/history"',
     );
-    expect(timingSource).not.toContain('href="/timing/history"');
+    expect(timingSource).toContain("buildTimingReportHistoryItems");
+    expect(timingSource).not.toContain("buildWorkflowRunHistoryItems");
   });
 
   it("uses a dedicated document-style quick research detail component", () => {

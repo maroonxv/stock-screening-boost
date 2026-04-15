@@ -138,8 +138,8 @@ export default async function Home() {
 
   const primaryHref = !signedIn
     ? "/login"
-    : priorityRecommendation?.workflowRunId
-      ? `/workflows/${priorityRecommendation.workflowRunId}`
+    : priorityRecommendation
+      ? "/timing/history"
       : priorityResearch
         ? `/workflows/${priorityResearch.id}`
         : priorityScreening
@@ -149,7 +149,7 @@ export default async function Home() {
   const primaryLabel = !signedIn
     ? "进入工作流"
     : priorityRecommendation
-      ? "查看完整结论"
+      ? "查看报告历史"
       : priorityResearch
         ? "继续研究"
         : priorityScreening
@@ -379,14 +379,12 @@ export default async function Home() {
                         建议区间 {formatPct(item.suggestedMinPct)} 至{" "}
                         {formatPct(item.suggestedMaxPct)}
                       </span>
-                      {item.workflowRunId ? (
-                        <Link
-                          href={`/workflows/${item.workflowRunId}`}
-                          className="app-button app-button-primary"
-                        >
-                          查看结论
-                        </Link>
-                      ) : null}
+                      <Link
+                        href="/timing/history"
+                        className="app-button app-button-primary"
+                      >
+                        查看报告历史
+                      </Link>
                     </div>
                   </article>
                 ))}

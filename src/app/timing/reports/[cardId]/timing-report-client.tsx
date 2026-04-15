@@ -7,9 +7,8 @@ import {
   LoadingSkeleton,
   WorkspaceShell,
 } from "~/app/_components/ui";
-import { buildWorkflowRunHistoryItems } from "~/app/_components/workspace-history";
+import { buildTimingReportHistoryItems } from "~/app/_components/workspace-history";
 import { TimingReportView } from "~/app/timing/reports/[cardId]/timing-report-view";
-import { timingTemplateCodes } from "~/app/workflows/workflow-shell-context";
 import { api } from "~/trpc/react";
 
 export function TimingReportClient(props: { cardId: string }) {
@@ -18,19 +17,25 @@ export function TimingReportClient(props: { cardId: string }) {
     { cardId },
     { refetchOnWindowFocus: false },
   );
-  const runsQuery = api.workflow.listRuns.useQuery(
+  const historyCardsQuery = api.timing.listTimingCards.useQuery(
     {
-      limit: 8,
-      templateCodes: [...timingTemplateCodes],
+      limit: 20,
     },
     {
       refetchOnWindowFocus: false,
     },
   );
-  const historyItems = buildWorkflowRunHistoryItems(
-    runsQuery.data?.items ?? [],
-  );
   const report = reportQuery.data;
+  const historyItems = buildTimingReportHistoryItems(
+    report
+      ? [
+          report.card,
+          ...(historyCardsQuery.data ?? []).filter(
+            (item) => item.id !== report.card.id,
+          ),
+        ]
+      : (historyCardsQuery.data ?? []),
+  );
 
   return (
     <WorkspaceShell
@@ -38,8 +43,9 @@ export function TimingReportClient(props: { cardId: string }) {
       contentWidth="wide"
       historyItems={historyItems}
       historyHref="/timing/history"
-      historyLoading={runsQuery.isLoading}
-      historyEmptyText="还没有择时记录"
+      activeHistoryId={cardId}
+      historyLoading={historyCardsQuery.isLoading}
+      historyEmptyText="还没有择时报告"
       eyebrow="单股择时报告"
       title={
         report ? `${report.card.stockName} · 择时研究报告` : "单股择时研究报告"
@@ -51,17 +57,15 @@ export function TimingReportClient(props: { cardId: string }) {
       }
       actions={
         <>
-          <Link href="/timing" className="app-button">
-            返回择时列表
+          <Link
+            href="/timing/history"
+            className="app-button app-button-primary"
+          >
+            返回报告历史
           </Link>
-          {report?.card.workflowRunId ? (
-            <Link
-              href={`/workflows/${report.card.workflowRunId}`}
-              className="app-button"
-            >
-              查看工作流
-            </Link>
-          ) : null}
+          <Link href="/timing" className="app-button">
+            返回择时工作台
+          </Link>
         </>
       }
     >

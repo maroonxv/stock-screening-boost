@@ -14,6 +14,7 @@ import {
   buildSpaceRecentSummaries,
 } from "~/app/spaces/space-view-models";
 import { buildResearchDigest } from "~/app/workflows/research-view-models";
+import { buildRunDetailHref } from "~/app/workflows/run-detail-href";
 import { api } from "~/trpc/react";
 
 type SpaceDetailClientProps = {
@@ -309,7 +310,10 @@ export function SpaceDetailClient({ spaceId }: SpaceDetailClientProps) {
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <Link
-                              href={`/workflows/${item.run.id}`}
+                              href={buildRunDetailHref({
+                                runId: item.run.id,
+                                templateCode: item.run.templateCode,
+                              })}
                               className="app-button app-button-primary"
                             >
                               查看详情

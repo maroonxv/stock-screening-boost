@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -11,10 +11,9 @@ import {
   WorkspaceShell,
 } from "~/app/_components/ui";
 import { WorkflowStageSwitcher } from "~/app/_components/workflow-stage-switcher";
-import { buildWorkflowRunHistoryItems } from "~/app/_components/workspace-history";
+import { buildTimingReportHistoryItems } from "~/app/_components/workspace-history";
 import { TimingSignalCardList } from "~/app/timing/timing-signal-card-list";
 import { timingStageTabs } from "~/app/timing/timing-stage-tabs";
-import { timingTemplateCodes } from "~/app/workflows/workflow-shell-context";
 import { api } from "~/trpc/react";
 
 function formatDate(value?: Date | null) {
@@ -160,7 +159,6 @@ const defaultPresetConfigJson = JSON.stringify(
 );
 
 export function TimingClient() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const utils = api.useUtils();
 
@@ -195,6 +193,7 @@ export function TimingClient() {
   const [activeTabId, setActiveTabId] = useState(
     timingStageTabs[0]?.id ?? "signals",
   );
+  const [autoRefreshUntil, setAutoRefreshUntil] = useState<number | null>(null);
 
   const watchListsQuery = api.watchlist.list.useQuery({
     limit: 50,
@@ -203,53 +202,92 @@ export function TimingClient() {
     sortDirection: "desc",
   });
   const portfolioSnapshotsQuery = api.timing.listPortfolioSnapshots.useQuery();
-  const cardsQuery = api.timing.listTimingCards.useQuery({
-    limit: 24,
-    stockCode: filterStockCode.trim() || undefined,
-    sourceType: filterSourceType === "all" ? undefined : filterSourceType,
-  });
-  const recommendationsQuery = api.timing.listRecommendations.useQuery({
-    limit: 48,
-    watchListId: watchListId || undefined,
-    portfolioSnapshotId: selectedPortfolioId || undefined,
-  });
-  const reviewRecordsQuery = api.timing.listReviewRecords.useQuery({
-    limit: 36,
-    completedOnly: false,
-  });
+  const cardsQuery = api.timing.listTimingCards.useQuery(
+    {
+      limit: 24,
+      stockCode: filterStockCode.trim() || undefined,
+      sourceType: filterSourceType === "all" ? undefined : filterSourceType,
+    },
+    {
+      refetchInterval: () =>
+        autoRefreshUntil && autoRefreshUntil > Date.now() ? 5_000 : false,
+    },
+  );
+  const recommendationsQuery = api.timing.listRecommendations.useQuery(
+    {
+      limit: 48,
+      watchListId: watchListId || undefined,
+      portfolioSnapshotId: selectedPortfolioId || undefined,
+    },
+    {
+      refetchInterval: () =>
+        autoRefreshUntil && autoRefreshUntil > Date.now() ? 5_000 : false,
+    },
+  );
+  const reviewRecordsQuery = api.timing.listReviewRecords.useQuery(
+    {
+      limit: 36,
+      completedOnly: false,
+    },
+    {
+      refetchInterval: () =>
+        autoRefreshUntil && autoRefreshUntil > Date.now() ? 5_000 : false,
+    },
+  );
   const presetsQuery = api.timing.listTimingPresets.useQuery();
-  const runsQuery = api.workflow.listRuns.useQuery(
+  const historyCardsQuery = api.timing.listTimingCards.useQuery(
     {
       limit: 20,
-      templateCodes: [...timingTemplateCodes],
     },
     {
       refetchOnWindowFocus: false,
+      refetchInterval: () =>
+        autoRefreshUntil && autoRefreshUntil > Date.now() ? 5_000 : false,
     },
   );
 
   const startSingleMutation =
     api.workflow.startTimingSignalPipeline.useMutation({
-      onSuccess: (result) => {
-        router.push(`/workflows/${result.runId}`);
+      onSuccess: async () => {
+        setAutoRefreshUntil(Date.now() + 3 * 60_000);
+        await Promise.all([
+          utils.timing.listTimingCards.invalidate(),
+          utils.timing.listRecommendations.invalidate(),
+          utils.timing.listReviewRecords.invalidate(),
+        ]);
       },
     });
   const startWatchlistCardsMutation =
     api.workflow.startWatchlistTimingCardsPipeline.useMutation({
-      onSuccess: (result) => {
-        router.push(`/workflows/${result.runId}`);
+      onSuccess: async () => {
+        setAutoRefreshUntil(Date.now() + 3 * 60_000);
+        await Promise.all([
+          utils.timing.listTimingCards.invalidate(),
+          utils.timing.listRecommendations.invalidate(),
+          utils.timing.listReviewRecords.invalidate(),
+        ]);
       },
     });
   const startWatchlistTimingMutation =
     api.workflow.startWatchlistTimingPipeline.useMutation({
-      onSuccess: (result) => {
-        router.push(`/workflows/${result.runId}`);
+      onSuccess: async () => {
+        setAutoRefreshUntil(Date.now() + 3 * 60_000);
+        await Promise.all([
+          utils.timing.listTimingCards.invalidate(),
+          utils.timing.listRecommendations.invalidate(),
+          utils.timing.listReviewRecords.invalidate(),
+        ]);
       },
     });
   const startTimingReviewLoopMutation =
     api.workflow.startTimingReviewLoop.useMutation({
-      onSuccess: (result) => {
-        router.push(`/workflows/${result.runId}`);
+      onSuccess: async () => {
+        setAutoRefreshUntil(Date.now() + 3 * 60_000);
+        await Promise.all([
+          utils.timing.listTimingCards.invalidate(),
+          utils.timing.listRecommendations.invalidate(),
+          utils.timing.listReviewRecords.invalidate(),
+        ]);
       },
     });
   const createPortfolioSnapshotMutation =
@@ -339,8 +377,8 @@ export function TimingClient() {
   const reviewRecords = reviewRecordsQuery.data ?? [];
   const presets = presetsQuery.data ?? [];
   const historyItems = useMemo(
-    () => buildWorkflowRunHistoryItems(runsQuery.data?.items ?? []),
-    [runsQuery.data?.items],
+    () => buildTimingReportHistoryItems(historyCardsQuery.data ?? []),
+    [historyCardsQuery.data],
   );
 
   useEffect(() => {
@@ -541,8 +579,8 @@ export function TimingClient() {
       section="timing"
       historyItems={historyItems}
       historyHref="/timing/history"
-      historyLoading={runsQuery.isLoading}
-      historyEmptyText="还没有择时记录"
+      historyLoading={historyCardsQuery.isLoading}
+      historyEmptyText="还没有择时报告"
       eyebrow="组合决策"
       title="择时组合"
       actions={
@@ -1182,14 +1220,12 @@ export function TimingClient() {
                   <div className="text-right text-xs text-[var(--app-text-soft)]">
                     <p>写入时间 {formatDate(recommendation.createdAt)}</p>
                     <p>预算上限 {formatPct(recommendation.riskBudgetPct)}</p>
-                    {recommendation.workflowRunId ? (
-                      <Link
-                        href={`/workflows/${recommendation.workflowRunId}`}
-                        className="mt-2 inline-flex text-[var(--app-accent-strong)] hover:text-[var(--app-text)]"
-                      >
-                        查看研究详情
-                      </Link>
-                    ) : null}
+                    <Link
+                      href="/timing/history"
+                      className="mt-2 inline-flex text-[var(--app-accent-strong)] hover:text-[var(--app-text)]"
+                    >
+                      查看报告历史
+                    </Link>
                   </div>
                 </div>
 

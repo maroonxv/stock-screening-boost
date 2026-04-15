@@ -14,14 +14,12 @@ import {
 } from "~/app/_components/ui";
 import {
   buildScreeningWorkspaceHistoryItems,
+  buildTimingReportHistoryItems,
   buildWorkflowRunHistoryItems,
 } from "~/app/_components/workspace-history";
 import { ResearchOpsPanels } from "~/app/workflows/research-ops-panels";
 import { getTemplateLabel } from "~/app/workflows/research-view-models";
-import {
-  resolveWorkflowShellContext,
-  timingTemplateCodes,
-} from "~/app/workflows/workflow-shell-context";
+import { resolveWorkflowShellContext } from "~/app/workflows/workflow-shell-context";
 import {
   COMPANY_RESEARCH_TEMPLATE_CODE,
   type CompanyResearchResultDto,
@@ -397,10 +395,9 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
       refetchOnWindowFocus: false,
     },
   );
-  const timingHistoryQuery = api.workflow.listRuns.useQuery(
+  const timingHistoryQuery = api.timing.listTimingCards.useQuery(
     {
       limit: 8,
-      templateCodes: [...timingTemplateCodes],
     },
     {
       enabled: shellContext.historyQueryKind === "timing",
@@ -423,7 +420,7 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
       : shellContext.historyQueryKind === "companyResearch"
         ? buildWorkflowRunHistoryItems(companyHistoryQuery.data?.items ?? [])
         : shellContext.historyQueryKind === "timing"
-          ? buildWorkflowRunHistoryItems(timingHistoryQuery.data?.items ?? [])
+          ? buildTimingReportHistoryItems(timingHistoryQuery.data ?? [])
           : buildWorkflowRunHistoryItems(
               workflowHistoryQuery.data?.items ?? [],
             );
@@ -473,7 +470,9 @@ export function RunDetailClient({ runId }: RunDetailClientProps) {
       section={shellContext.section}
       historyItems={historyItems}
       historyHref={shellContext.historyHref}
-      activeHistoryId={runId}
+      activeHistoryId={
+        shellContext.historyQueryKind === "timing" ? undefined : runId
+      }
       historyLoading={historyLoading}
       eyebrow="研究运行详情"
       title="研究任务详情"

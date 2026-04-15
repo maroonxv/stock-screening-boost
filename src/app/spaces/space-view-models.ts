@@ -1,4 +1,5 @@
 import { buildResearchDigest } from "~/app/workflows/research-view-models";
+import { buildRunDetailHref } from "~/app/workflows/run-detail-href";
 import type {
   ResearchSpaceBrief,
   ResearchSpaceLinkedStock,
@@ -84,7 +85,10 @@ export function buildSpaceRecentSummaries(params: {
         createdAt: item.createdAt,
         title: digest.headline,
         summary: digest.summary,
-        href: `/workflows/${item.run.id}`,
+        href: buildRunDetailHref({
+          runId: item.run.id,
+          templateCode: item.run.templateCode,
+        }),
         templateCode: item.run.templateCode,
       };
     });

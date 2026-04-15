@@ -14,6 +14,7 @@ import {
 } from "~/app/_components/ui";
 import {
   buildScreeningWorkspaceHistoryItems,
+  buildTimingReportHistoryItems,
   buildWorkflowRunHistoryItems,
 } from "~/app/_components/workspace-history";
 import { IndustryConclusionDetail } from "~/app/workflows/[runId]/industry-conclusion-detail";
@@ -31,10 +32,7 @@ import {
   getQuickResearchModePills,
   isCompanyResearchResult,
 } from "~/app/workflows/research-view-models";
-import {
-  resolveWorkflowShellContext,
-  timingTemplateCodes,
-} from "~/app/workflows/workflow-shell-context";
+import { resolveWorkflowShellContext } from "~/app/workflows/workflow-shell-context";
 import {
   COMPANY_RESEARCH_TEMPLATE_CODE,
   QUICK_RESEARCH_TEMPLATE_CODE,
@@ -161,10 +159,9 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
       refetchOnWindowFocus: false,
     },
   );
-  const timingHistoryQuery = api.workflow.listRuns.useQuery(
+  const timingHistoryQuery = api.timing.listTimingCards.useQuery(
     {
       limit: 8,
-      templateCodes: [...timingTemplateCodes],
     },
     {
       enabled: shellContext.historyQueryKind === "timing",
@@ -187,7 +184,7 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
       : shellContext.historyQueryKind === "companyResearch"
         ? buildWorkflowRunHistoryItems(companyHistoryQuery.data?.items ?? [])
         : shellContext.historyQueryKind === "timing"
-          ? buildWorkflowRunHistoryItems(timingHistoryQuery.data?.items ?? [])
+          ? buildTimingReportHistoryItems(timingHistoryQuery.data ?? [])
           : buildWorkflowRunHistoryItems(
               workflowHistoryQuery.data?.items ?? [],
             );
@@ -252,7 +249,11 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
       section={shellContext.section}
       historyItems={historyItems}
       historyHref={shellContext.historyHref}
-      activeHistoryId={runId}
+      activeHistoryId={
+        shellContext.historyQueryKind === "timing"
+          ? (timingReportCardIds[0] ?? undefined)
+          : runId
+      }
       historyLoading={historyLoading}
       eyebrow="投资结论"
       title={getTitle(run?.template.code)}

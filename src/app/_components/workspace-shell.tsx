@@ -413,8 +413,13 @@ function PageHeader(props: {
   title: string;
   description?: string;
   actions?: ReactNode;
+  titleSize?: "default" | "compact";
 }) {
-  const { eyebrow, title, description, actions } = props;
+  const { eyebrow, title, description, actions, titleSize = "default" } = props;
+  const titleClassName =
+    titleSize === "compact"
+      ? "app-display max-w-5xl text-[38px] leading-[0.98] text-[var(--app-text-strong)] sm:text-[46px] xl:text-[58px]"
+      : "app-display max-w-5xl text-[46px] leading-[0.96] text-[var(--app-text-strong)] sm:text-[58px] xl:text-[72px]";
 
   return (
     <header className="app-page-header flex flex-col gap-5 border-b border-[var(--app-border-soft)] pb-6 lg:flex-row lg:items-start lg:justify-between">
@@ -424,9 +429,7 @@ function PageHeader(props: {
             {eyebrow}
           </div>
         ) : null}
-        <h1 className="app-display max-w-5xl text-[46px] leading-[0.96] text-[var(--app-text-strong)] sm:text-[58px] xl:text-[72px]">
-          {title}
-        </h1>
+        <h1 className={titleClassName}>{title}</h1>
         {description ? (
           <p className="mt-4 max-w-4xl text-sm leading-7 text-[var(--app-text-muted)] sm:text-base">
             {description}
@@ -460,6 +463,7 @@ export function WorkspaceShell(props: {
   historyEmptyText?: string;
   initialDesktopCollapsed?: boolean;
   contentWidth?: "standard" | "wide";
+  titleSize?: "default" | "compact";
   children: ReactNode;
 }) {
   const {
@@ -480,6 +484,7 @@ export function WorkspaceShell(props: {
     historyEmptyText = "暂无历史记录",
     initialDesktopCollapsed,
     contentWidth = "standard",
+    titleSize = "default",
     children,
   } = props;
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -624,6 +629,7 @@ export function WorkspaceShell(props: {
             title={title}
             description={description}
             actions={headerActions}
+            titleSize={titleSize}
           />
 
           {workflowTabs.length > 0 ? (

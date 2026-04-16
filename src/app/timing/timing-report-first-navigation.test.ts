@@ -32,6 +32,15 @@ describe("timing report-first navigation", () => {
 
     expect(timingReportSource).toContain("buildTimingReportHistoryItems");
     expect(timingReportSource).toContain("activeHistoryId={cardId}");
+    expect(timingReportSource).not.toContain('eyebrow="单股择时报告"');
+    expect(timingReportSource).toContain('titleSize="compact"');
+    expect(timingReportSource).toContain(
+      "`" +
+        "$" +
+        "{report.card.stockCode} " +
+        "$" +
+        "{report.card.stockName} · 择时研究报告`",
+    );
     expect(timingReportSource).not.toContain(
       String.raw`href={\`/workflows/\${report.card.workflowRunId}\`}`,
     );

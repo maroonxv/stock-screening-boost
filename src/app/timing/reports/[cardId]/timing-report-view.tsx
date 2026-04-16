@@ -104,7 +104,7 @@ function formatPct(value?: number | null) {
   return `${value.toFixed(2)}%`;
 }
 
-function BackgroundStrip(props: { report: TimingReportPayload }) {
+function _BackgroundStrip(props: { report: TimingReportPayload }) {
   const { report } = props;
   const items = [
     {
@@ -530,7 +530,6 @@ export function TimingReportView(props: { report: TimingReportPayload }) {
 
   return (
     <div className="grid gap-6">
-      <BackgroundStrip report={props.report} />
       <TimingReportPanels
         report={props.report}
         activeTabId={activeTabId}

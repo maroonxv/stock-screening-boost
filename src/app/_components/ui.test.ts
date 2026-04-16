@@ -194,4 +194,38 @@ describe("WorkspaceShell", () => {
     expect(markup).not.toContain("策略、会话与观察池");
     expect(markup).not.toContain("行业逻辑与研究运行");
   });
+
+  it("supports a compact page title size without affecting the default header", () => {
+    const compactMarkup = renderToStaticMarkup(
+      React.createElement(
+        WorkspaceShell,
+        {
+          section: "timing",
+          title: "600159 大龙地产 · 择时研究报告",
+          description: "body copy",
+          titleSize: "compact",
+        } as React.ComponentProps<typeof WorkspaceShell> & {
+          titleSize?: "default" | "compact";
+        },
+        React.createElement("div", null, "body"),
+      ),
+    );
+    const defaultMarkup = renderToStaticMarkup(
+      React.createElement(
+        WorkspaceShell,
+        {
+          section: "timing",
+          title: "Timing",
+          description: "body copy",
+        } as React.ComponentProps<typeof WorkspaceShell>,
+        React.createElement("div", null, "body"),
+      ),
+    );
+
+    expect(compactMarkup).toContain("text-[38px]");
+    expect(compactMarkup).toContain("sm:text-[46px]");
+    expect(compactMarkup).not.toContain("xl:text-[72px]");
+    expect(defaultMarkup).toContain("text-[46px]");
+    expect(defaultMarkup).toContain("xl:text-[72px]");
+  });
 });

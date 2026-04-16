@@ -46,9 +46,11 @@ export function TimingReportClient(props: { cardId: string }) {
       activeHistoryId={cardId}
       historyLoading={historyCardsQuery.isLoading}
       historyEmptyText="还没有择时报告"
-      eyebrow="单股择时报告"
+      titleSize="compact"
       title={
-        report ? `${report.card.stockName} · 择时研究报告` : "单股择时研究报告"
+        report
+          ? `${report.card.stockCode} ${report.card.stockName} · 择时研究报告`
+          : "单股择时研究报告"
       }
       description={
         report

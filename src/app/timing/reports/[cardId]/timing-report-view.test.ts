@@ -123,6 +123,9 @@ const sampleReport = {
       metrics: {
         excess20d: 4.8,
         excess60d: 9.2,
+        stockReturn20d: 12.4,
+        stockReturn60d: 18.8,
+        sampleSize: 24,
       },
       warnings: [],
     },
@@ -137,6 +140,7 @@ const sampleReport = {
       metrics: {
         volatilityPercentile: 46,
         atrPercentile: 48,
+        atrRatio: 0.02,
       },
       warnings: ["HIGH_VOLATILITY"],
     },
@@ -152,6 +156,7 @@ const sampleReport = {
         volumeRatio20: 1.64,
         amountPercentile: 81,
         turnoverRate: 2.6,
+        turnoverPercentile: 77,
       },
       warnings: [],
     },
@@ -279,6 +284,21 @@ describe("TimingReportView", () => {
     expect(executionMarkup).toContain("风险偏好");
   });
 
+  it("reuses the chart in step two and hides the old structure explanation card", () => {
+    const evidenceMarkup = renderToStaticMarkup(
+      React.createElement(TimingReportPanels, {
+        report: sampleReport,
+        activeTabId: "evidence",
+      }),
+    );
+
+    expect(evidenceMarkup).toContain("价格结构");
+    expect(evidenceMarkup).not.toContain(
+      "这一步只解释结构和证据，不重复首屏价格图。",
+    );
+    expect(evidenceMarkup).not.toContain("核心结构");
+  });
+
   it("renders translated evidence and risk labels without leaking raw english keys", () => {
     const evidenceMarkup = renderToStaticMarkup(
       React.createElement(TimingReportPanels, {
@@ -296,10 +316,20 @@ describe("TimingReportView", () => {
     expect(evidenceMarkup).toContain("看多");
     expect(evidenceMarkup).toContain("波动分位");
     expect(evidenceMarkup).toContain("距60日高点");
+    expect(evidenceMarkup).toContain("个股20日涨幅");
+    expect(evidenceMarkup).toContain("个股60日涨幅");
+    expect(evidenceMarkup).toContain("ATR 比率");
+    expect(evidenceMarkup).toContain("换手率分位");
+    expect(evidenceMarkup).toContain("样本数");
     expect(evidenceMarkup).not.toContain("bullish");
     expect(evidenceMarkup).not.toContain("bearish");
     expect(evidenceMarkup).not.toContain("volatilityPercentile");
     expect(evidenceMarkup).not.toContain("distanceTo60dHighPct");
+    expect(evidenceMarkup).not.toContain("stockReturn20d");
+    expect(evidenceMarkup).not.toContain("stockReturn60d");
+    expect(evidenceMarkup).not.toContain("atrRatio");
+    expect(evidenceMarkup).not.toContain("turnoverPercentile");
+    expect(evidenceMarkup).not.toContain("sampleSize");
     expect(evidenceMarkup).not.toContain("HIGH_VOLATILITY");
     expect(reviewMarkup).toContain("暂无已完成复盘记录");
   });

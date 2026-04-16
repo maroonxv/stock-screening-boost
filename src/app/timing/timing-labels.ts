@@ -42,15 +42,23 @@ const timingMetricLabelMap: Record<string, string> = {
   return20d: "20日涨幅",
   excess20d: "20日超额收益",
   excess60d: "60日超额收益",
+  stockReturn20d: "个股20日涨幅",
+  stockReturn60d: "个股60日涨幅",
   volatilityPercentile: "波动分位",
   atrPercentile: "ATR 分位",
+  atrRatio: "ATR 比率",
   volumeRatio20: "20日量比",
   amountPercentile: "成交额分位",
   turnoverRate: "换手率",
+  turnoverPercentile: "换手率分位",
   failureRate: "失败率",
   distanceTo60dHighPct: "距60日高点",
   recentGapCount: "近期缺口数",
   latestVolumeRatio20: "最新 20 日量比",
+  sampleSize: "样本数",
+  positiveSampleSize: "正向样本数",
+  negativeSampleSize: "负向样本数",
+  indexAtrRatio: "指数 ATR 比率",
 };
 
 const timingMarketStateLabelMap: Record<TimingMarketState, string> = {
@@ -197,7 +205,9 @@ export function formatTimingMetricValue(
     metricKey === "failureRate" ||
     metricKey === "return20d" ||
     metricKey === "excess20d" ||
-    metricKey === "excess60d"
+    metricKey === "excess60d" ||
+    metricKey === "stockReturn20d" ||
+    metricKey === "stockReturn60d"
   ) {
     return `${formatNumber(value)}%`;
   }

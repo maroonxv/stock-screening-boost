@@ -231,39 +231,17 @@ function SummaryTab(props: { report: TimingReportPayload }) {
 
 function EvidenceTab(props: { report: TimingReportPayload }) {
   const { report } = props;
-  const signalContext = report.card.reasoning.signalContext;
-  const signalSnapshot = report.card.signalSnapshot;
 
   return (
     <div className="grid gap-6">
       <Panel
-        title="为什么当前偏这个方向"
-        description="这一步只解释结构和证据，不重复首屏价格图。"
-        surface="inset"
+        title="价格结构"
+        description="在结构证据里复用同一套价格结构图，方便把图表与证据引擎对照阅读。"
       >
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]">
-          <div className="grid gap-3">
-            <p className="text-sm leading-7 text-[var(--app-text)]">
-              {signalContext.explanation}
-            </p>
-            <p className="text-sm leading-7 text-[var(--app-text-muted)]">
-              {report.card.reasoning.actionRationale}
-            </p>
-          </div>
-          <div className="grid gap-3 rounded-[14px] border border-[var(--app-border-soft)] bg-[var(--app-panel-soft)] p-4">
-            <div className="text-xs text-[var(--app-text-soft)]">核心结构</div>
-            <div className="text-sm leading-6 text-[var(--app-text-muted)]">
-              EMA5 {signalSnapshot?.indicators.ema5.toFixed(2) ?? "-"} · EMA20{" "}
-              {signalSnapshot?.indicators.ema20.toFixed(2) ?? "-"} · EMA60{" "}
-              {signalSnapshot?.indicators.ema60.toFixed(2) ?? "-"}
-            </div>
-            <div className="text-sm leading-6 text-[var(--app-text-muted)]">
-              MACD 柱值{" "}
-              {signalSnapshot?.indicators.macd.histogram.toFixed(2) ?? "-"} ·
-              OBV 斜率 {signalSnapshot?.indicators.obv.slope.toFixed(2) ?? "-"}
-            </div>
-          </div>
-        </div>
+        <TimingReportChart
+          bars={report.bars}
+          chartLevels={report.chartLevels}
+        />
       </Panel>
 
       <Panel title="六大证据引擎">

@@ -1,7 +1,10 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { TimingReportView } from "~/app/timing/reports/[cardId]/timing-report-view";
+import {
+  TimingReportPanels,
+  TimingReportView,
+} from "~/app/timing/reports/[cardId]/timing-report-view";
 import type { TimingReportPayload } from "~/server/domain/timing/types";
 
 const sampleReport = {
@@ -243,21 +246,61 @@ const sampleReport = {
 } as unknown as TimingReportPayload;
 
 describe("TimingReportView", () => {
-  it("renders the narrative report sections and an honest empty state for missing review history", () => {
+  it("renders four research steps in the full report shell", () => {
     const markup = renderToStaticMarkup(
       React.createElement(TimingReportView, {
         report: sampleReport,
       }),
     );
 
-    expect(markup).toContain("价格结构");
-    expect(markup).toContain("为什么当前偏这个方向");
-    expect(markup).toContain("六大证据引擎");
-    expect(markup).toContain("触发条件");
-    expect(markup).toContain("失效条件");
-    expect(markup).toContain("市场环境");
-    expect(markup).toContain("轻量复盘时间线");
-    expect(markup).toContain("暂无已完成复盘记录");
-    expect(markup).toContain("HIGH_VOLATILITY");
+    expect(markup).toContain("当前结论");
+    expect(markup).toContain("结构证据");
+    expect(markup).toContain("执行风控");
+    expect(markup).toContain("复盘跟踪");
+  });
+
+  it("keeps the price chart in step one and the market context in step three", () => {
+    const summaryMarkup = renderToStaticMarkup(
+      React.createElement(TimingReportPanels, {
+        report: sampleReport,
+        activeTabId: "summary",
+      }),
+    );
+    const executionMarkup = renderToStaticMarkup(
+      React.createElement(TimingReportPanels, {
+        report: sampleReport,
+        activeTabId: "execution",
+      }),
+    );
+
+    expect(summaryMarkup).toContain("价格结构");
+    expect(summaryMarkup).not.toContain("风险偏好");
+    expect(executionMarkup).toContain("市场环境");
+    expect(executionMarkup).toContain("风险偏好");
+  });
+
+  it("renders translated evidence and risk labels without leaking raw english keys", () => {
+    const evidenceMarkup = renderToStaticMarkup(
+      React.createElement(TimingReportPanels, {
+        report: sampleReport,
+        activeTabId: "evidence",
+      }),
+    );
+    const reviewMarkup = renderToStaticMarkup(
+      React.createElement(TimingReportPanels, {
+        report: sampleReport,
+        activeTabId: "review",
+      }),
+    );
+
+    expect(evidenceMarkup).toContain("看多");
+    expect(evidenceMarkup).toContain("波动分位");
+    expect(evidenceMarkup).toContain("距60日高点");
+    expect(evidenceMarkup).not.toContain("bullish");
+    expect(evidenceMarkup).not.toContain("bearish");
+    expect(evidenceMarkup).not.toContain("volatilityPercentile");
+    expect(evidenceMarkup).not.toContain("distanceTo60dHighPct");
+    expect(evidenceMarkup).not.toContain("HIGH_VOLATILITY");
+    expect(reviewMarkup).toContain("暂无已完成复盘记录");
   });
 });

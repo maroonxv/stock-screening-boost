@@ -16,9 +16,4 @@ export const workflowsStageTabs: WorkflowStageTab[] = [
     label: "发起执行",
     summary: "确认输入后发起本轮研究。",
   },
-  {
-    id: "queue",
-    label: "最近结论",
-    summary: "按队列查看最新运行与结论摘要。",
-  },
 ];

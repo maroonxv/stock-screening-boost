@@ -66,10 +66,20 @@ describe("workflow page composition", () => {
       "./screening/screening-studio-client.tsx",
     );
     const workflowsSource = readSource("./workflows/workflows-client.tsx");
+    const workflowsStageTabsSource = readSource(
+      "./workflows/workflows-stage-tabs.ts",
+    );
     const companyResearchSource = readSource(
       "./company-research/company-research-client.tsx",
     );
+    const companyResearchStageTabsSource = readSource(
+      "./company-research/company-research-stage-tabs.ts",
+    );
     const timingSource = readSource("./timing/timing-client.tsx");
+    const workflowsHistorySource = readSource("./workflows/history/page.tsx");
+    const companyResearchHistorySource = readSource(
+      "./company-research/history/page.tsx",
+    );
     const runInvestorSource = readSource(
       "./workflows/[runId]/run-investor-client.tsx",
     );
@@ -89,11 +99,19 @@ describe("workflow page composition", () => {
 
     expect(screeningSource).not.toContain('href="/screening/history"');
     expect(screeningSource).not.toContain('activeTabId === "filters"');
+    expect(workflowsSource).not.toContain('href="/workflows/history"');
+    expect(workflowsSource).not.toContain("queue: queuePanel");
+    expect(workflowsStageTabsSource).not.toContain("最近结论");
     expect(companyResearchSource).not.toContain(
       'href="/company-research/history"',
     );
+    expect(companyResearchSource).not.toContain("findings: findingsPanel");
+    expect(companyResearchStageTabsSource).not.toContain("最近发现");
     expect(timingSource).toContain("buildTimingReportHistoryItems");
     expect(timingSource).not.toContain("buildWorkflowRunHistoryItems");
+    expect(timingSource).not.toContain('href="/timing/history"');
+    expect(workflowsHistorySource).not.toContain("headerActions");
+    expect(companyResearchHistorySource).not.toContain("headerActions");
   });
 
   it("uses a dedicated document-style quick research detail component", () => {

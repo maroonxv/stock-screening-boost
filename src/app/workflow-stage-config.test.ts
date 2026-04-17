@@ -32,13 +32,11 @@ describe("workflow stage config", () => {
       "question",
       "constraints",
       "launch",
-      "queue",
     ]);
     expect(companyResearchStageTabs.map((tab) => tab.id)).toEqual([
       "target",
       "sources",
       "launch",
-      "findings",
     ]);
     expect(timingStageTabs.map((tab) => tab.id)).toEqual([
       "signals",

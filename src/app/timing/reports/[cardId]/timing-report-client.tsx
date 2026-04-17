@@ -58,17 +58,9 @@ export function TimingReportClient(props: { cardId: string }) {
           : "从现有择时卡片进入详情，查看完整的单股研究报告。"
       }
       actions={
-        <>
-          <Link
-            href="/timing/history"
-            className="app-button app-button-primary"
-          >
-            返回报告历史
-          </Link>
-          <Link href="/timing" className="app-button">
-            返回择时工作台
-          </Link>
-        </>
+        <Link href="/timing" className="app-button">
+          返回择时工作台
+        </Link>
       }
     >
       {reportQuery.isLoading ? <LoadingSkeleton rows={4} /> : null}

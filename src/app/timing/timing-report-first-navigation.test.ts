@@ -44,6 +44,7 @@ describe("timing report-first navigation", () => {
     expect(timingReportSource).not.toContain(
       String.raw`href={\`/workflows/\${report.card.workflowRunId}\`}`,
     );
+    expect(timingReportSource).not.toContain('href="/timing/history"');
   });
 
   it("removes old timing workflow-detail links from the home page", () => {
@@ -55,5 +56,12 @@ describe("timing report-first navigation", () => {
     expect(homeSource).not.toContain(
       String.raw`/workflows/\${item.workflowRunId}`,
     );
+  });
+
+  it("keeps timing history navigation only in the sidebar on the workspace page", () => {
+    const timingSource = readSource("./timing-client.tsx");
+
+    expect(timingSource).toContain('historyHref="/timing/history"');
+    expect(timingSource).not.toContain('href="/timing/history"');
   });
 });

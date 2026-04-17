@@ -4,37 +4,17 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import { statusTone } from "~/app/_components/status-tone";
 import {
-  EmptyState,
   InlineNotice,
-  KeyPointList,
   Panel,
-  ProgressBar,
   StatusPill,
   WorkspaceShell,
 } from "~/app/_components/ui";
 import { WorkflowStageSwitcher } from "~/app/_components/workflow-stage-switcher";
 import { buildWorkflowRunHistoryItems } from "~/app/_components/workspace-history";
 import { companyResearchStageTabs } from "~/app/company-research/company-research-stage-tabs";
-import { buildResearchDigest } from "~/app/workflows/research-view-models";
-import { buildRunDetailHref } from "~/app/workflows/run-detail-href";
 import { COMPANY_RESEARCH_TEMPLATE_CODE } from "~/server/domain/workflow/types";
-import { api, type RouterOutputs } from "~/trpc/react";
-
-function formatDate(value?: Date | null) {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(value);
-}
+import { api } from "~/trpc/react";
 
 function parseLines(value: string) {
   return value
@@ -52,16 +32,6 @@ function normalizeUrlInput(value: string) {
 
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
-
-const statusLabelMap: Record<string, string> = {
-  PENDING: "等待执行",
-  RUNNING: "研究进行中",
-  SUCCEEDED: "结论已生成",
-  FAILED: "需要重跑",
-  CANCELLED: "已取消",
-};
-
-statusLabelMap.PAUSED = "已暂停";
 
 const starterCases = [
   {
@@ -83,147 +53,6 @@ const starterCases = [
 
 const stageCanvasClassName =
   "min-h-[calc(100vh-17rem)] xl:min-h-[calc(100vh-15rem)]";
-
-type RunListItem = RouterOutputs["workflow"]["listRuns"]["items"][number];
-
-function CompanyRunCard({
-  run,
-  onCancel,
-}: {
-  run: RunListItem;
-  onCancel: (runId: string) => void;
-}) {
-  const detailQuery = api.workflow.getRun.useQuery(
-    { runId: run.id },
-    {
-      enabled: run.status === "SUCCEEDED",
-      refetchOnWindowFocus: false,
-    },
-  );
-
-  const digest = buildResearchDigest({
-    templateCode: run.templateCode,
-    query: run.query,
-    status: run.status,
-    progressPercent: run.progressPercent,
-    currentNodeKey: run.currentNodeKey,
-    result: detailQuery.data?.result,
-  });
-
-  return (
-    <Panel surface="inset" density="compact">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusPill label="公司判断" tone="info" />
-            <StatusPill
-              label={statusLabelMap[run.status] ?? run.status}
-              tone={statusTone(run.status)}
-            />
-            <StatusPill label={digest.verdictLabel} tone={digest.verdictTone} />
-          </div>
-          <p className="mt-3 text-lg font-medium text-[var(--app-text)]">
-            {run.query}
-          </p>
-          <p className="mt-2 text-sm leading-6 text-[var(--app-text-muted)]">
-            {digest.summary}
-          </p>
-        </div>
-
-        <div className="text-right text-xs text-[var(--app-text-soft)]">
-          <p>{formatDate(run.createdAt)}</p>
-          {run.status === "RUNNING" || run.status === "PENDING" ? (
-            <p className="mt-2">{run.currentNodeKey ?? "等待更新"}</p>
-          ) : null}
-        </div>
-      </div>
-
-      {run.status === "RUNNING" || run.status === "PENDING" ? (
-        <div className="mt-4">
-          <div className="mb-2 flex items-center justify-between gap-3 text-xs text-[var(--app-text-soft)]">
-            <span>当前进度</span>
-            <span>{run.progressPercent}%</span>
-          </div>
-          <ProgressBar
-            value={run.progressPercent}
-            tone={statusTone(run.status)}
-          />
-        </div>
-      ) : null}
-
-      <div className="mt-4 grid gap-3 md:grid-cols-4">
-        {digest.metrics.slice(0, 4).map((metric) => (
-          <div
-            key={`${run.id}-${metric.label}`}
-            className="rounded-[12px] border border-[var(--app-border)] bg-[var(--app-panel)] px-4 py-3"
-          >
-            <div className="text-xs text-[var(--app-text-soft)]">
-              {metric.label}
-            </div>
-            <div className="app-data mt-2 text-lg text-[var(--app-text)]">
-              {metric.value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 grid gap-3 xl:grid-cols-4">
-        <KeyPointList
-          title="看多理由"
-          items={digest.bullPoints}
-          emptyText="待更新。"
-          tone="success"
-        />
-        <KeyPointList
-          title="风险点"
-          items={digest.bearPoints}
-          emptyText="未标注。"
-          tone="warning"
-        />
-        <KeyPointList
-          title="证据摘要"
-          items={digest.evidence}
-          emptyText="查看详情。"
-          tone="info"
-        />
-        <KeyPointList
-          title="待核验动作"
-          items={
-            digest.nextActions.length > 0 ? digest.nextActions : digest.gaps
-          }
-          emptyText="查看详情。"
-          tone="neutral"
-        />
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-xs text-[var(--app-text-soft)]">
-          {digest.headline}
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={buildRunDetailHref({
-              runId: run.id,
-              templateCode: run.templateCode,
-            })}
-            className="app-button app-button-primary"
-          >
-            查看结论
-          </Link>
-          {(run.status === "PENDING" || run.status === "RUNNING") && (
-            <button
-              type="button"
-              onClick={() => onCancel(run.id)}
-              className="app-button app-button-danger"
-            >
-              取消研究
-            </button>
-          )}
-        </div>
-      </div>
-    </Panel>
-  );
-}
 
 export function CompanyResearchClient() {
   const router = useRouter();
@@ -280,15 +109,6 @@ export function CompanyResearchClient() {
         templateCode: COMPANY_RESEARCH_TEMPLATE_CODE,
       });
       router.push(`/workflows/${result.runId}`);
-    },
-  });
-
-  const cancelMutation = api.workflow.cancelRun.useMutation({
-    onSuccess: async () => {
-      await utils.workflow.listRuns.invalidate({
-        limit: 20,
-        templateCode: COMPANY_RESEARCH_TEMPLATE_CODE,
-      });
     },
   });
 
@@ -534,46 +354,6 @@ export function CompanyResearchClient() {
     </div>
   );
 
-  const findingsPanel = (
-    <Panel
-      className={stageCanvasClassName}
-      title="最新公司判断"
-      actions={
-        <button
-          type="button"
-          onClick={() => runsQuery.refetch()}
-          className="app-button"
-        >
-          刷新列表
-        </button>
-      }
-    >
-      {runsQuery.isLoading ? (
-        <EmptyState title="正在加载公司判断" />
-      ) : sortedRuns.length === 0 ? (
-        <EmptyState title="还没有公司判断记录" />
-      ) : (
-        <div className="grid gap-4">
-          {sortedRuns.map((run) => (
-            <CompanyRunCard
-              key={run.id}
-              run={run}
-              onCancel={(runId) => cancelMutation.mutate({ runId })}
-            />
-          ))}
-        </div>
-      )}
-
-      {runsQuery.error ? (
-        <InlineNotice
-          tone="danger"
-          description={runsQuery.error?.message ?? ""}
-          className="mt-4"
-        />
-      ) : null}
-    </Panel>
-  );
-
   return (
     <WorkspaceShell
       section="companyResearch"
@@ -606,7 +386,6 @@ export function CompanyResearchClient() {
           target: targetPanel,
           sources: sourcesPanel,
           launch: launchPanel,
-          findings: findingsPanel,
         }}
       />
     </WorkspaceShell>

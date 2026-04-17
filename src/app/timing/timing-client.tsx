@@ -1220,12 +1220,6 @@ export function TimingClient() {
                   <div className="text-right text-xs text-[var(--app-text-soft)]">
                     <p>写入时间 {formatDate(recommendation.createdAt)}</p>
                     <p>预算上限 {formatPct(recommendation.riskBudgetPct)}</p>
-                    <Link
-                      href="/timing/history"
-                      className="mt-2 inline-flex text-[var(--app-accent-strong)] hover:text-[var(--app-text)]"
-                    >
-                      查看报告历史
-                    </Link>
                   </div>
                 </div>
 

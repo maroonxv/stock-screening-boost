@@ -15,13 +15,6 @@ export default function WorkflowsHistoryPage() {
         moduleHref="/workflows"
         moduleLabel="返回行业判断"
         templateCode={QUICK_RESEARCH_TEMPLATE_CODE}
-        headerActions={[
-          {
-            href: "/company-research/history",
-            label: "公司判断历史",
-            tone: "primary",
-          },
-        ]}
       />
     </Suspense>
   );

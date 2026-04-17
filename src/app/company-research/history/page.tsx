@@ -15,13 +15,6 @@ export default function CompanyResearchHistoryPage() {
         moduleHref="/company-research"
         moduleLabel="返回公司判断"
         templateCode={COMPANY_RESEARCH_TEMPLATE_CODE}
-        headerActions={[
-          {
-            href: "/workflows/history",
-            label: "行业判断历史",
-            tone: "primary",
-          },
-        ]}
       />
     </Suspense>
   );

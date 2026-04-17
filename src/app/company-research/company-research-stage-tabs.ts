@@ -16,9 +16,4 @@ export const companyResearchStageTabs: WorkflowStageTab[] = [
     label: "发起执行",
     summary: "锁定输入并生成本轮公司判断。",
   },
-  {
-    id: "findings",
-    label: "最近发现",
-    summary: "快速浏览最近输出的结论和证据。",
-  },
 ];

@@ -97,6 +97,83 @@ describe("PythonMarketContextClient", () => {
     );
   });
 
+  it("accepts nullable downstream hints and availability warnings from python", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            asOf: "2026-04-18T00:00:00+00:00",
+            status: "partial",
+            regime: {
+              overallTone: "unknown",
+              growthTone: "unknown",
+              liquidityTone: "unknown",
+              riskTone: "unknown",
+              summary: "macro unavailable",
+              drivers: [],
+            },
+            flow: {
+              northboundNetAmount: null,
+              direction: "flat",
+              summary: "flow unavailable",
+            },
+            hotThemes: [],
+            downstreamHints: {
+              workflows: {
+                summary: "workflow summary",
+                suggestedQuestion: null,
+                suggestedDraftName: null,
+              },
+              companyResearch: {
+                summary: "company summary",
+                suggestedQuestion: null,
+                suggestedDraftName: null,
+              },
+              screening: {
+                summary: "screening summary",
+                suggestedQuestion: null,
+                suggestedDraftName: null,
+              },
+              timing: {
+                summary: "timing summary",
+                suggestedQuestion: null,
+                suggestedDraftName: null,
+              },
+            },
+            availability: {
+              regime: { available: false, warning: null },
+              flow: { available: false, warning: null },
+              hotThemes: { available: false, warning: null },
+            },
+          },
+        }),
+      }),
+    );
+
+    const PythonMarketContextClient = await loadClient();
+    const client = new PythonMarketContextClient({
+      baseUrl: "http://127.0.0.1:8000/api/v1",
+      timeoutMs: 500,
+    });
+
+    await expect(client.getSnapshot()).resolves.toMatchObject({
+      status: "partial",
+      downstreamHints: {
+        workflows: {
+          suggestedQuestion: null,
+          suggestedDraftName: null,
+        },
+      },
+      availability: {
+        regime: {
+          warning: null,
+        },
+      },
+    });
+  });
+
   it("throws workflow domain error with parsed gateway message", async () => {
     vi.stubGlobal(
       "fetch",

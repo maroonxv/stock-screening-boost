@@ -36,7 +36,7 @@ export const marketFlowDirectionSchema = z.enum([
 
 export const marketContextAvailabilityEntrySchema = z.object({
   available: z.boolean(),
-  warning: z.string().optional(),
+  warning: z.string().nullable().optional(),
 });
 
 export const marketRegimeSummarySchema = z.object({
@@ -56,8 +56,8 @@ export const marketFlowSummarySchema = z.object({
 
 export const marketContextSectionHintSchema = z.object({
   summary: z.string().min(1),
-  suggestedQuestion: z.string().optional(),
-  suggestedDraftName: z.string().optional(),
+  suggestedQuestion: z.string().nullable().optional(),
+  suggestedDraftName: z.string().nullable().optional(),
 });
 
 export const hotThemeConceptMatchSchema = z.object({

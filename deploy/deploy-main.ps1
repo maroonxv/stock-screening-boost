@@ -56,6 +56,64 @@ function Resolve-RepositoryRoot {
   return $FallbackRoot
 }
 
+function Get-EnvFileValue {
+  param(
+    [string]$LiteralPath,
+    [string]$Key,
+    [string]$Fallback
+  )
+
+  if (-not (Test-Path -LiteralPath $LiteralPath)) {
+    return $Fallback
+  }
+
+  foreach ($line in Get-Content -LiteralPath $LiteralPath) {
+    if ($line -match "^\s*$([regex]::Escape($Key))=(.*)$") {
+      $value = $Matches[1].Trim()
+      if ($value.StartsWith('"') -and $value.EndsWith('"')) {
+        return $value.Trim('"')
+      }
+
+      return $value
+    }
+  }
+
+  return $Fallback
+}
+
+function Invoke-Docker {
+  param([string[]]$DockerArgs)
+
+  $stdoutPath = [System.IO.Path]::GetTempFileName()
+  $stderrPath = [System.IO.Path]::GetTempFileName()
+
+  try {
+    $process = Start-Process -FilePath "docker" `
+      -ArgumentList $DockerArgs `
+      -NoNewWindow `
+      -Wait `
+      -PassThru `
+      -RedirectStandardOutput $stdoutPath `
+      -RedirectStandardError $stderrPath
+
+    $output = @()
+    if (Test-Path -LiteralPath $stdoutPath) {
+      $output += Get-Content -LiteralPath $stdoutPath
+    }
+    if (Test-Path -LiteralPath $stderrPath) {
+      $output += Get-Content -LiteralPath $stderrPath
+    }
+
+    if ($process.ExitCode -ne 0) {
+      throw "docker failed: $($output -join [Environment]::NewLine)"
+    }
+
+    return @($output)
+  } finally {
+    Remove-Item -LiteralPath $stdoutPath, $stderrPath -ErrorAction SilentlyContinue
+  }
+}
+
 function Invoke-Compose {
   param([string[]]$ComposeArgs)
 
@@ -118,6 +176,29 @@ $script:EnvFile = Assert-RequiredPath `
 $script:ProjectDirectory = Assert-RequiredPath `
   -LiteralPath $projectDirectoryPath `
   -DisplayPath ".worktrees/deploy-main/deploy"
+
+if ($Services -contains "python-service") {
+  $pythonVoiceBaseImage = Get-EnvFileValue `
+    -LiteralPath $script:EnvFile `
+    -Key "PYTHON_VOICE_BASE_IMAGE" `
+    -Fallback "stock-screening-boost-python-voice-base:local"
+  $installRefchecker = Get-EnvFileValue `
+    -LiteralPath $script:EnvFile `
+    -Key "REFCHECKER_ENABLED" `
+    -Fallback "false"
+  $pythonVoiceBaseDockerfile = Assert-RequiredPath `
+    -LiteralPath (Join-Path $deployMainRoot "deploy/python/Dockerfile.voice-base") `
+    -DisplayPath ".worktrees/deploy-main/deploy/python/Dockerfile.voice-base"
+
+  Write-Host "Building python voice base image..."
+  $null = Invoke-Docker -DockerArgs @(
+    "build",
+    "-f", $pythonVoiceBaseDockerfile,
+    "-t", $pythonVoiceBaseImage,
+    "--build-arg", "INSTALL_REFCHECKER=$installRefchecker",
+    $deployMainRoot
+  )
+}
 
 Write-Host "Validating docker compose configuration..."
 $null = Invoke-Compose -ComposeArgs @("config")

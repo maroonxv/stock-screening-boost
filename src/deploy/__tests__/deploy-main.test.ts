@@ -20,12 +20,15 @@ function createSandbox(options?: {
 }) {
   const root = mkdtempSync(path.join(tmpdir(), "deploy-main-test-"));
   const deployDir = path.join(root, "deploy");
+  const deployPythonDir = path.join(deployDir, "python");
   const deployMainRoot = path.join(root, ".worktrees", "deploy-main");
   const deployMainDeployDir = path.join(deployMainRoot, "deploy");
+  const deployMainPythonDir = path.join(deployMainDeployDir, "python");
   const binDir = path.join(root, "bin");
   const dockerLog = path.join(root, "docker.log");
 
   mkdirSync(deployDir, { recursive: true });
+  mkdirSync(deployPythonDir, { recursive: true });
   mkdirSync(binDir, { recursive: true });
 
   const repoScript = path.resolve(
@@ -41,6 +44,7 @@ function createSandbox(options?: {
 
   if (options?.includeDeployMain ?? true) {
     mkdirSync(deployMainDeployDir, { recursive: true });
+    mkdirSync(deployMainPythonDir, { recursive: true });
   }
 
   if (
@@ -50,6 +54,11 @@ function createSandbox(options?: {
     writeFileSync(
       path.join(deployMainDeployDir, "docker-compose.yml"),
       "services:\n  web:\n    image: alpine:3.20\n",
+      "utf8",
+    );
+    writeFileSync(
+      path.join(deployMainPythonDir, "Dockerfile.voice-base"),
+      "FROM python:3.11-slim\n",
       "utf8",
     );
   }
@@ -73,6 +82,10 @@ function createSandbox(options?: {
       "$log = $env:DOCKER_LOG",
       'Add-Content -Path $log -Value ($args -join " ")',
       '$joined = $args -join " "',
+      'if ($joined -match "^build " -and $joined -match "python-voice-base") {',
+      '  Write-Output "python-voice-base built"',
+      "  exit 0",
+      "}",
       'if ($joined -match "(^| )compose " -and $joined -match " config") {',
       '  Write-Output "services:"',
       '  Write-Output "  web:"',
@@ -214,5 +227,29 @@ describe("deploy-main.ps1", () => {
     const log = readFileSync(dockerLog, "utf8");
     expect(log).toContain("up -d --build postgres redis");
     expect(log).toContain("ps --services --status running postgres redis");
+  });
+
+  it("builds the python voice base image before starting python-service", () => {
+    const { root, binDir, dockerLog } = createSandbox();
+    sandboxes.push(root);
+
+    const result = runDeployScript(root, binDir, [
+      "-Services",
+      "python-service",
+    ]);
+
+    expect(result.status).toBe(0);
+
+    const log = readFileSync(dockerLog, "utf8");
+    const baseBuildIndex = log.indexOf("build -f");
+    const composeUpIndex = log.indexOf("compose --project-directory");
+
+    expect(log).toContain("python-voice-base");
+    expect(log).toContain(
+      path.join("deploy", "python", "Dockerfile.voice-base"),
+    );
+    expect(log).toContain("up -d --build python-service");
+    expect(baseBuildIndex).toBeGreaterThanOrEqual(0);
+    expect(composeUpIndex).toBeGreaterThan(baseBuildIndex);
   });
 });

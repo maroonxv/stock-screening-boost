@@ -315,3 +315,15 @@ AlphaFlow/
   </p>
 </div>
 <!-- readme-gen:end:footer -->
+
+## Voice Intake
+
+- `行业研究` 与 `公司判断` 页面支持浏览器录音输入，使用 `@ricky0123/vad-web` 自动停录，录音上限 90 秒。
+- 语音只作为表单预填增强：不会落库，不会改 workflow graph，也不会自动启动研究流程。
+- Python `python-service` 仅做 FunASR 转写；T3 侧负责文本整理、字段映射和置信度 guardrail。
+- 低置信度结果只会写入主问题字段；其余字段不会自动覆盖。
+- Docker 默认会把 FunASR 模型烘焙进 `python-service` 镜像；非 Docker 本地调试可执行：
+
+```bash
+python python_services/scripts/download_funasr_models.py --output-dir python_services/models/funasr
+```

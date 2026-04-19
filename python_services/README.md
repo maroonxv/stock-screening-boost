@@ -263,3 +263,20 @@ cd python_services
 pip install -r requirements-dev.txt
 pytest
 ```
+
+## 语音输入
+
+- 新增 `POST /api/v1/voice/transcribe`，供 `行业研究` 和 `公司判断` 页面使用浏览器录音转写。
+- 浏览器录音上限为 90 秒；音频不会持久化，也不会把 transcript 文本写入日志。
+- `python-service` 只负责 CPU 友好的 FunASR 转写；字段清洗、推断和置信度 guardrail 全部在 T3 侧完成。
+- Docker 镜像会在构建时下载并打包 `paraformer-zh`、`fsmn-vad`、`ct-punc` 三个模型，运行时首次请求才懒加载。
+- 非 Docker 本地调试如需手工准备模型，可执行：
+
+```bash
+python python_services/scripts/download_funasr_models.py --output-dir python_services/models/funasr
+```
+
+- 关键语音环境变量：
+  - `VOICE_MAX_DURATION_SECONDS`
+  - `VOICE_MAX_UPLOAD_BYTES`
+  - `VOICE_HOTWORD_LIMIT`

@@ -1,8 +1,14 @@
-import { createHash } from "node:crypto";
 import type { OpportunityLead } from "~/contracts/opportunity-intelligence";
 
 function shortHash(value: string) {
-  return createHash("sha1").update(value).digest("hex").slice(0, 8);
+  let hash = 0x811c9dc5;
+
+  for (const char of value) {
+    hash ^= char.codePointAt(0) ?? 0;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+
+  return hash.toString(16).padStart(8, "0").slice(0, 8);
 }
 
 export function slugifyOpportunityLead(title: string) {

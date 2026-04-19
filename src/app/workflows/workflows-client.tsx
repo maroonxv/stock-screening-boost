@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { MarketContextSection } from "~/app/_components/market-context-section";
+import { ResearchVoiceInput } from "~/app/_components/research-voice-input";
 import {
   InlineNotice,
   SectionCard,
@@ -13,6 +14,10 @@ import { WorkflowStageSwitcher } from "~/app/_components/workflow-stage-switcher
 import { buildWorkflowRunHistoryItems } from "~/app/_components/workspace-history";
 import { buildQuickResearchStartInput } from "~/app/workflows/quick-research-form";
 import { workflowsStageTabs } from "~/app/workflows/workflows-stage-tabs";
+import {
+  applyWorkflowsVoicePatch,
+  buildWorkflowsVoiceContext,
+} from "~/app/workflows/workflows-voice-adapter";
 import { QUICK_RESEARCH_TEMPLATE_CODE } from "~/server/domain/workflow/types";
 import { api } from "~/trpc/react";
 
@@ -128,6 +133,42 @@ export function WorkflowsClient() {
           className="app-textarea min-h-[220px]"
         />
       </label>
+      <ResearchVoiceInput
+        context={buildWorkflowsVoiceContext(
+          {
+            query,
+            researchGoal,
+            mustAnswerQuestions,
+            forbiddenEvidenceTypes,
+            preferredSources,
+            freshnessWindowDays,
+            deepMode,
+            idempotencyKey,
+          },
+          quickPrompts,
+        )}
+        onApplyPatch={(patch) => {
+          const nextState = applyWorkflowsVoicePatch(
+            {
+              query,
+              researchGoal,
+              mustAnswerQuestions,
+              forbiddenEvidenceTypes,
+              preferredSources,
+              freshnessWindowDays,
+              deepMode,
+              idempotencyKey,
+            },
+            patch,
+          );
+
+          setQuery(nextState.query);
+          setResearchGoal(nextState.researchGoal);
+          setMustAnswerQuestions(nextState.mustAnswerQuestions);
+          setPreferredSources(nextState.preferredSources);
+          setFreshnessWindowDays(nextState.freshnessWindowDays);
+        }}
+      />
     </SectionCard>
   );
 

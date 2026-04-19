@@ -10,7 +10,9 @@ export default defineConfig({
     environment: "node",
     include: [
       "src/**/*.test.ts",
+      "src/**/*.test.tsx",
       "src/**/*.spec.ts",
+      "src/**/*.spec.tsx",
       "src/**/*.property.test.ts",
     ],
     coverage: {
@@ -19,7 +21,9 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: [
         "src/**/*.test.ts",
+        "src/**/*.test.tsx",
         "src/**/*.spec.ts",
+        "src/**/*.spec.tsx",
         "src/**/*.property.test.ts",
         "src/**/__tests__/**",
       ],

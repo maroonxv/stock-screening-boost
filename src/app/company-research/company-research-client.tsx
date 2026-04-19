@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { MarketContextSection } from "~/app/_components/market-context-section";
+import { ResearchVoiceInput } from "~/app/_components/research-voice-input";
 import {
   InlineNotice,
   Panel,
@@ -13,6 +14,10 @@ import {
 import { WorkflowStageSwitcher } from "~/app/_components/workflow-stage-switcher";
 import { buildWorkflowRunHistoryItems } from "~/app/_components/workspace-history";
 import { companyResearchStageTabs } from "~/app/company-research/company-research-stage-tabs";
+import {
+  applyCompanyResearchVoicePatch,
+  buildCompanyResearchVoiceContext,
+} from "~/app/company-research/company-research-voice-adapter";
 import { COMPANY_RESEARCH_TEMPLATE_CODE } from "~/server/domain/workflow/types";
 import { api } from "~/trpc/react";
 
@@ -185,6 +190,53 @@ export function CompanyResearchClient() {
           onChange={(event) => setKeyQuestion(event.target.value)}
           placeholder="最想优先确认的问题，例如：过去几个季度里，真正驱动利润率上行的业务环节有哪些？"
           className="app-textarea min-h-[180px]"
+        />
+        <ResearchVoiceInput
+          context={buildCompanyResearchVoiceContext(
+            {
+              companyName,
+              stockCode,
+              officialWebsite,
+              focusConcepts,
+              keyQuestion,
+              supplementalUrls,
+              idempotencyKey,
+              researchGoal,
+              mustAnswerQuestions,
+              forbiddenEvidenceTypes,
+              preferredSources,
+              freshnessWindowDays,
+            },
+            starterCases.map((item) => item.keyQuestion),
+          )}
+          onApplyPatch={(patch) => {
+            const nextState = applyCompanyResearchVoicePatch(
+              {
+                companyName,
+                stockCode,
+                officialWebsite,
+                focusConcepts,
+                keyQuestion,
+                supplementalUrls,
+                idempotencyKey,
+                researchGoal,
+                mustAnswerQuestions,
+                forbiddenEvidenceTypes,
+                preferredSources,
+                freshnessWindowDays,
+              },
+              patch,
+            );
+
+            setCompanyName(nextState.companyName);
+            setStockCode(nextState.stockCode);
+            setFocusConcepts(nextState.focusConcepts);
+            setKeyQuestion(nextState.keyQuestion);
+            setResearchGoal(nextState.researchGoal);
+            setMustAnswerQuestions(nextState.mustAnswerQuestions);
+            setPreferredSources(nextState.preferredSources);
+            setFreshnessWindowDays(nextState.freshnessWindowDays);
+          }}
         />
       </div>
     </Panel>

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   buildOpportunityLeadActionLinks,
@@ -5,6 +8,16 @@ import {
 } from "~/app/opportunity-intelligence/opportunity-intelligence-links";
 
 describe("opportunity intelligence links", () => {
+  it("does not depend on node builtins so the client bundle can compile", () => {
+    const sourcePath = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "opportunity-intelligence-links.ts",
+    );
+    const source = readFileSync(sourcePath, "utf8");
+
+    expect(source).not.toContain('from "node:crypto"');
+  });
+
   it("builds stable slugs from lead titles", () => {
     expect(slugifyOpportunityLead("AI: 订单兑现靠近")).toBe("ai-orders");
     expect(slugifyOpportunityLead("机器人: 产业链扩散")).toMatch(

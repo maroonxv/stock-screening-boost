@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param(
   [string[]]$Services = @(),
-  [string[]]$RequiredEnv = @()
+  [string[]]$RequiredEnv = @(),
+  [switch]$ForceRebuild
 )
 
 Set-StrictMode -Version Latest
@@ -202,7 +203,7 @@ $script:ProjectDirectory = Assert-RequiredPath `
   -DisplayPath ".worktrees/deploy-main/deploy"
 $servicesToComposeBuild = @($Services)
 
-if ($Services -contains "python-service") {
+if ($ForceRebuild -and ($Services -contains "python-service")) {
   $pythonVoiceBaseImage = Get-EnvFileValue `
     -LiteralPath $script:EnvFile `
     -Key "PYTHON_VOICE_BASE_IMAGE" `
@@ -254,15 +255,18 @@ Write-Host "Validating docker compose configuration..."
 $null = Invoke-Compose -ComposeArgs @("config")
 
 Write-Host "Starting target services..."
-if ($Services -contains "python-service") {
+if ($ForceRebuild -and ($Services -contains "python-service")) {
   $null = Invoke-Compose -ComposeArgs @("up", "-d", "--no-build", "python-service")
 }
-if ($servicesToComposeBuild.Count -gt 0) {
+if ($ForceRebuild -and $servicesToComposeBuild.Count -gt 0) {
   $composeArgs = @("up", "-d", "--build")
   if ($Services -contains "python-service") {
     $composeArgs += "--no-deps"
   }
   $null = Invoke-Compose -ComposeArgs ($composeArgs + $servicesToComposeBuild)
+}
+if (-not $ForceRebuild) {
+  $null = Invoke-Compose -ComposeArgs (@("up", "-d") + $Services)
 }
 
 Write-Host "Checking running services..."

@@ -222,7 +222,7 @@ describe("deploy-main.ps1", () => {
     expect(log).toContain(
       path.join(root, ".worktrees", "deploy-main", "deploy"),
     );
-    expect(log).toContain("up -d --build web");
+    expect(log).toContain("up -d web");
     expect(log).toContain("exec -T web");
   }, 15_000);
 
@@ -238,9 +238,26 @@ describe("deploy-main.ps1", () => {
     expect(result.status).toBe(0);
 
     const log = readFileSync(dockerLog, "utf8");
-    expect(log).toContain("up -d --build postgres redis");
+    expect(log).toContain("up -d postgres redis");
     expect(log).toContain("ps --services --status running postgres redis");
   });
+
+  it("skips rebuilding python-service by default", () => {
+    const { root, binDir, dockerLog } = createSandbox();
+    sandboxes.push(root);
+
+    const result = runDeployScript(root, binDir, [
+      "-Services",
+      "python-service",
+    ]);
+
+    expect(result.status).toBe(0);
+
+    const log = readFileSync(dockerLog, "utf8");
+    expect(log).not.toContain("python-voice-base");
+    expect(log).not.toContain("deploy/python/Dockerfile.voice-base");
+    expect(log).toContain("up -d python-service");
+  }, 15_000);
 
   it("builds the python voice base image before starting python-service", () => {
     const { root, binDir, dockerLog } = createSandbox();
@@ -249,6 +266,7 @@ describe("deploy-main.ps1", () => {
     const result = runDeployScript(root, binDir, [
       "-Services",
       "python-service",
+      "-ForceRebuild",
     ]);
 
     expect(result.status).toBe(0);

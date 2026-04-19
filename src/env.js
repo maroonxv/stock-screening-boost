@@ -77,6 +77,11 @@ export const env = createEnv({
       .int()
       .positive()
       .default(2000),
+    MARKET_CONTEXT_WORKER_POLL_INTERVAL_MS: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(60_000),
     SCREENING_WORKER_POLL_INTERVAL_MS: z.coerce
       .number()
       .int()
@@ -155,6 +160,10 @@ export const env = createEnv({
     WORKFLOW_WORKER_POLL_INTERVAL_MS: readPositiveNumberEnv(
       process.env.WORKFLOW_WORKER_POLL_INTERVAL_MS,
       2000,
+    ),
+    MARKET_CONTEXT_WORKER_POLL_INTERVAL_MS: readPositiveNumberEnv(
+      process.env.MARKET_CONTEXT_WORKER_POLL_INTERVAL_MS,
+      60_000,
     ),
     SCREENING_WORKER_POLL_INTERVAL_MS: readPositiveNumberEnv(
       process.env.SCREENING_WORKER_POLL_INTERVAL_MS,

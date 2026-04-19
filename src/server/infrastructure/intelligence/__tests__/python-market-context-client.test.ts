@@ -87,12 +87,12 @@ describe("PythonMarketContextClient", () => {
       timeoutMs: 500,
     });
 
-    const payload = await client.getSnapshot();
+    const payload = await client.getSnapshot({ forceRefresh: true });
 
     expect(payload.status).toBe("complete");
     expect(payload.hotThemes[0]?.theme).toBe("AI");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/api/v1/market-context/snapshot",
+      "http://127.0.0.1:8000/api/v1/market-context/snapshot?forceRefresh=true",
       expect.anything(),
     );
   });

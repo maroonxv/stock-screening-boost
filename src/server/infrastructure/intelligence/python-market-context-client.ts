@@ -48,6 +48,10 @@ export type PythonMarketContextClientConfig = {
   timeoutMs?: number;
 };
 
+export type GetPythonMarketContextSnapshotOptions = {
+  forceRefresh?: boolean;
+};
+
 export class PythonMarketContextClient {
   private readonly baseUrl: string;
   private readonly marketContextBasePath: string;
@@ -64,24 +68,31 @@ export class PythonMarketContextClient {
       config?.timeoutMs ?? env.PYTHON_INTELLIGENCE_SERVICE_TIMEOUT_MS;
   }
 
-  async getSnapshot() {
-    return this.request("/snapshot");
+  async getSnapshot(options?: GetPythonMarketContextSnapshotOptions) {
+    return this.request("/snapshot", options);
   }
 
-  private async request(path: string) {
+  private async request(
+    path: string,
+    options?: GetPythonMarketContextSnapshotOptions,
+  ) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
-      const response = await fetch(
+      const requestUrl = new URL(
         `${this.baseUrl}${this.marketContextBasePath}${path}`,
-        {
-          signal: controller.signal,
-          headers: {
-            "Content-Type": "application/json",
-          },
-        },
       );
+      if (options?.forceRefresh) {
+        requestUrl.searchParams.set("forceRefresh", "true");
+      }
+
+      const response = await fetch(requestUrl.toString(), {
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "Unknown error");

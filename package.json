@@ -19,6 +19,7 @@
     "screening:reset-legacy-data": "tsx tooling/reset-legacy-screening-data.ts",
     "start": "next start",
     "validate:runtime": "tsx tooling/validate-runtime-env.ts",
+    "worker:market-context": "tsx tooling/workers/market-context-worker.ts",
     "worker:screening": "tsx tooling/workers/screening-worker.ts",
     "worker:workflow": "tsx tooling/workers/workflow-worker.ts",
     "test": "vitest run --config tooling/vitest.config.ts",

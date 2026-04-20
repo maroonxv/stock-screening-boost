@@ -31,6 +31,8 @@ describe("timing report-first navigation", () => {
     );
 
     expect(timingReportSource).toContain("buildTimingReportHistoryItems");
+    expect(timingReportSource).toContain("WorkflowVisualizationPanel");
+    expect(timingReportSource).toContain("report.card.workflowRunId");
     expect(timingReportSource).toContain("activeHistoryId={cardId}");
     expect(timingReportSource).not.toContain('eyebrow="单股择时报告"');
     expect(timingReportSource).toContain('titleSize="compact"');

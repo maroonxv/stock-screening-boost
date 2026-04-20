@@ -1,5 +1,7 @@
 "use client";
 
+/* biome-ignore lint/correctness/noUnusedImports: React is required by the current JSX transform in tests. */
+import React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -13,6 +15,7 @@ import {
 import { WorkflowStageSwitcher } from "~/app/_components/workflow-stage-switcher";
 import { buildWorkflowRunHistoryItems } from "~/app/_components/workspace-history";
 import { buildQuickResearchStartInput } from "~/app/workflows/quick-research-form";
+import { WorkflowVisualizationPanel } from "~/app/workflows/workflow-visualization-panel";
 import { workflowsStageTabs } from "~/app/workflows/workflows-stage-tabs";
 import {
   applyWorkflowsVoicePatch,
@@ -378,6 +381,12 @@ export function WorkflowsClient() {
       }
     >
       <OpportunityIntelligenceSummary />
+      <WorkflowVisualizationPanel
+        runId={sortedRuns[0]?.id}
+        title="最近一次研究流程"
+        description="默认直接展开最近一条行业研究 run 的流程路线图，方便快速回到当前研究闭环。"
+        detailHref={sortedRuns[0] ? `/workflows/${sortedRuns[0].id}` : undefined}
+      />
       <WorkflowStageSwitcher
         tabs={workflowsStageTabs}
         activeTabId={activeTabId}

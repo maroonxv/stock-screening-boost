@@ -86,21 +86,30 @@ describe("workflow page composition", () => {
     const runDetailSource = readSource(
       "./workflows/[runId]/run-detail-client.tsx",
     );
+    const timingReportSource = readSource(
+      "./timing/reports/[cardId]/timing-report-client.tsx",
+    );
 
     expect(screeningSource).toContain("historyItems={");
     expect(screeningSource).toContain("stockFilterQuery");
     expect(screeningSource).toContain("missingValueMode");
     expect(screeningSource).toContain("toggleSortForMetric");
     expect(workflowsSource).toContain("historyItems={");
+    expect(workflowsSource).toContain("WorkflowVisualizationPanel");
     expect(companyResearchSource).toContain("historyItems={");
     expect(timingSource).toContain("historyItems={");
     expect(runInvestorSource).toContain("historyItems={");
+    expect(runInvestorSource).toContain("WorkflowVisualizationPanel");
     expect(runDetailSource).toContain("historyItems={");
+    expect(timingReportSource).toContain("WorkflowVisualizationPanel");
 
     expect(screeningSource).not.toContain('href="/screening/history"');
     expect(screeningSource).not.toContain('activeTabId === "filters"');
     expect(workflowsSource).not.toContain('href="/workflows/history"');
     expect(workflowsSource).not.toContain("queue: queuePanel");
+    expect(runInvestorSource).not.toContain(
+      '<FlowGraph graph={run.runView.user} mode="user" />',
+    );
     expect(workflowsStageTabsSource).not.toContain("最近结论");
     expect(companyResearchSource).not.toContain(
       'href="/company-research/history"',

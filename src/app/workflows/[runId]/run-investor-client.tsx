@@ -31,7 +31,6 @@ import {
   formatSourceTypeLabel,
   formatWorkflowNodeLabel,
 } from "~/app/workflows/detail-labels";
-import { FlowGraph } from "~/app/workflows/flow-graph";
 import { ResearchOpsPanels } from "~/app/workflows/research-ops-panels";
 import {
   buildResearchDigest,
@@ -40,6 +39,7 @@ import {
   getQuickResearchModePills,
   isCompanyResearchResult,
 } from "~/app/workflows/research-view-models";
+import { WorkflowVisualizationPanel } from "~/app/workflows/workflow-visualization-panel";
 import { resolveWorkflowShellContext } from "~/app/workflows/workflow-shell-context";
 import {
   COMPANY_RESEARCH_TEMPLATE_CODE,
@@ -396,7 +396,12 @@ export function RunInvestorClient({ runId }: RunInvestorClientProps) {
               title="流程路线图"
               description="这张图展示这套研究流程应该怎么走，以及这次运行实际走到了哪一步。"
             >
-              <FlowGraph graph={run.runView.user} mode="user" />
+              <WorkflowVisualizationPanel
+                runView={run.runView}
+                title="娴佺▼璺嚎鍥?"
+                description="杩欏紶鍥惧睍绀鸿繖濂楃爺绌舵祦绋嬪簲璇ユ€庝箞璧帮紝浠ュ強杩欐杩愯瀹為檯璧板埌浜嗗摢涓€姝ャ€?"
+                detailHref={`/workflows/${runId}/debug`}
+              />
             </Panel>
           ) : null}
 

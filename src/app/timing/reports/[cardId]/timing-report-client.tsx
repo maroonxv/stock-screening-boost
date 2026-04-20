@@ -1,5 +1,7 @@
 "use client";
 
+/* biome-ignore lint/correctness/noUnusedImports: React is required by the current JSX transform in tests. */
+import React from "react";
 import Link from "next/link";
 import {
   EmptyState,
@@ -9,6 +11,7 @@ import {
 } from "~/app/_components/ui";
 import { buildTimingReportHistoryItems } from "~/app/_components/workspace-history";
 import { TimingReportView } from "~/app/timing/reports/[cardId]/timing-report-view";
+import { WorkflowVisualizationPanel } from "~/app/workflows/workflow-visualization-panel";
 import { api } from "~/trpc/react";
 
 export function TimingReportClient(props: { cardId: string }) {
@@ -74,7 +77,16 @@ export function TimingReportClient(props: { cardId: string }) {
       {!reportQuery.isLoading && !reportQuery.error && !report ? (
         <EmptyState title="未找到对应的择时报告" />
       ) : null}
-      {report ? <TimingReportView report={report} /> : null}
+      {report ? (
+        <>
+          <WorkflowVisualizationPanel
+            runId={report.card.workflowRunId ?? undefined}
+            title="关联工作流"
+            description="这份择时报告对应的 agentic workflow 路线图，默认直接展开显示。"
+          />
+          <TimingReportView report={report} />
+        </>
+      ) : null}
     </WorkspaceShell>
   );
 }

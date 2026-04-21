@@ -1,0 +1,28 @@
+[project]
+name = "stock-screening-python-service"
+version = "0.1.0"
+description = "FastAPI financial data service for stock-screening-boost"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "akshare>=1.18.0",
+  "fastapi==0.109.0",
+  "httpx==0.26.0",
+  "pydantic==2.10.5",
+  "redis==5.2.1",
+  "tushare>=1.4.21",
+  "uvicorn[standard]==0.27.0"
+]
+
+[dependency-groups]
+dev = [
+  "pytest==7.4.4",
+  "pytest-asyncio==0.23.3"
+]
+
+[project.optional-dependencies]
+refchecker = [
+  "refchecker==0.2.17"
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

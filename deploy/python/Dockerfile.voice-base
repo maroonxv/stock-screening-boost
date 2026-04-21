@@ -4,6 +4,7 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
 
 ARG INSTALL_REFCHECKER=false
 
@@ -11,19 +12,22 @@ RUN set -eux; \
   find /etc/apt -type f \( -name '*.sources' -o -name '*.list' \) -print0 \
     | xargs -0 -r sed -i 's|http://deb.debian.org|https://deb.debian.org|g; s|http://security.debian.org|https://security.debian.org|g'; \
   apt-get update; \
-  apt-get install -y --no-install-recommends ffmpeg libidn12; \
+  apt-get install -y --no-install-recommends curl ffmpeg libidn12; \
   ln -sf /usr/lib/x86_64-linux-gnu/libidn.so.12 /usr/lib/x86_64-linux-gnu/libidn.so.11; \
+  curl -LsSf https://astral.sh/uv/install.sh | sh; \
+  mv /root/.local/bin/uv /usr/local/bin/uv; \
+  mv /root/.local/bin/uvx /usr/local/bin/uvx; \
   rm -rf /var/lib/apt/lists/*
 
-COPY python_services/requirements.txt ./requirements.txt
-COPY python_services/requirements-refchecker.txt ./requirements-refchecker.txt
+COPY python_services/pyproject.toml ./pyproject.toml
+COPY python_services/uv.lock ./uv.lock
 COPY python_services/scripts ./scripts
 COPY deploy/python/vendor ./vendor
-RUN pip install --default-timeout=1200 --no-cache-dir -r requirements.txt \
+RUN uv sync --frozen --no-dev \
   && case "${INSTALL_REFCHECKER}" in \
     1|true|TRUE|yes|YES|on|ON) \
       echo "Installing optional RefChecker dependencies."; \
-      pip install --default-timeout=1200 --no-cache-dir -r requirements-refchecker.txt; \
+      uv sync --frozen --no-dev --extra refchecker; \
       ;; \
     *) \
       echo "Skipping optional RefChecker dependencies."; \
@@ -56,4 +60,4 @@ RUN pip install --default-timeout=1200 --no-cache-dir -r requirements.txt \
   fi \
   && python -c "import importlib.util; print('iFinDPy spec:', importlib.util.find_spec('iFinDPy'))" \
   && python scripts/download_funasr_models.py --output-dir /app/models/funasr \
-  && rm -rf vendor requirements-refchecker.txt
+  && rm -rf vendor

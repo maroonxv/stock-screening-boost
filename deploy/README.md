@@ -1,25 +1,57 @@
-# Docker Desktop 部署说明
+# 发布式验证说明
 
-本目录提供完整的 Docker Compose 编排，用于启动以下服务：
+`deploy/` 目录用于接近生产环境的本机验收，而不是默认开发循环。
 
-- `web`: Next.js 应用
-- `python-service`: FastAPI 金融与情报数据网关
+日常开发请优先使用根目录的 `WSL + Dev Container` 工作流；只有在需要阶段性验收时，才运行这里的 Docker 链路。
+
+## 验证目标
+
+这条链路保留不可变镜像构建与容器启动，用来回答三个问题：
+
+1. Compose 配置是否仍然有效。
+2. `web`、`python-service`、`workflow-worker` 是否能以发布方式启动。
+3. 关键环境变量是否真的进入目标容器。
+
+## 服务范围
+
+- `web`: Next.js 生产服务
+- `python-service`: FastAPI 数据网关
 - `workflow-worker`: 工作流执行器
-- `screening-worker`: 筛选任务执行器
 - `redis`: 运行时缓存与队列
 - `postgres`: PostgreSQL 数据库
 
-## 前置条件
+## 使用入口
 
-- 已安装并启动 Docker Desktop
-- `docker version` 和 `docker compose version` 可以正常执行
+唯一支持的 Docker 验证入口是 `deploy/deploy-main.ps1`：
 
-## 1. 准备环境变量
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy\deploy-main.ps1 `
+  -Services web,python-service,workflow-worker `
+  -RequiredEnv AUTH_SECRET,NEXTAUTH_URL
+```
 
-先创建本地部署配置：
+脚本始终从 `.worktrees/deploy-main` 解析这些路径，而不是依赖当前 shell 目录：
+
+- `.worktrees/deploy-main`
+- `.worktrees/deploy-main/deploy/docker-compose.yml`
+- `.worktrees/deploy-main/.env`
+
+## 验证内容
+
+脚本会顺序完成以下检查：
+
+1. `docker compose config`
+2. 目标服务到达 running 状态
+3. 目标容器内存在所需环境变量
+
+如果传入 `-ForceRebuild` 且服务列表包含 `python-service`，脚本会先预构建 Python voice base 层，再重建 `python-service` 镜像，以复用更稳定的语音/运行时依赖层。
+
+## 准备环境变量
+
+先创建发布式验证环境：
 
 ```bash
-cp deploy/.env.example deploy/.env
+cp deploy/.env.example .env
 ```
 
 最低必填项：
@@ -28,144 +60,13 @@ cp deploy/.env.example deploy/.env
 - `POSTGRES_PASSWORD`
 - `WEB_PORT` / `PYTHON_SERVICE_PORT` / `POSTGRES_PORT`
 
-建议同时配置：
+`deploy/.env.example` 面向 Docker 网络内的发布式服务地址；根目录 `.env.example` 则面向 dev container 内的开发箱。
 
-- `DEEPSEEK_API_KEY`: 启用工作流摘要、Insight 增强等能力
-- `FIRECRAWL_API_KEY`: 启用公司研究网页抓取
-- `ZHIPU_API_KEY`: 启用主题到概念映射的智谱 Web Search
-- `IFIND_USERNAME` / `IFIND_PASSWORD`: 启用 iFinD 作为主筛选数据源
-- `REFCHECKER_*`: 启用 RefChecker 可信度分析
-
-说明：
-
-- `REFCHECKER_ENABLED=false` 时，`python-service` 镜像默认只安装基础依赖，可信度分析接口会继续使用内置 heuristic fallback。
-- 如果要启用 RefChecker，请先在 `deploy/.env` 中将 `REFCHECKER_ENABLED=true`，再执行 `docker compose ... up -d --build` 重新构建镜像。
-
-## 2. 可选的 iFinD 厂商包
-
-公共 PyPI 当前没有可直接安装的 `iFinDPy` 发行版。如果需要在 Linux 容器内启用 iFinD，请将厂商提供的安装包放到：
-
-```text
-deploy/python/vendor/
-```
-
-支持格式：
-
-- `*.whl`
-- `*.tar.gz`
-- `*.zip`
-
-如果该目录为空，Python 服务仍可构建，并按 `SCREENING_ENABLE_AKSHARE_FALLBACK` 退回到 AkShare。
-
-## 3. 主题规则持久化
-
-主题概念规则默认持久化到 Docker 命名卷 `python_theme_rules_data`，默认路径：
-
-```text
-/data/theme-concept-rules/theme_concept_rules.json
-```
-
-如有需要，可通过 `INTELLIGENCE_THEME_CONCEPT_RULES_FILE` 覆盖。
-
-## 4. THS 概念目录文件
-
-概念目录主链路现在使用本地 THS 快照文件，而不是在请求时直接调用 `stock_board_concept_name_ths`。
-
-- 容器内默认路径：`/app/data/ths_concept_catalog.csv`
-- 宿主机路径：仓库根目录下的 [ths_concept_catalog.csv](D:/课外项目/stock-screening-boost/data/ths_concept_catalog.csv)
-- `python-service` 会将仓库根 `data/` 目录绑定挂载到容器内 `/app/data`
-
-可以通过 `INTELLIGENCE_CONCEPT_CATALOG_FILE` 覆盖默认路径。
-
-### 刷新命令
-
-建议至少每日盘前或盘后刷新一次：
-
-```bash
-docker compose --env-file deploy/.env -f deploy/docker-compose.yml run --rm python-service python scripts/refresh_concept_catalog.py --output /app/data/ths_concept_catalog.csv
-```
-
-如果你是在本地 Python 环境中执行，也可以在 `python_services/` 目录下运行：
-
-```bash
-python scripts/refresh_concept_catalog.py --output ../data/ths_concept_catalog.csv
-```
-
-### 运维注意事项
-
-- 刷新脚本会从 THS 拉取最新概念目录，并覆盖写入 `ths_concept_catalog.csv`
-- 如果概念目录文件缺失、为空或列结构损坏，概念相关接口会显式报错，不会自动回退到 live THS
-- 更新本地 `data/ths_concept_catalog.csv` 后，无需重建镜像；后续请求会按文件更新时间自动热加载
-
-## 5. 启动服务
-
-在仓库根目录执行：
-
-```bash
-docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build
-```
-
-启动后：
-
-- `web` 会依次执行 `npm run validate:runtime`、`npm run db:push`、`npm run start`
-- `workflow-worker` 会轮询并执行工作流任务
-- `screening-worker` 会轮询并执行筛选任务
-
-## 6. 访问地址
-
-- Web: `http://localhost:3000`
-- Python API Docs: `http://localhost:8000/docs`
-- PostgreSQL: 默认 `localhost:5432`
-
-## 7. 常用命令
-
-查看全部日志：
+## 常用命令
 
 ```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml logs -f
-```
-
-查看 workflow worker 日志：
-
-```bash
-docker compose --env-file deploy/.env -f deploy/docker-compose.yml logs -f workflow-worker
-```
-
-查看容器状态：
-
-```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml ps
-```
-
-停止服务：
-
-```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml down
-```
-
-停止服务并删除数据卷：
-
-```bash
 docker compose --env-file deploy/.env -f deploy/docker-compose.yml down -v
 ```
-## Recommended Entry Point
-
-Use `deploy/deploy-main.ps1` as the only supported Docker deployment entrypoint.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File deploy\deploy-main.ps1 `
-  -Services web,python-service,workflow-worker `
-  -RequiredEnv AUTH_SECRET,NEXTAUTH_URL
-```
-
-The script always resolves these paths from `.worktrees/deploy-main` instead of the current shell directory:
-
-- `.worktrees/deploy-main`
-- `.worktrees/deploy-main/deploy/docker-compose.yml`
-- `.worktrees/deploy-main/.env`
-
-It verifies three things before reporting success:
-
-- `docker compose config`
-- target services reach the running state
-- required env vars exist inside the target containers

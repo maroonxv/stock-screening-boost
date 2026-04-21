@@ -1,0 +1,29 @@
+{
+  "name": "stock-screening-boost-dev",
+  "dockerComposeFile": [
+    "docker-compose.yml"
+  ],
+  "service": "workspace",
+  "runServices": [
+    "workspace",
+    "postgres",
+    "redis"
+  ],
+  "workspaceFolder": "/workspaces/stock-screening-boost",
+  "shutdownAction": "stopCompose",
+  "postCreateCommand": "npm ci && cd python_services && uv sync --frozen --dev",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "ms-vscode-remote.remote-containers",
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "Prisma.prisma",
+        "biomejs.biome"
+      ]
+    }
+  }
+}

@@ -120,8 +120,19 @@ function createSandbox(options?: {
       "  exit 0",
       "}",
       'if ($joined -match "(^| )compose " -and $joined -match " exec -T") {',
-      '  Write-Output "AUTH_SECRET=test-secret"',
-      '  Write-Output "NEXTAUTH_URL=http://localhost:3000"',
+      "  $service = $args[([Array]::IndexOf($args, 'exec') + 2)]",
+      "  switch ($service) {",
+      "    'web' {",
+      '      Write-Output "AUTH_SECRET=test-secret"',
+      '      Write-Output "NEXTAUTH_URL=http://localhost:3000"',
+      "    }",
+      "    'workflow-worker' {",
+      '      Write-Output "AUTH_SECRET=test-secret"',
+      "    }",
+      "    'python-service' {",
+      '      Write-Output "PYTHONUNBUFFERED=1"',
+      "    }",
+      "  }",
       "  exit 0",
       "}",
       'Write-Error "Unexpected docker invocation: $joined"',
@@ -224,6 +235,25 @@ describe("deploy-main.ps1", () => {
     );
     expect(log).toContain("up -d web");
     expect(log).toContain("exec -T web");
+  }, 15_000);
+
+  it("supports per-service required env validation for mixed services", () => {
+    const { root, binDir, dockerLog } = createSandbox();
+    sandboxes.push(root);
+
+    const result = runDeployScript(root, binDir, [
+      "-Services",
+      "web,python-service,workflow-worker",
+      "-RequiredEnvByService",
+      "web=AUTH_SECRET,NEXTAUTH_URL;python-service=PYTHONUNBUFFERED;workflow-worker=AUTH_SECRET",
+    ]);
+
+    expect(result.status).toBe(0);
+
+    const log = readFileSync(dockerLog, "utf8");
+    expect(log).toContain("exec -T web");
+    expect(log).toContain("exec -T python-service");
+    expect(log).toContain("exec -T workflow-worker");
   }, 15_000);
 
   it("accepts comma-separated services even when required env validation is omitted", () => {

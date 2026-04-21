@@ -2,6 +2,7 @@
 param(
   [string[]]$Services = @(),
   [string[]]$RequiredEnv = @(),
+  [string[]]$RequiredEnvByService = @(),
   [switch]$ForceRebuild
 )
 
@@ -23,6 +24,46 @@ function Split-ListArgument {
   }
 
   return @($result)
+}
+
+function ConvertTo-ServiceEnvLookup {
+  param([string[]]$Values)
+
+  $lookup = @{}
+  foreach ($value in $Values) {
+    if ([string]::IsNullOrWhiteSpace($value)) {
+      continue
+    }
+
+    $entries = $value.Split(";", [System.StringSplitOptions]::RemoveEmptyEntries) |
+      ForEach-Object { $_.Trim() } |
+      Where-Object { $_ }
+
+    foreach ($entry in $entries) {
+      $parts = $entry.Split("=", 2, [System.StringSplitOptions]::None)
+      if ($parts.Count -ne 2) {
+        throw "Invalid -RequiredEnvByService entry '$entry'. Expected format: service=ENV_A,ENV_B"
+      }
+
+      $serviceName = $parts[0].Trim()
+      if ([string]::IsNullOrWhiteSpace($serviceName)) {
+        throw "Invalid -RequiredEnvByService entry '$entry'. Service name cannot be empty."
+      }
+
+      $envNames = @(Split-ListArgument -Values @($parts[1]))
+      if (-not $lookup.ContainsKey($serviceName)) {
+        $lookup[$serviceName] = New-Object System.Collections.Generic.List[string]
+      }
+
+      foreach ($envName in $envNames) {
+        if (-not $lookup[$serviceName].Contains($envName)) {
+          $null = $lookup[$serviceName].Add($envName)
+        }
+      }
+    }
+  }
+
+  return $lookup
 }
 
 function Assert-RequiredPath {
@@ -203,6 +244,7 @@ function Invoke-Compose {
 
 $Services = @(Split-ListArgument -Values $Services)
 $RequiredEnv = @(Split-ListArgument -Values $RequiredEnv)
+$requiredEnvByServiceLookup = ConvertTo-ServiceEnvLookup -Values $RequiredEnvByService
 
 if ($Services.Count -eq 0) {
   throw "At least one service must be provided via -Services."
@@ -304,16 +346,33 @@ foreach ($service in $Services) {
   }
 }
 
-if ($RequiredEnv.Count -gt 0) {
-  foreach ($service in $Services) {
-    Write-Host "Checking required env vars in $service..."
-    $envOutput = @(Invoke-Compose -ComposeArgs @("exec", "-T", $service, "sh", "-lc", "env"))
+foreach ($service in $Services) {
+  $serviceRequiredEnv = New-Object System.Collections.Generic.List[string]
+  foreach ($envName in $RequiredEnv) {
+    if (-not $serviceRequiredEnv.Contains($envName)) {
+      $null = $serviceRequiredEnv.Add($envName)
+    }
+  }
 
-    foreach ($envName in $RequiredEnv) {
-      $escapedName = [regex]::Escape($envName)
-      if (-not ($envOutput -join [Environment]::NewLine -match "(?m)^$escapedName=")) {
-        throw "Missing required env var '$envName' in service '$service'"
+  if ($requiredEnvByServiceLookup.ContainsKey($service)) {
+    foreach ($envName in $requiredEnvByServiceLookup[$service]) {
+      if (-not $serviceRequiredEnv.Contains($envName)) {
+        $null = $serviceRequiredEnv.Add($envName)
       }
+    }
+  }
+
+  if ($serviceRequiredEnv.Count -eq 0) {
+    continue
+  }
+
+  Write-Host "Checking required env vars in $service..."
+  $envOutput = @(Invoke-Compose -ComposeArgs @("exec", "-T", $service, "sh", "-lc", "env"))
+
+  foreach ($envName in $serviceRequiredEnv) {
+    $escapedName = [regex]::Escape($envName)
+    if (-not ($envOutput -join [Environment]::NewLine -match "(?m)^$escapedName=")) {
+      throw "Missing required env var '$envName' in service '$service'"
     }
   }
 }

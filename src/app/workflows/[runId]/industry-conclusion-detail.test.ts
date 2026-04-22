@@ -31,7 +31,7 @@ const model: IndustryConclusionViewModel = {
   ],
   overviewActions: [
     {
-      label: "Continue 涓檯鏃垱",
+      label: "Continue 中际旭创",
       href: "/company-research?companyName=%E4%B8%AD%E9%99%85%E6%97%AD%E5%88%9B",
       variant: "primary",
     },
@@ -57,7 +57,7 @@ const model: IndustryConclusionViewModel = {
     topPicks: [
       {
         stockCode: "300308",
-        stockName: "涓檯鏃垱",
+        stockName: "中际旭创",
         reason: "800G volume continues.",
         href: "/company-research?companyName=%E4%B8%AD%E9%99%85%E6%97%AD%E5%88%9B",
       },
@@ -149,11 +149,12 @@ describe("IndustryConclusionDetail", () => {
     expect(markup).toContain('data-industry-conclusion-detail="true"');
     expect(markup).toContain('data-stage-switcher="true"');
     expect(markup).toContain('data-active-tab="agent"');
-    expect(markup).toContain("Agent 鐘舵€佸浘");
-    expect(markup).toContain("鎬昏");
-    expect(markup).toContain("鏍稿績閫昏緫");
-    expect(markup).toContain("璇佹嵁涓庡彲淇″害");
-    expect(markup).toContain("椋庨櫓涓庝笅涓€姝?");
+    expect(markup).toContain("Agent 状态图");
+    expect(markup).toContain("总览");
+    expect(markup).toContain("核心逻辑");
+    expect(markup).toContain("证据与可信度");
+    expect(markup).toContain("风险与下一步");
+    expect(markup).toContain("先看 Agent 状态图、运行摘要和研究执行状态。");
   });
 
   it("respects initialSectionId for non-agent steps", () => {

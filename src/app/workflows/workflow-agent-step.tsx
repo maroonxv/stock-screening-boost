@@ -43,17 +43,17 @@ function buildSpec(run: WorkflowDiagramRunDetail) {
 function formatRunStatus(status: string) {
   switch (status) {
     case "PENDING":
-      return "鎺掗槦涓?";
+      return "排队中";
     case "RUNNING":
-      return "杩涜涓?";
+      return "进行中";
     case "PAUSED":
-      return "宸叉殏鍋?";
+      return "已暂停";
     case "SUCCEEDED":
-      return "宸插畬鎴?";
+      return "已完成";
     case "FAILED":
-      return "澶辫触";
+      return "失败";
     case "CANCELLED":
-      return "宸插彇娑?";
+      return "已取消";
     default:
       return status;
   }
@@ -69,10 +69,10 @@ export function WorkflowAgentStep(props: {
     return (
       <div className={className}>
         <Panel
-          title="Agent 鐘舵€佸浘"
+          title="Agent 状态图"
           description="当前详情页没有可用的 workflow run 数据。"
         >
-          <EmptyState title="鏆傛棤 Agent 杩愯鏁版嵁" />
+          <EmptyState title="暂无 Agent 运行数据" />
         </Panel>
       </div>
     );
@@ -92,14 +92,14 @@ export function WorkflowAgentStep(props: {
     <div className={className}>
       <div className="grid gap-6">
         <Panel
-          title="Agent 鐘舵€佸浘"
+          title="Agent 状态图"
           description="显示当前 workflow 的 Agent 拓扑、执行进度和已走过的路径。"
         >
           <WorkflowStateDiagram spec={spec} runtime={runtime} />
         </Panel>
 
         <Panel
-          title="杩愯鎽樿"
+          title="运行摘要"
           description="保留详情页内的通用运行状态摘要。"
         >
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">

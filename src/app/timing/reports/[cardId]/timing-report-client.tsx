@@ -54,21 +54,21 @@ export function TimingReportClient(props: { cardId: string }) {
       historyHref="/timing/history"
       activeHistoryId={cardId}
       historyLoading={historyCardsQuery.isLoading}
-      historyEmptyText="杩樻病鏈夋嫨鏃舵姤鍛?"
+      historyEmptyText="还没有择时报告"
       titleSize="compact"
       title={
         report
-          ? `${report.card.stockCode} ${report.card.stockName} 路 鎷╂椂鐮旂┒鎶ュ憡`
-          : "鍗曡偂鎷╂椂鐮旂┒鎶ュ憡"
+          ? `${report.card.stockCode} ${report.card.stockName} · 择时研究报告`
+          : "单股择时研究报告"
       }
       description={
         report
-          ? `鎶ュ憡榛樿鍐荤粨鍦?${report.card.asOfDate ?? report.card.signalSnapshot?.asOfDate ?? "-"} 鐨勬棩绾胯瑙掞紝鐢ㄤ环鏍肩粨鏋勩€佽瘉鎹紩鎿庡拰澶嶇洏鏃堕棿绾胯В閲婂綋鍓嶅垽鏂€俙`
-          : "浠庣幇鏈夋嫨鏃跺崱鐗囪繘鍏ヨ鎯咃紝鏌ョ湅瀹屾暣鐨勫崟鑲＄爺绌舵姤鍛娿€?"
+          ? `报告默认冻结在 ${report.card.asOfDate ?? report.card.signalSnapshot?.asOfDate ?? "-"} 的日线视角，用价格结构、证据引擎和复盘时间线解释当前判断。`
+          : "从现有择时卡片进入详情，查看完整的单股研究报告。"
       }
       actions={
         <Link href="/timing" className="app-button">
-          杩斿洖鎷╂椂宸ヤ綔鍙?
+          返回择时工作台
         </Link>
       }
     >
@@ -76,12 +76,12 @@ export function TimingReportClient(props: { cardId: string }) {
       {reportQuery.error ? (
         <InlineNotice
           tone="danger"
-          title="鎶ュ憡鍔犺浇澶辫触"
+          title="报告加载失败"
           description={reportQuery.error.message}
         />
       ) : null}
       {!reportQuery.isLoading && !reportQuery.error && !report ? (
-        <EmptyState title="鏈壘鍒板搴旂殑鎷╂椂鎶ュ憡" />
+        <EmptyState title="未找到对应的择时报告" />
       ) : null}
       {report ? (
         <>

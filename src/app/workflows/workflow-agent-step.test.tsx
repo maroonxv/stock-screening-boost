@@ -112,9 +112,9 @@ describe("WorkflowAgentStep", () => {
       }),
     );
 
-    expect(markup).toContain("Agent 鐘舵€佸浘");
+    expect(markup).toContain("Agent 状态图");
     expect(markup).toContain("data-workflow-state-diagram");
-    expect(markup).toContain("杩涜涓?");
+    expect(markup).toContain("运行摘要");
     expect(markup).toContain("42%");
     expect(markup).toContain("当前节点");
     expect(markup).toContain("研究计划图谱");
@@ -128,8 +128,8 @@ describe("WorkflowAgentStep", () => {
       }),
     );
 
-    expect(markup).toContain("Agent 鐘舵€佸浘");
-    expect(markup).toContain("鏆傛棤 Agent 杩愯鏁版嵁");
+    expect(markup).toContain("Agent 状态图");
+    expect(markup).toContain("暂无 Agent 运行数据");
   });
 
   it("renders fallback diagram state when the workflow spec is unknown", () => {

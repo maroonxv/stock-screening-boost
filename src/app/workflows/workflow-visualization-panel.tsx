@@ -122,14 +122,14 @@ export function WorkflowVisualizationPanel(
       {runQuery.error ? (
         <InlineNotice
           tone="danger"
-          title="Workflow diagram failed to load"
+          title="状态图加载失败"
           description={runQuery.error.message}
         />
       ) : null}
       {!runQuery.isLoading && !runQuery.error && !runtime ? (
         <EmptyState
-          title="No workflow diagram data"
-          description="Provide a workflow run or template code to render the state diagram."
+          title="暂无状态图数据"
+          description="提供工作流运行记录或模板编号后，这里会显示状态图。"
         />
       ) : null}
       {runtime ? <WorkflowStateDiagram spec={spec} runtime={runtime} /> : null}

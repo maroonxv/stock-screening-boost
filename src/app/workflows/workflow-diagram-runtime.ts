@@ -203,13 +203,13 @@ function deriveVisitedEdges(params: {
 function buildFallback(run: WorkflowDiagramRunDetail) {
   if (run.nodes.length === 0) {
     return {
-      notice: `No diagram spec registered for ${run.template.code}@${run.template.version ?? "latest"}.`,
+      notice: `未找到 ${run.template.code}@${run.template.version ?? "latest"} 对应的状态图配置。`,
       orderedNodes: [],
     };
   }
 
   return {
-    notice: `No diagram spec registered for ${run.template.code}@${run.template.version ?? "latest"}.`,
+    notice: `未找到 ${run.template.code}@${run.template.version ?? "latest"} 对应的状态图配置。`,
     orderedNodes: run.nodes.map((node) => ({
       id: node.nodeKey,
       label: node.nodeKey,

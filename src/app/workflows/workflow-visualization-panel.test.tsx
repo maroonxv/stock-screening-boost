@@ -95,7 +95,7 @@ describe("WorkflowVisualizationPanel", () => {
     expect(markup).toContain("Launch Flow");
     expect(markup).toContain("data-workflow-state-diagram");
     expect(markup).toContain("agent6_reflection");
-    expect(markup).toContain("Node inspector");
+    expect(markup).toContain("节点详情");
   });
 
   it("loads the run by runId and renders the active runtime diagram", async () => {
@@ -120,6 +120,7 @@ describe("WorkflowVisualizationPanel", () => {
     expect(markup).toContain("agent1_extract_research_spec");
     expect(markup).toContain('data-node-status="active"');
     expect(markup).toContain("/workflows/run_1");
+    expect(markup).toContain("进行中");
   });
 
   it("renders an empty state when no run and no template preview are provided", async () => {
@@ -131,7 +132,7 @@ describe("WorkflowVisualizationPanel", () => {
     );
 
     expect(markup).toContain("Recent Run");
-    expect(markup).toContain("No workflow diagram data");
+    expect(markup).toContain("暂无状态图数据");
     expect(markup).not.toContain("data-workflow-state-diagram");
   });
 
@@ -170,7 +171,7 @@ describe("WorkflowVisualizationPanel", () => {
       <WorkflowVisualizationPanel runId="run_unknown" />,
     );
 
-    expect(markup).toContain("unknown_template");
+    expect(markup).toContain("未找到 unknown_template@99 对应的状态图配置。");
     expect(markup).toContain("custom_step");
   });
 
@@ -191,6 +192,7 @@ describe("WorkflowVisualizationPanel", () => {
     );
 
     expect(markup).toContain("workflow failed");
+    expect(markup).toContain("状态图加载失败");
     expect(markup).not.toContain("data-workflow-state-diagram");
   });
 });

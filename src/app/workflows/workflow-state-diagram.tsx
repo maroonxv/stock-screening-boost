@@ -16,12 +16,12 @@ type WorkflowStateDiagramProps = {
 };
 
 const statusLabelMap: Record<string, string> = {
-  idle: "Idle",
-  active: "Active",
-  paused: "Paused",
-  done: "Done",
-  failed: "Failed",
-  skipped: "Skipped",
+  idle: "待执行",
+  active: "进行中",
+  paused: "已暂停",
+  done: "已完成",
+  failed: "失败",
+  skipped: "已跳过",
 };
 
 const statusToneMap: Record<
@@ -88,10 +88,10 @@ function NodeInspector(props: {
     return (
       <div className="border border-[var(--app-border-soft)] bg-[var(--app-surface)] p-4">
         <div className="text-sm font-medium text-[var(--app-text-strong)]">
-          Node inspector
+          节点详情
         </div>
         <p className="mt-2 text-sm leading-6 text-[var(--app-text-muted)]">
-          Select a node to inspect status, timing, and output.
+          选择一个节点，查看状态、时序和输出摘要。
         </p>
       </div>
     );
@@ -107,7 +107,7 @@ function NodeInspector(props: {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-sm font-medium text-[var(--app-text-strong)]">
-            Node inspector
+            节点详情
           </div>
           <div className="mt-1 text-sm text-[var(--app-text)]">
             {node.label}
@@ -119,14 +119,14 @@ function NodeInspector(props: {
         />
       </div>
       <div className="mt-3 grid gap-2 text-xs leading-5 text-[var(--app-text-muted)] md:grid-cols-2 xl:grid-cols-4">
-        <div>Key: {node.id}</div>
-        <div>Kind: {node.kind}</div>
-        <div>Attempt: {state?.attempt ?? "-"}</div>
-        <div>Duration: {state?.durationMs ?? "-"} ms</div>
-        <div>Started: {formatDate(state?.startedAt)}</div>
-        <div>Completed: {formatDate(state?.completedAt)}</div>
-        <div>Last event: {state?.eventSummary ?? "-"}</div>
-        <div>Error: {state?.errorCode ?? state?.errorMessage ?? "-"}</div>
+        <div>节点键：{node.id}</div>
+        <div>节点类型：{node.kind}</div>
+        <div>执行次数：{state?.attempt ?? "-"}</div>
+        <div>耗时：{state?.durationMs ?? "-"} ms</div>
+        <div>开始时间：{formatDate(state?.startedAt)}</div>
+        <div>完成时间：{formatDate(state?.completedAt)}</div>
+        <div>最近事件：{state?.eventSummary ?? "-"}</div>
+        <div>错误信息：{state?.errorCode ?? state?.errorMessage ?? "-"}</div>
       </div>
       <p className="mt-3 text-sm leading-6 text-[var(--app-text-muted)]">
         {node.description}

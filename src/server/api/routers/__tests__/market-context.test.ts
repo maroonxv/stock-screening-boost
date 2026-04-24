@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getSnapshotMock = vi.fn();
 
-vi.mock("~/platform/trpc/server", () => {
+vi.mock("~/server/api/trpc", () => {
   const procedureBuilder = {
     use: () => procedureBuilder,
     input(schema: unknown) {
@@ -22,7 +22,7 @@ vi.mock("~/platform/trpc/server", () => {
 });
 
 vi.mock(
-  "~/modules/research/server/infrastructure/intelligence/python-market-context-client",
+  "~/server/infrastructure/intelligence/python-market-context-client",
   () => ({
     PythonMarketContextClient: class PythonMarketContextClient {
       getSnapshot = getSnapshotMock;
@@ -30,7 +30,7 @@ vi.mock(
   }),
 );
 
-describe("marketRouter.getSnapshot", () => {
+describe("marketContextRouter.getSnapshot", () => {
   beforeEach(() => {
     getSnapshotMock.mockReset();
   });
@@ -76,8 +76,10 @@ describe("marketRouter.getSnapshot", () => {
       },
     });
 
-    const { marketRouter } = await import("~/server/api/routers/market");
-    const procedure = marketRouter.getSnapshot as unknown as {
+    const { marketContextRouter } = await import(
+      "~/server/api/routers/market-context"
+    );
+    const procedure = marketContextRouter.getSnapshot as unknown as {
       handler(args: {
         ctx: { session: { user: { id: string } } };
       }): Promise<unknown>;

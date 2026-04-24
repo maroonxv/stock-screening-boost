@@ -1,4 +1,4 @@
-import { env } from "~/platform/env";
+import { env } from "~/env";
 
 export type SignInMethod = {
   id: string;

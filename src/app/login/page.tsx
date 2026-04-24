@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { InlineNotice, SectionCard, StatusPill } from "~/app/_components/ui";
 import { signInWithOAuth } from "~/app/login/actions";
 import { CredentialsForm } from "~/app/login/credentials-form";
 import { auth } from "~/server/auth";
@@ -8,12 +9,6 @@ import {
   signInMethods,
   socialSignInEnabled,
 } from "~/server/auth/sign-in-methods";
-import { AlphaFlowMark } from "~/shared/ui/brand/alpha-flow-mark";
-import {
-  InlineNotice,
-  SectionCard,
-  StatusPill,
-} from "~/shared/ui/primitives/ui";
 
 const workflowStages = [
   {
@@ -93,13 +88,12 @@ export default async function LoginPage(props: {
         <section className="grid content-start gap-6">
           <div className="flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-3">
-              <AlphaFlowMark
-                className="h-9 w-9 rounded-[9px] border-[var(--app-border-soft)] bg-[var(--app-bg-inset)] shadow-none"
-                iconClassName="h-[18px] w-[18px]"
-              />
+              <div className="flex h-9 w-9 items-center justify-center rounded-[9px] border border-[var(--app-border-soft)] bg-[var(--app-bg-inset)] text-[11px] font-semibold tracking-[0.08em] text-[var(--app-text-strong)]">
+                SSB
+              </div>
               <div>
                 <div className="text-sm font-medium text-[var(--app-text-strong)]">
-                  AlphaFlow
+                  股票筛选增强
                 </div>
                 <div className="text-xs text-[var(--app-text-subtle)]">
                   投资决策工作台

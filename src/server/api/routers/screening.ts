@@ -1,6 +1,5 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { PythonCapabilityGatewayClient } from "~/modules/research/server/infrastructure/capabilities/python-capability-gateway-client";
 import {
   type CreateWorkspaceInput,
   createFormulaInputSchema,
@@ -19,10 +18,11 @@ import {
   workspacePersistedStateSchema,
   workspaceQuerySchema,
   workspaceSummarySchema,
-} from "~/modules/screening/contracts/screening";
-import { LocalStockSearchService } from "~/modules/screening/server/infrastructure/local-stock-search-service";
-import { createTRPCRouter, protectedProcedure } from "~/platform/trpc/server";
+} from "~/contracts/screening";
 import { normalizeFormulaExpression } from "~/server/api/routers/screening-formula-normalizer";
+import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { PythonCapabilityGatewayClient } from "~/server/infrastructure/capabilities/python-capability-gateway-client";
+import { LocalStockSearchService } from "~/server/infrastructure/screening/local-stock-search-service";
 
 type ScreeningFormulaRecord = {
   id: string;
@@ -421,7 +421,7 @@ export const screeningRouter = createTRPCRouter({
       if (formulas.length !== input.formulaIds.length) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: "????????????",
+          message: "閮ㄥ垎鍏紡涓嶅瓨鍦ㄦ垨鏃犳潈璁块棶",
         });
       }
 
@@ -472,7 +472,7 @@ export const screeningRouter = createTRPCRouter({
       if (!existing) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "??????",
+          message: "宸ヤ綔鍙颁笉瀛樺湪",
         });
       }
 
@@ -530,7 +530,7 @@ export const screeningRouter = createTRPCRouter({
       if (!record) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "??????",
+          message: "宸ヤ綔鍙颁笉瀛樺湪",
         });
       }
 
@@ -551,7 +551,7 @@ export const screeningRouter = createTRPCRouter({
       if (!record) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "??????",
+          message: "宸ヤ綔鍙颁笉瀛樺湪",
         });
       }
 

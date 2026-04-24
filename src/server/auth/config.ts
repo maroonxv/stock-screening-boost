@@ -3,12 +3,13 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { AuthError, type DefaultSession, type NextAuthConfig } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import WeChatProvider from "next-auth/providers/wechat";
-import { db } from "~/platform/db";
-import { env } from "~/platform/env";
+
+import { env } from "~/env";
 import {
   collectAuthSecrets,
   isSecretRotationErrorMessage,
 } from "~/server/auth/secret-utils";
+import { db } from "~/server/db";
 
 /**
  * Module augmentation for `next-auth` types. Allows us to add custom properties to the `session`

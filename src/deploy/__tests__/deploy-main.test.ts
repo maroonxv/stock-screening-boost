@@ -20,15 +20,12 @@ function createSandbox(options?: {
 }) {
   const root = mkdtempSync(path.join(tmpdir(), "deploy-main-test-"));
   const deployDir = path.join(root, "deploy");
-  const deployPythonDir = path.join(deployDir, "python");
   const deployMainRoot = path.join(root, ".worktrees", "deploy-main");
   const deployMainDeployDir = path.join(deployMainRoot, "deploy");
-  const deployMainPythonDir = path.join(deployMainDeployDir, "python");
   const binDir = path.join(root, "bin");
   const dockerLog = path.join(root, "docker.log");
 
   mkdirSync(deployDir, { recursive: true });
-  mkdirSync(deployPythonDir, { recursive: true });
   mkdirSync(binDir, { recursive: true });
 
   const repoScript = path.resolve(
@@ -44,7 +41,6 @@ function createSandbox(options?: {
 
   if (options?.includeDeployMain ?? true) {
     mkdirSync(deployMainDeployDir, { recursive: true });
-    mkdirSync(deployMainPythonDir, { recursive: true });
   }
 
   if (
@@ -54,16 +50,6 @@ function createSandbox(options?: {
     writeFileSync(
       path.join(deployMainDeployDir, "docker-compose.yml"),
       "services:\n  web:\n    image: alpine:3.20\n",
-      "utf8",
-    );
-    writeFileSync(
-      path.join(deployMainPythonDir, "Dockerfile.voice-base"),
-      "FROM python:3.11-slim\n",
-      "utf8",
-    );
-    writeFileSync(
-      path.join(deployMainPythonDir, "Dockerfile"),
-      "FROM python:3.11-slim\n",
       "utf8",
     );
   }
@@ -87,18 +73,6 @@ function createSandbox(options?: {
       "$log = $env:DOCKER_LOG",
       'Add-Content -Path $log -Value ($args -join " ")',
       '$joined = $args -join " "',
-      'if ($joined -match "^build " -and $joined -match "python-voice-base") {',
-      '  Write-Output "python-voice-base built"',
-      "  exit 0",
-      "}",
-      'if ($joined -match "^build " -and $joined -match "python-service") {',
-      '  Write-Output "python-service built"',
-      "  exit 0",
-      "}",
-      'if ($joined -match "^image inspect " -and $joined -match "python-voice-base") {',
-      '  Write-Output "sha256:voicebase"',
-      "  exit 0",
-      "}",
       'if ($joined -match "(^| )compose " -and $joined -match " config") {',
       '  Write-Output "services:"',
       '  Write-Output "  web:"',
@@ -120,19 +94,8 @@ function createSandbox(options?: {
       "  exit 0",
       "}",
       'if ($joined -match "(^| )compose " -and $joined -match " exec -T") {',
-      "  $service = $args[([Array]::IndexOf($args, 'exec') + 2)]",
-      "  switch ($service) {",
-      "    'web' {",
-      '      Write-Output "AUTH_SECRET=test-secret"',
-      '      Write-Output "NEXTAUTH_URL=http://localhost:3000"',
-      "    }",
-      "    'workflow-worker' {",
-      '      Write-Output "AUTH_SECRET=test-secret"',
-      "    }",
-      "    'python-service' {",
-      '      Write-Output "PYTHONUNBUFFERED=1"',
-      "    }",
-      "  }",
+      '  Write-Output "AUTH_SECRET=test-secret"',
+      '  Write-Output "NEXTAUTH_URL=http://localhost:3000"',
       "  exit 0",
       "}",
       'Write-Error "Unexpected docker invocation: $joined"',
@@ -206,55 +169,42 @@ describe("deploy-main.ps1", () => {
     );
   });
 
-  it("uses the deploy-main compose paths and validates required env vars", () => {
-    const { root, binDir, dockerLog } = createSandbox();
-    sandboxes.push(root);
+  it(
+    "uses the deploy-main compose paths and validates required env vars",
+    () => {
+      const { root, binDir, dockerLog } = createSandbox();
+      sandboxes.push(root);
 
-    const result = runDeployScript(root, binDir, [
-      "-Services",
-      "web",
-      "-RequiredEnv",
-      "AUTH_SECRET,NEXTAUTH_URL",
-    ]);
+      const result = runDeployScript(root, binDir, [
+        "-Services",
+        "web",
+        "-RequiredEnv",
+        "AUTH_SECRET,NEXTAUTH_URL",
+      ]);
 
-    expect(result.status).toBe(0);
+      expect(result.status).toBe(0);
 
-    const log = readFileSync(dockerLog, "utf8");
-    expect(log).toContain(
-      path.join(
-        root,
-        ".worktrees",
-        "deploy-main",
-        "deploy",
-        "docker-compose.yml",
-      ),
-    );
-    expect(log).toContain(path.join(root, ".worktrees", "deploy-main", ".env"));
-    expect(log).toContain(
-      path.join(root, ".worktrees", "deploy-main", "deploy"),
-    );
-    expect(log).toContain("up -d web");
-    expect(log).toContain("exec -T web");
-  }, 15_000);
-
-  it("supports per-service required env validation for mixed services", () => {
-    const { root, binDir, dockerLog } = createSandbox();
-    sandboxes.push(root);
-
-    const result = runDeployScript(root, binDir, [
-      "-Services",
-      "web,python-service,workflow-worker",
-      "-RequiredEnvByService",
-      "web=AUTH_SECRET,NEXTAUTH_URL;python-service=PYTHONUNBUFFERED;workflow-worker=AUTH_SECRET",
-    ]);
-
-    expect(result.status).toBe(0);
-
-    const log = readFileSync(dockerLog, "utf8");
-    expect(log).toContain("exec -T web");
-    expect(log).toContain("exec -T python-service");
-    expect(log).toContain("exec -T workflow-worker");
-  }, 15_000);
+      const log = readFileSync(dockerLog, "utf8");
+      expect(log).toContain(
+        path.join(
+          root,
+          ".worktrees",
+          "deploy-main",
+          "deploy",
+          "docker-compose.yml",
+        ),
+      );
+      expect(log).toContain(
+        path.join(root, ".worktrees", "deploy-main", ".env"),
+      );
+      expect(log).toContain(
+        path.join(root, ".worktrees", "deploy-main", "deploy"),
+      );
+      expect(log).toContain("up -d --build web");
+      expect(log).toContain("exec -T web");
+    },
+    15_000,
+  );
 
   it("accepts comma-separated services even when required env validation is omitted", () => {
     const { root, binDir, dockerLog } = createSandbox();
@@ -268,51 +218,7 @@ describe("deploy-main.ps1", () => {
     expect(result.status).toBe(0);
 
     const log = readFileSync(dockerLog, "utf8");
-    expect(log).toContain("up -d postgres redis");
+    expect(log).toContain("up -d --build postgres redis");
     expect(log).toContain("ps --services --status running postgres redis");
   });
-
-  it("skips rebuilding python-service by default", () => {
-    const { root, binDir, dockerLog } = createSandbox();
-    sandboxes.push(root);
-
-    const result = runDeployScript(root, binDir, [
-      "-Services",
-      "python-service",
-    ]);
-
-    expect(result.status).toBe(0);
-
-    const log = readFileSync(dockerLog, "utf8");
-    expect(log).not.toContain("python-voice-base");
-    expect(log).not.toContain("deploy/python/Dockerfile.voice-base");
-    expect(log).toContain("up -d python-service");
-  }, 15_000);
-
-  it("builds the python voice base image before starting python-service", () => {
-    const { root, binDir, dockerLog } = createSandbox();
-    sandboxes.push(root);
-
-    const result = runDeployScript(root, binDir, [
-      "-Services",
-      "python-service",
-      "-ForceRebuild",
-    ]);
-
-    expect(result.status).toBe(0);
-
-    const log = readFileSync(dockerLog, "utf8");
-    const baseBuildIndex = log.indexOf("build -f");
-    const composeUpIndex = log.indexOf("compose --project-directory");
-
-    expect(log).toContain("python-voice-base");
-    expect(log).toContain(
-      path.join("deploy", "python", "Dockerfile.voice-base"),
-    );
-    expect(log).toContain(path.join("deploy", "python", "Dockerfile"));
-    expect(log).toContain("python-service");
-    expect(log).toContain("up -d --no-build python-service");
-    expect(baseBuildIndex).toBeGreaterThanOrEqual(0);
-    expect(composeUpIndex).toBeGreaterThan(baseBuildIndex);
-  }, 15_000);
 });

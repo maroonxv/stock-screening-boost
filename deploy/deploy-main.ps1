@@ -1,9 +1,7 @@
 [CmdletBinding()]
 param(
   [string[]]$Services = @(),
-  [string[]]$RequiredEnv = @(),
-  [string[]]$RequiredEnvByService = @(),
-  [switch]$ForceRebuild
+  [string[]]$RequiredEnv = @()
 )
 
 Set-StrictMode -Version Latest
@@ -24,46 +22,6 @@ function Split-ListArgument {
   }
 
   return @($result)
-}
-
-function ConvertTo-ServiceEnvLookup {
-  param([string[]]$Values)
-
-  $lookup = @{}
-  foreach ($value in $Values) {
-    if ([string]::IsNullOrWhiteSpace($value)) {
-      continue
-    }
-
-    $entries = $value.Split(";", [System.StringSplitOptions]::RemoveEmptyEntries) |
-      ForEach-Object { $_.Trim() } |
-      Where-Object { $_ }
-
-    foreach ($entry in $entries) {
-      $parts = $entry.Split("=", 2, [System.StringSplitOptions]::None)
-      if ($parts.Count -ne 2) {
-        throw "Invalid -RequiredEnvByService entry '$entry'. Expected format: service=ENV_A,ENV_B"
-      }
-
-      $serviceName = $parts[0].Trim()
-      if ([string]::IsNullOrWhiteSpace($serviceName)) {
-        throw "Invalid -RequiredEnvByService entry '$entry'. Service name cannot be empty."
-      }
-
-      $envNames = @(Split-ListArgument -Values @($parts[1]))
-      if (-not $lookup.ContainsKey($serviceName)) {
-        $lookup[$serviceName] = New-Object System.Collections.Generic.List[string]
-      }
-
-      foreach ($envName in $envNames) {
-        if (-not $lookup[$serviceName].Contains($envName)) {
-          $null = $lookup[$serviceName].Add($envName)
-        }
-      }
-    }
-  }
-
-  return $lookup
 }
 
 function Assert-RequiredPath {
@@ -96,112 +54,6 @@ function Resolve-RepositoryRoot {
   }
 
   return $FallbackRoot
-}
-
-function Get-EnvFileValue {
-  param(
-    [string]$LiteralPath,
-    [string]$Key,
-    [string]$Fallback
-  )
-
-  if (-not (Test-Path -LiteralPath $LiteralPath)) {
-    return $Fallback
-  }
-
-  foreach ($line in Get-Content -LiteralPath $LiteralPath) {
-    if ($line -match "^\s*$([regex]::Escape($Key))=(.*)$") {
-      $value = $Matches[1].Trim()
-      if ($value.StartsWith('"') -and $value.EndsWith('"')) {
-        return $value.Trim('"')
-      }
-
-      return $value
-    }
-  }
-
-  return $Fallback
-}
-
-function Invoke-Docker {
-  param([string[]]$DockerArgs)
-
-  $stdoutPath = [System.IO.Path]::GetTempFileName()
-  $stderrPath = [System.IO.Path]::GetTempFileName()
-
-  try {
-    $process = Start-Process -FilePath "docker" `
-      -ArgumentList $DockerArgs `
-      -NoNewWindow `
-      -Wait `
-      -PassThru `
-      -RedirectStandardOutput $stdoutPath `
-      -RedirectStandardError $stderrPath
-
-    $output = @()
-    if (Test-Path -LiteralPath $stdoutPath) {
-      $output += Get-Content -LiteralPath $stdoutPath
-    }
-    if (Test-Path -LiteralPath $stderrPath) {
-      $output += Get-Content -LiteralPath $stderrPath
-    }
-
-    if ($process.ExitCode -ne 0) {
-      throw "docker failed: $($output -join [Environment]::NewLine)"
-    }
-
-    return @($output)
-  } finally {
-    Remove-Item -LiteralPath $stdoutPath, $stderrPath -ErrorAction SilentlyContinue
-  }
-}
-
-function Get-DockerImageId {
-  param([string]$ImageName)
-
-  $result = @(Invoke-Docker -DockerArgs @("image", "inspect", "--format", "{{.Id}}", $ImageName))
-  return ($result | Select-Object -First 1).Trim()
-}
-
-function Build-DockerImage {
-  param(
-    [string]$DockerfilePath,
-    [string]$ImageTag,
-    [string]$BuildContext,
-    [string[]]$BuildArgs = @(),
-    [switch]$DisableBuildKit
-  )
-
-  $dockerArgs = @("build", "-f", $DockerfilePath, "-t", $ImageTag)
-  foreach ($arg in $BuildArgs) {
-    $dockerArgs += @("--build-arg", $arg)
-  }
-  $dockerArgs += "--pull=false"
-  $dockerArgs += $BuildContext
-
-  $previousBuildKit = $env:DOCKER_BUILDKIT
-  $previousComposeBuild = $env:COMPOSE_DOCKER_CLI_BUILD
-
-  try {
-    if ($DisableBuildKit) {
-      $env:DOCKER_BUILDKIT = "0"
-      $env:COMPOSE_DOCKER_CLI_BUILD = "0"
-    }
-
-    $null = Invoke-Docker -DockerArgs $dockerArgs
-  } finally {
-    if ($null -eq $previousBuildKit) {
-      Remove-Item Env:DOCKER_BUILDKIT -ErrorAction SilentlyContinue
-    } else {
-      $env:DOCKER_BUILDKIT = $previousBuildKit
-    }
-
-    if ($null -eq $previousComposeBuild) {
-      Remove-Item Env:COMPOSE_DOCKER_CLI_BUILD -ErrorAction SilentlyContinue
-    } else {
-      $env:COMPOSE_DOCKER_CLI_BUILD = $previousComposeBuild
-    }
-  }
 }
 
 function Invoke-Compose {
@@ -244,7 +96,6 @@ function Invoke-Compose {
 
 $Services = @(Split-ListArgument -Values $Services)
 $RequiredEnv = @(Split-ListArgument -Values $RequiredEnv)
-$requiredEnvByServiceLookup = ConvertTo-ServiceEnvLookup -Values $RequiredEnvByService
 
 if ($Services.Count -eq 0) {
   throw "At least one service must be provided via -Services."
@@ -267,69 +118,12 @@ $script:EnvFile = Assert-RequiredPath `
 $script:ProjectDirectory = Assert-RequiredPath `
   -LiteralPath $projectDirectoryPath `
   -DisplayPath ".worktrees/deploy-main/deploy"
-$servicesToComposeBuild = @($Services)
-
-if ($ForceRebuild -and ($Services -contains "python-service")) {
-  $pythonVoiceBaseImage = Get-EnvFileValue `
-    -LiteralPath $script:EnvFile `
-    -Key "PYTHON_VOICE_BASE_IMAGE" `
-    -Fallback "stock-screening-boost-python-voice-base:local"
-  $composeProjectName = Get-EnvFileValue `
-    -LiteralPath $script:EnvFile `
-    -Key "COMPOSE_PROJECT_NAME" `
-    -Fallback "stock-screening-boost"
-  $installRefchecker = Get-EnvFileValue `
-    -LiteralPath $script:EnvFile `
-    -Key "REFCHECKER_ENABLED" `
-    -Fallback "false"
-  $pythonVoiceBaseDockerfile = Assert-RequiredPath `
-    -LiteralPath (Join-Path $deployMainRoot "deploy/python/Dockerfile.voice-base") `
-    -DisplayPath ".worktrees/deploy-main/deploy/python/Dockerfile.voice-base"
-  $pythonServiceDockerfile = Assert-RequiredPath `
-    -LiteralPath (Join-Path $deployMainRoot "deploy/python/Dockerfile") `
-    -DisplayPath ".worktrees/deploy-main/deploy/python/Dockerfile"
-
-  Write-Host "Building python voice base image..."
-  Build-DockerImage `
-    -DockerfilePath $pythonVoiceBaseDockerfile `
-    -ImageTag $pythonVoiceBaseImage `
-    -BuildContext $deployMainRoot `
-    -BuildArgs @(
-      "INSTALL_REFCHECKER=$installRefchecker"
-    )
-
-  $pythonServiceImage = "$composeProjectName-python-service"
-  Write-Host "Building python-service image from local voice base..."
-  Build-DockerImage `
-    -DockerfilePath $pythonServiceDockerfile `
-    -ImageTag $pythonServiceImage `
-    -BuildContext $deployMainRoot `
-    -BuildArgs @(
-      "PYTHON_VOICE_BASE_IMAGE=$pythonVoiceBaseImage"
-      "INSTALL_REFCHECKER=$installRefchecker"
-    ) `
-    -DisableBuildKit
-
-  $servicesToComposeBuild = @($Services | Where-Object { $_ -ne "python-service" })
-}
 
 Write-Host "Validating docker compose configuration..."
 $null = Invoke-Compose -ComposeArgs @("config")
 
 Write-Host "Starting target services..."
-if ($ForceRebuild -and ($Services -contains "python-service")) {
-  $null = Invoke-Compose -ComposeArgs @("up", "-d", "--no-build", "python-service")
-}
-if ($ForceRebuild -and $servicesToComposeBuild.Count -gt 0) {
-  $composeArgs = @("up", "-d", "--build")
-  if ($Services -contains "python-service") {
-    $composeArgs += "--no-deps"
-  }
-  $null = Invoke-Compose -ComposeArgs ($composeArgs + $servicesToComposeBuild)
-}
-if (-not $ForceRebuild) {
-  $null = Invoke-Compose -ComposeArgs (@("up", "-d") + $Services)
-}
+$null = Invoke-Compose -ComposeArgs (@("up", "-d", "--build") + $Services)
 
 Write-Host "Checking running services..."
 $runningServices = @(Invoke-Compose -ComposeArgs (@("ps", "--services", "--status", "running") + $Services))
@@ -346,33 +140,16 @@ foreach ($service in $Services) {
   }
 }
 
-foreach ($service in $Services) {
-  $serviceRequiredEnv = New-Object System.Collections.Generic.List[string]
-  foreach ($envName in $RequiredEnv) {
-    if (-not $serviceRequiredEnv.Contains($envName)) {
-      $null = $serviceRequiredEnv.Add($envName)
-    }
-  }
+if ($RequiredEnv.Count -gt 0) {
+  foreach ($service in $Services) {
+    Write-Host "Checking required env vars in $service..."
+    $envOutput = @(Invoke-Compose -ComposeArgs @("exec", "-T", $service, "sh", "-lc", "env"))
 
-  if ($requiredEnvByServiceLookup.ContainsKey($service)) {
-    foreach ($envName in $requiredEnvByServiceLookup[$service]) {
-      if (-not $serviceRequiredEnv.Contains($envName)) {
-        $null = $serviceRequiredEnv.Add($envName)
+    foreach ($envName in $RequiredEnv) {
+      $escapedName = [regex]::Escape($envName)
+      if (-not ($envOutput -join [Environment]::NewLine -match "(?m)^$escapedName=")) {
+        throw "Missing required env var '$envName' in service '$service'"
       }
-    }
-  }
-
-  if ($serviceRequiredEnv.Count -eq 0) {
-    continue
-  }
-
-  Write-Host "Checking required env vars in $service..."
-  $envOutput = @(Invoke-Compose -ComposeArgs @("exec", "-T", $service, "sh", "-lc", "env"))
-
-  foreach ($envName in $serviceRequiredEnv) {
-    $escapedName = [regex]::Escape($envName)
-    if (-not ($envOutput -join [Environment]::NewLine -match "(?m)^$escapedName=")) {
-      throw "Missing required env var '$envName' in service '$service'"
     }
   }
 }

@@ -462,7 +462,7 @@ describe("spaceRouter", () => {
   it("creates, lists, and updates a research space with a semi-structured brief", async () => {
     const caller = createCaller(createContext(mockDb.db) as never);
 
-    const created = await caller.research.spaces.create({
+    const created = await caller.space.create({
       name: "半导体设备 thesis",
       description: "跟踪国产替代",
       brief: {
@@ -477,7 +477,7 @@ describe("spaceRouter", () => {
     expect(created.name).toBe("半导体设备 thesis");
     expect(created.brief.coreThesis).toContain("先进制程");
 
-    const listed = await caller.research.spaces.list({
+    const listed = await caller.space.list({
       limit: 10,
       offset: 0,
     });
@@ -486,7 +486,7 @@ describe("spaceRouter", () => {
     expect(listed[0]?.runCount).toBe(0);
     expect(listed[0]?.watchListCount).toBe(0);
 
-    const updated = await caller.research.spaces.updateBrief({
+    const updated = await caller.space.updateBrief({
       spaceId: created.id,
       brief: {
         ...defaultBrief,
@@ -500,9 +500,7 @@ describe("spaceRouter", () => {
 
     expect(updated.brief.researchGoal).toBe("更新后的目标");
 
-    const detail = await caller.research.spaces.getDetail({
-      spaceId: created.id,
-    });
+    const detail = await caller.space.getDetail({ spaceId: created.id });
 
     expect(detail.brief.coreThesis).toBe("新 thesis");
     expect(detail.runLinks).toEqual([]);
@@ -511,33 +509,33 @@ describe("spaceRouter", () => {
 
   it("links a run to multiple spaces and removing one link does not affect the other", async () => {
     const caller = createCaller(createContext(mockDb.db) as never);
-    const alpha = await caller.research.spaces.create({
+    const alpha = await caller.space.create({
       name: "Space Alpha",
       description: "A",
       brief: defaultBrief,
     });
-    const beta = await caller.research.spaces.create({
+    const beta = await caller.space.create({
       name: "Space Beta",
       description: "B",
       brief: defaultBrief,
     });
 
-    await caller.research.spaces.addRun({
+    await caller.space.addRun({
       spaceId: alpha.id,
       runId: "run-1",
       note: "核心行业结论",
     });
-    await caller.research.spaces.addRun({
+    await caller.space.addRun({
       spaceId: beta.id,
       runId: "run-1",
       note: "复用到另一个 thesis",
     });
 
-    const alphaRunsBefore = await caller.research.spaces.listRunLinks({
+    const alphaRunsBefore = await caller.space.listRunLinks({
       spaceId: alpha.id,
       limit: 10,
     });
-    const betaRunsBefore = await caller.research.spaces.listRunLinks({
+    const betaRunsBefore = await caller.space.listRunLinks({
       spaceId: beta.id,
       limit: 10,
     });
@@ -545,16 +543,16 @@ describe("spaceRouter", () => {
     expect(alphaRunsBefore.items).toHaveLength(1);
     expect(betaRunsBefore.items).toHaveLength(1);
 
-    await caller.research.spaces.removeRun({
+    await caller.space.removeRun({
       spaceId: alpha.id,
       runId: "run-1",
     });
 
-    const alphaRunsAfter = await caller.research.spaces.listRunLinks({
+    const alphaRunsAfter = await caller.space.listRunLinks({
       spaceId: alpha.id,
       limit: 10,
     });
-    const betaRunsAfter = await caller.research.spaces.listRunLinks({
+    const betaRunsAfter = await caller.space.listRunLinks({
       spaceId: beta.id,
       limit: 10,
     });
@@ -566,17 +564,17 @@ describe("spaceRouter", () => {
 
   it("supports watchlist and stock linking on the same space", async () => {
     const caller = createCaller(createContext(mockDb.db) as never);
-    const created = await caller.research.spaces.create({
+    const created = await caller.space.create({
       name: "设备 Space",
       description: null,
       brief: defaultBrief,
     });
 
-    await caller.research.spaces.linkWatchlist({
+    await caller.space.linkWatchlist({
       spaceId: created.id,
       watchListId: "watchlist-1",
     });
-    await caller.research.spaces.linkStocks({
+    await caller.space.linkStocks({
       spaceId: created.id,
       stocks: [
         { stockCode: "300750", stockName: "宁德时代" },
@@ -584,26 +582,22 @@ describe("spaceRouter", () => {
       ],
     });
 
-    const detail = await caller.research.spaces.getDetail({
-      spaceId: created.id,
-    });
+    const detail = await caller.space.getDetail({ spaceId: created.id });
 
     expect(detail.watchLists).toHaveLength(1);
     expect(detail.stocks).toHaveLength(2);
 
-    await caller.research.spaces.unlinkStock({
+    await caller.space.unlinkStock({
       spaceId: created.id,
       stockCode: "300750",
     });
 
-    await caller.research.spaces.unlinkWatchlist({
+    await caller.space.unlinkWatchlist({
       spaceId: created.id,
       watchListId: "watchlist-1",
     });
 
-    const updated = await caller.research.spaces.getDetail({
-      spaceId: created.id,
-    });
+    const updated = await caller.space.getDetail({ spaceId: created.id });
 
     expect(updated.watchLists).toEqual([]);
     expect(updated.stocks.map((item) => item.stockCode)).toEqual(["688012"]);
@@ -611,29 +605,29 @@ describe("spaceRouter", () => {
 
   it("filters space run links by run query and archive note", async () => {
     const caller = createCaller(createContext(mockDb.db) as never);
-    const created = await caller.research.spaces.create({
+    const created = await caller.space.create({
       name: "过滤测试",
       description: null,
       brief: defaultBrief,
     });
 
-    await caller.research.spaces.addRun({
+    await caller.space.addRun({
       spaceId: created.id,
       runId: "run-1",
       note: "供应链证据完整",
     });
-    await caller.research.spaces.addRun({
+    await caller.space.addRun({
       spaceId: created.id,
       runId: "run-2",
       note: "等待公司侧更多确认",
     });
 
-    const byQuery = await caller.research.spaces.listRunLinks({
+    const byQuery = await caller.space.listRunLinks({
       spaceId: created.id,
       limit: 10,
       search: "宁德时代",
     });
-    const byNote = await caller.research.spaces.listRunLinks({
+    const byNote = await caller.space.listRunLinks({
       spaceId: created.id,
       limit: 10,
       search: "供应链",
@@ -647,21 +641,21 @@ describe("spaceRouter", () => {
 
   it("enforces ownership boundaries for foreign runs, watchlists, and spaces", async () => {
     const caller = createCaller(createContext(mockDb.db) as never);
-    const created = await caller.research.spaces.create({
+    const created = await caller.space.create({
       name: "权限测试",
       description: null,
       brief: defaultBrief,
     });
 
     await expect(
-      caller.research.spaces.addRun({
+      caller.space.addRun({
         spaceId: created.id,
         runId: "run-3",
       }),
     ).rejects.toBeInstanceOf(TRPCError);
 
     await expect(
-      caller.research.spaces.linkWatchlist({
+      caller.space.linkWatchlist({
         spaceId: created.id,
         watchListId: "watchlist-2",
       }),
@@ -677,7 +671,7 @@ describe("spaceRouter", () => {
     const foreignCaller = createCaller(foreignContext as never);
 
     await expect(
-      foreignCaller.research.spaces.getDetail({ spaceId: created.id }),
+      foreignCaller.space.getDetail({ spaceId: created.id }),
     ).rejects.toBeInstanceOf(TRPCError);
   });
 });

@@ -1,42 +1,19 @@
-# Agent 行为规范
+# AGENTS
 
+## 工作流约定
 
-## 项目背景
-本项目是**股票投研工作流定制化平台**，采用 T3 Stack（Next.js App Router + TypeScript + tRPC + Prisma + Tailwind CSS），核心目标是通过 LangGraph 编排的智能工作流快速排除市场噪音，聚焦高价值投资标的。
-
-## 技术栈约束
-
-### 必须遵守的技术选型
-- **前端框架**: Next.js 15+ (App Router 模式，禁用 Pages Router)
-- **语言**: TypeScript (严格模式，禁用 `any` 类型除非有明确注释说明)
-- **API 层**: tRPC (端到端类型安全)
-- **数据库**: Prisma ORM
-- **样式**: Tailwind CSS
-- **认证**: NextAuth.js
-- **代码质量**: Biome (Linting + Formatting)
-- **路径别名**: `~/` (例如 `import { User } from "~/server/db/schema"`)
-
-### 架构原则
-1. **DDD 分层架构** (Domain-Driven Design)
-   - 应用应当在横向上划分为不同的限界上下文；纵向上划分出应用层、领域层、基础设施层（没有接口层，因为采用了tRPC）
-   - 领域层内包括聚合根、实体、值对象、领域服务、领域事件，领域服务保持无状态
-   - 应用层保持无状态
-
-2. **T3 Stack (TypeScript) + Python FastAPI 微服务** 混合架构：
-   - **T3 Stack (Next.js)**：负责用户界面、业务逻辑编排、数据持久化，代码位于 `src/` 目录
-   - **Python FastAPI 服务**：专门提供金融数据接口（AkShare），代码位于 `python_services/` 目录
-   - 两者为独立的运行时和部署单元，通过 HTTP API 通信
-   - T3 侧通过基础设施层的 HTTP client 调用 FastAPI 服务，领域层不直接依赖外部服务（通过接口反转）
-
-3. **目录结构约定**
-   - `src/server/domain/` — 按限界上下文组织领域代码（如 `screening/`、`workflow/`）
-   - `src/server/infrastructure/` — 基础设施层（仓储实现、外部服务客户端等）
-   - `src/server/api/routers/` — tRPC routers 充当应用层入口，编排领域服务调用，本身不含业务逻辑
-   - `python_services/` — Python 微服务，独立的工具链（pyproject.toml）、独立测试、独立部署
-
-4. **LangGraph 工作流编排**
-   - 所有 AI Agent 工作流使用 LangGraph.js 定义
-   - 工作流配置存储在数据库，支持用户自定义
+1. 非只读修改必须先在 `.worktrees/<branch>` 的独立 worktree 中完成。
+2. 修改、测试、提交都在该 worktree 内执行。
+3. 若改动影响运行时行为：
+   - 先将功能分支合并到默认分支（如 `main`）
+   - 再将 `.worktrees/deploy-main` fast-forward 到默认分支
+   - 只允许通过 `deploy/deploy-main.ps1` 执行部署与验证
+4. 部署验证至少应覆盖：
+   - `docker compose config` 成功
+   - 目标服务启动成功
+   - 容器内关键环境变量检查成功
+5. 只有目标提交已进入 `.worktrees/deploy-main` 且部署验证通过，才能称为“已完成 / 已修复 / 可部署”。
+6. 验证通过后，清理对应功能分支与 worktree；`.worktrees/deploy-main` 不允许产生独立提交。
 
 ## 自动 Git 提交规则
 

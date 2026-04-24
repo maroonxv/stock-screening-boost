@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getTimingReportMock = vi.fn();
 
-vi.mock("~/platform/trpc/server", () => {
+vi.mock("~/server/api/trpc", () => {
   const procedureBuilder = {
     use: () => procedureBuilder,
     input(schema: unknown) {
@@ -22,7 +22,7 @@ vi.mock("~/platform/trpc/server", () => {
   };
 });
 
-vi.mock("~/modules/timing/server/application/timing-report-service", () => ({
+vi.mock("~/server/application/timing/timing-report-service", () => ({
   TimingReportService: class TimingReportService {
     getTimingReport = getTimingReportMock;
   },

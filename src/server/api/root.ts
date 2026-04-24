@@ -1,9 +1,12 @@
-import { createCallerFactory, createTRPCRouter } from "~/platform/trpc/server";
-import { marketRouter } from "~/server/api/routers/market";
-import { researchRouter } from "~/server/api/routers/research";
+import { intelligenceRouter } from "~/server/api/routers/intelligence";
+import { marketContextRouter } from "~/server/api/routers/market-context";
+import { postRouter } from "~/server/api/routers/post";
 import { screeningRouter } from "~/server/api/routers/screening";
+import { spaceRouter } from "~/server/api/routers/space";
 import { timingRouter } from "~/server/api/routers/timing";
 import { watchlistRouter } from "~/server/api/routers/watchlist";
+import { workflowRouter } from "~/server/api/routers/workflow";
+import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
  * This is the primary router for your server.
@@ -11,11 +14,14 @@ import { watchlistRouter } from "~/server/api/routers/watchlist";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  market: marketRouter,
-  research: researchRouter,
+  intelligence: intelligenceRouter,
+  marketContext: marketContextRouter,
+  post: postRouter,
   screening: screeningRouter,
+  space: spaceRouter,
   timing: timingRouter,
   watchlist: watchlistRouter,
+  workflow: workflowRouter,
 });
 
 // export type definition of API

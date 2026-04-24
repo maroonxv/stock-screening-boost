@@ -11,19 +11,17 @@ describe("HomePage server boundary", () => {
   it("keeps statusTone in a server-safe shared module", () => {
     const sharedHelperPath = path.resolve(
       process.cwd(),
-      "src/shared/ui/primitives/status-tone.ts",
+      "src/app/_components/status-tone.ts",
     );
 
     expect(existsSync(sharedHelperPath)).toBe(true);
 
     const homePageSource = readSource("src/app/page.tsx");
-    const uiSource = readSource("src/shared/ui/primitives/ui.tsx");
+    const uiSource = readSource("src/app/_components/ui.tsx");
 
-    expect(homePageSource).toContain(
-      'from "~/shared/ui/primitives/status-tone"',
-    );
+    expect(homePageSource).toContain('from "~/app/_components/status-tone"');
     expect(homePageSource).not.toContain(
-      'statusTone,\n  WorkspaceShell,\n} from "~/shared/ui/primitives/ui"',
+      'statusTone,\n  WorkspaceShell,\n} from "~/app/_components/ui"',
     );
     expect(uiSource).not.toContain("export function statusTone");
   });

@@ -45,34 +45,34 @@ const PRECHECK_TIMEOUT_MS = Number(
 const { WorkflowEventType, WorkflowNodeRunStatus, WorkflowRunStatus } =
   await import("@prisma/client");
 const { WorkflowCommandService } = await import(
-  "~/modules/research/server/application/workflow/command-service"
+  "~/server/application/workflow/command-service"
 );
 const { WorkflowExecutionService } = await import(
-  "~/modules/research/server/application/workflow/execution-service"
+  "~/server/application/workflow/execution-service"
 );
 const { ConfidenceAnalysisService } = await import(
-  "~/modules/research/server/application/intelligence/confidence-analysis-service"
+  "~/server/application/intelligence/confidence-analysis-service"
 );
 const { IntelligenceAgentService } = await import(
-  "~/modules/research/server/application/intelligence/intelligence-agent-service"
+  "~/server/application/intelligence/intelligence-agent-service"
 );
 const { QuickResearchWorkflowService } = await import(
-  "~/modules/research/server/application/intelligence/quick-research-workflow-service"
+  "~/server/application/intelligence/quick-research-workflow-service"
 );
-const { WORKFLOW_ERROR_CODES } = await import("~/modules/research/server/domain/workflow/errors");
+const { WORKFLOW_ERROR_CODES } = await import("~/server/domain/workflow/errors");
 const { QUICK_RESEARCH_TEMPLATE_CODE, QUICK_RESEARCH_NODE_KEYS } =
-  await import("~/modules/research/server/domain/workflow/types");
+  await import("~/server/domain/workflow/types");
 const { DeepSeekClient } = await import(
-  "~/modules/research/server/infrastructure/intelligence/deepseek-client"
+  "~/server/infrastructure/intelligence/deepseek-client"
 );
 const { PythonConfidenceAnalysisClient } = await import(
-  "~/modules/research/server/infrastructure/intelligence/python-confidence-analysis-client"
+  "~/server/infrastructure/intelligence/python-confidence-analysis-client"
 );
 const { PythonIntelligenceDataClient } = await import(
-  "~/modules/research/server/infrastructure/intelligence/python-intelligence-data-client"
+  "~/server/infrastructure/intelligence/python-intelligence-data-client"
 );
 const { QuickResearchLangGraph } = await import(
-  "~/modules/research/server/workflows/langgraph/quick-research-graph"
+  "~/server/infrastructure/workflow/langgraph/quick-research-graph"
 );
 
 type MutableRunState = {

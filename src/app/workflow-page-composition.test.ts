@@ -5,37 +5,41 @@ function readSource(relativePath: string) {
   return readFileSync(new URL(relativePath, import.meta.url), "utf8");
 }
 
-function readModuleSource(relativePath: string) {
-  return readFileSync(
-    new URL(`../modules/${relativePath}`, import.meta.url),
-    "utf8",
-  );
-}
-
 describe("workflow page composition", () => {
-  it("renders shared workflow surfaces on every core workflow page", () => {
-    const screeningSource = readModuleSource(
-      "screening/ui/screening-studio-client.tsx",
+  it("renders workflow stage cards from a single source on every core workflow page", () => {
+    const screeningSource = readSource(
+      "./screening/screening-studio-client.tsx",
     );
-    const workflowsSource = readModuleSource(
-      "research/ui/industry/workflows-client.tsx",
+    const workflowsSource = readSource("./workflows/workflows-client.tsx");
+    const companyResearchSource = readSource(
+      "./company-research/company-research-client.tsx",
     );
-    const companyResearchSource = readModuleSource(
-      "research/ui/company/company-research-client.tsx",
-    );
-    const timingSource = readModuleSource("timing/ui/timing-client.tsx");
+    const timingSource = readSource("./timing/timing-client.tsx");
 
     expect(screeningSource).toContain("screeningStageTabs");
     expect(screeningSource).toContain("WorkflowStageSwitcher");
+    expect(screeningSource).not.toContain("workflowTabs={screeningStageTabs}");
+    expect(screeningSource).not.toContain("stagePreviewPanels");
 
-    expect(workflowsSource).toContain("WorkflowVisualizationPanel");
+    expect(workflowsSource).toContain("workflowsStageTabs");
+    expect(workflowsSource).toContain("WorkflowStageSwitcher");
+    expect(workflowsSource).not.toContain("workflowTabs={workflowsStageTabs}");
+    expect(workflowsSource).not.toContain("question: launchFormPanel");
+    expect(workflowsSource).not.toContain("constraints: launchFormPanel");
     expect(workflowsSource.match(/<WorkspaceShell/g)?.length).toBe(1);
 
-    expect(companyResearchSource).toContain("WorkflowVisualizationPanel");
+    expect(companyResearchSource).toContain("companyResearchStageTabs");
+    expect(companyResearchSource).toContain("WorkflowStageSwitcher");
+    expect(companyResearchSource).not.toContain(
+      "workflowTabs={companyResearchStageTabs}",
+    );
+    expect(companyResearchSource).not.toContain("target: launchPanel");
     expect(companyResearchSource.match(/<WorkspaceShell/g)?.length).toBe(1);
 
     expect(timingSource).toContain("timingStageTabs");
     expect(timingSource).toContain("WorkflowStageSwitcher");
+    expect(timingSource).not.toContain("workflowTabs={timingStageTabs}");
+    expect(timingSource).not.toContain("stagePreviewPanels");
   });
 
   it("removes the old bento dashboard structure from the home page", () => {
@@ -46,11 +50,11 @@ describe("workflow page composition", () => {
   });
 
   it("routes history pages through the sidebar history view state", () => {
-    const screeningHistorySource = readModuleSource(
-      "screening/ui/history/screening-history-client.tsx",
+    const screeningHistorySource = readSource(
+      "./screening/history/screening-history-client.tsx",
     );
-    const workflowHistorySource = readModuleSource(
-      "research/ui/workflow-history-client.tsx",
+    const workflowHistorySource = readSource(
+      "./_components/workflow-history-client.tsx",
     );
 
     expect(screeningHistorySource).toContain('sectionView="history"');
@@ -58,59 +62,51 @@ describe("workflow page composition", () => {
   });
 
   it("feeds direct history items through the workflow pages", () => {
-    const screeningSource = readModuleSource(
-      "screening/ui/screening-studio-client.tsx",
+    const screeningSource = readSource(
+      "./screening/screening-studio-client.tsx",
     );
-    const workflowsSource = readModuleSource(
-      "research/ui/industry/workflows-client.tsx",
+    const workflowsSource = readSource("./workflows/workflows-client.tsx");
+    const workflowsStageTabsSource = readSource(
+      "./workflows/workflows-stage-tabs.ts",
     );
-    const companyResearchSource = readModuleSource(
-      "research/ui/company/company-research-client.tsx",
+    const companyResearchSource = readSource(
+      "./company-research/company-research-client.tsx",
     );
-    const timingSource = readModuleSource("timing/ui/timing-client.tsx");
-    const workflowsHistorySource = readModuleSource(
-      "research/ui/industry/history/page.tsx",
+    const companyResearchStageTabsSource = readSource(
+      "./company-research/company-research-stage-tabs.ts",
     );
-    const companyResearchHistorySource = readModuleSource(
-      "research/ui/company/history/page.tsx",
+    const timingSource = readSource("./timing/timing-client.tsx");
+    const workflowsHistorySource = readSource("./workflows/history/page.tsx");
+    const companyResearchHistorySource = readSource(
+      "./company-research/history/page.tsx",
     );
-    const runInvestorSource = readModuleSource(
-      "research/ui/runs/[runId]/run-investor-client.tsx",
+    const runInvestorSource = readSource(
+      "./workflows/[runId]/run-investor-client.tsx",
     );
-    const runDetailSource = readModuleSource(
-      "research/ui/runs/[runId]/run-detail-client.tsx",
-    );
-    const timingReportSource = readModuleSource(
-      "timing/ui/reports/[cardId]/timing-report-client.tsx",
+    const runDetailSource = readSource(
+      "./workflows/[runId]/run-detail-client.tsx",
     );
 
     expect(screeningSource).toContain("historyItems={");
     expect(screeningSource).toContain("stockFilterQuery");
     expect(screeningSource).toContain("missingValueMode");
     expect(screeningSource).toContain("toggleSortForMetric");
-
     expect(workflowsSource).toContain("historyItems={");
-    expect(workflowsSource).toContain("WorkflowVisualizationPanel");
-
     expect(companyResearchSource).toContain("historyItems={");
-    expect(companyResearchSource).toContain("WorkflowVisualizationPanel");
-
     expect(timingSource).toContain("historyItems={");
     expect(runInvestorSource).toContain("historyItems={");
     expect(runDetailSource).toContain("historyItems={");
-    expect(timingReportSource).toContain("research.runs.getRun.useQuery");
-    expect(timingReportSource).toContain("TimingReportView");
 
     expect(screeningSource).not.toContain('href="/screening/history"');
     expect(screeningSource).not.toContain('activeTabId === "filters"');
-    expect(workflowsSource).not.toContain('href="/research/history"');
+    expect(workflowsSource).not.toContain('href="/workflows/history"');
     expect(workflowsSource).not.toContain("queue: queuePanel");
-    expect(runInvestorSource).not.toContain(
-      '<FlowGraph graph={run.runView.user} mode="user" />',
-    );
+    expect(workflowsStageTabsSource).not.toContain("最近结论");
     expect(companyResearchSource).not.toContain(
-      'href="/research/company/history"',
+      'href="/company-research/history"',
     );
+    expect(companyResearchSource).not.toContain("findings: findingsPanel");
+    expect(companyResearchStageTabsSource).not.toContain("最近发现");
     expect(timingSource).toContain("buildTimingReportHistoryItems");
     expect(timingSource).not.toContain("buildWorkflowRunHistoryItems");
     expect(timingSource).not.toContain('href="/timing/history"');
@@ -118,37 +114,33 @@ describe("workflow page composition", () => {
     expect(companyResearchHistorySource).not.toContain("headerActions");
   });
 
-  it("keeps opportunity intelligence out of research, company research, and timing pages", () => {
-    const workflowsSource = readModuleSource(
-      "research/ui/industry/workflows-client.tsx",
+  it("injects the shared market context entrypoint into every core workflow page", () => {
+    const screeningSource = readSource(
+      "./screening/screening-studio-client.tsx",
     );
-    const companyResearchSource = readModuleSource(
-      "research/ui/company/company-research-client.tsx",
+    const workflowsSource = readSource("./workflows/workflows-client.tsx");
+    const companyResearchSource = readSource(
+      "./company-research/company-research-client.tsx",
     );
-    const timingSource = readModuleSource("timing/ui/timing-client.tsx");
-    const opportunityIntelligencePageSource = readModuleSource(
-      "research/ui/industry/page.tsx",
-    );
+    const timingSource = readSource("./timing/timing-client.tsx");
 
-    expect(workflowsSource).not.toContain("OpportunityIntelligenceSummary");
-    expect(companyResearchSource).not.toContain(
-      "OpportunityIntelligenceSummary",
-    );
-    expect(timingSource).not.toContain("OpportunityIntelligenceSummary");
-    expect(opportunityIntelligencePageSource).toContain("WorkflowsClient");
+    expect(screeningSource).toContain("MarketContextSection");
+    expect(workflowsSource).toContain("MarketContextSection");
+    expect(companyResearchSource).toContain("MarketContextSection");
+    expect(timingSource).toContain("MarketContextSection");
   });
 
   it("uses a dedicated document-style quick research detail component", () => {
-    const investorDetailSource = readModuleSource(
-      "research/ui/runs/[runId]/run-investor-client.tsx",
+    const investorDetailSource = readSource(
+      "./workflows/[runId]/run-investor-client.tsx",
     );
-    const industryDetailSource = readModuleSource(
-      "research/ui/runs/[runId]/industry-conclusion-detail.tsx",
+    const industryDetailSource = readSource(
+      "./workflows/[runId]/industry-conclusion-detail.tsx",
     );
 
     expect(investorDetailSource).toContain("IndustryConclusionDetail");
     expect(investorDetailSource).toContain("buildIndustryConclusionViewModel");
-    expect(industryDetailSource).toContain("WorkflowStageSwitcher");
-    expect(industryDetailSource).not.toContain("WorkflowVisualizationPanel");
+    expect(industryDetailSource).not.toContain("KeyPointList");
+    expect(industryDetailSource).not.toContain("ResearchOpsPanels");
   });
 });
